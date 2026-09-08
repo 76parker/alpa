@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["data", "pagination"],
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/component" }
+    },
+    "pagination": { "$ref": "#/$defs/pagination" }
+  },
+  "$defs": {
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "product_id", "name", "type", "description", "details", "apis"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "product_id": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string" },
+        "type": { "enum": ["Backend Service", "Frontend Service", "Infrastructure", "Background Worker"] },
+        "description": { "type": "string" },
+        "details": { "type": "object" },
+        "apis": { "type": "array", "items": { "$ref": "#/$defs/api" } }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "enum": ["Backend Service", "Frontend Service"] } }, "required": ["type"] },
+          "then": { "properties": { "details": { "$ref": "#/$defs/service" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "Infrastructure" } }, "required": ["type"] },
+          "then": { "properties": { "details": { "$ref": "#/$defs/infrastructure" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "Background Worker" } }, "required": ["type"] },
+          "then": { "properties": { "details": { "$ref": "#/$defs/background_worker" } } }
+        }
+      ]
+    },
+    "api": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "api_type", "network_exposure", "role"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string" },
+        "api_type": { "enum": ["REST", "GraphQL", "gRPC", "JSON-RPC", "SOAP", "WebSocket", "OData", "SSE", "Event", "Native Protocol"] },
+        "network_exposure": { "enum": ["internal", "internet"] },
+        "role": { "enum": ["provider", "consumer"] }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "language_version", "framework"],
+      "properties": {
+        "language": { "type": "string" },
+        "language_version": { "type": "string" },
+        "framework": { "type": "string" }
+      }
+    },
+    "infrastructure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system", "version", "network_address"],
+      "properties": {
+        "system": { "type": "string" },
+        "version": { "type": "string" },
+        "network_address": { "type": "string" }
+      }
+    },
+    "background_worker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "language_version", "framework", "broker"],
+      "properties": {
+        "language": { "type": "string" },
+        "language_version": { "type": "string" },
+        "framework": { "type": "string" },
+        "broker": {
+          "enum": ["RabbitMQ", "Kafka", "Redpanda", "NATS/JetStream", "Apache Pulsar", "AWS SQS", "Google Cloud Pub/Sub", "Azure Service Bus", "Redis Streams", "ActiveMQ", "IBM MQ"]
+        }
+      }
+    },
+    "pagination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["limit", "offset"],
+      "properties": {
+        "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "offset": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

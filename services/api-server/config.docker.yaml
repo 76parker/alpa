@@ -1,0 +1,34 @@
+logger:
+  only_stdout: true
+  level: "info"
+  enable_caller: true
+  log_file: "./test.log"
+  rotation:
+    max_size_mb: 5 # в MB (размер файла после которого файл будет считаться старым log-файлом и создастся новый)
+    max_age_days: 1 # количество дней которое может жить старый log-файл
+    max_backups: 10 # количество старых log-файлов которые могут лежать
+    local_time: true # использовать ли локальное время хоста для названия старых log-файлов на котором работает процесс
+    compress: false # использовать ли gzip-компрессию для старых log-файлов
+
+http:
+  address: "0.0.0.0:8080"
+  read_header_timeout: 5s
+  read_timeout: 10s
+  write_timeout: 20s
+  idle_timeout: 40s
+  max_header_bytes: 1048576 # 1 MB
+
+postgres:
+  host: "postgres"
+  port: 5432
+  database: "app"
+  ssl: "disable"
+  username: "postgres"
+  password: "postgres"
+  pool_config:
+    max_connections: 5
+    min_connections: 2
+    max_connection_lifetime: "1h"
+    max_conn_idle_time: "30m"
+    health_check_period: "1m"
+    connect_timeout: "10s"

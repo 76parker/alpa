@@ -1,0 +1,339 @@
+openapi: 3.0.3
+info:
+  title: ALPA Inventory API
+  version: 1.0.0
+  description: API for maintaining workspaces, products, and components.
+servers:
+  - url: /
+tags:
+  - name: Workspaces
+  - name: Products
+  - name: Components
+paths:
+  /v1/workspaces:
+    post:
+      tags: [Workspaces]
+      summary: Create a workspace
+      operationId: createWorkspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateWorkspaceRequest'}
+      responses:
+        '201': {description: Workspace created, content: {application/json: {schema: {$ref: '#/components/schemas/Workspace'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    get:
+      tags: [Workspaces]
+      summary: List workspaces
+      operationId: listWorkspaces
+      parameters: [{$ref: '#/components/parameters/Limit'}, {$ref: '#/components/parameters/Offset'}]
+      responses:
+        '200': {description: Workspace page, content: {application/json: {schema: {$ref: '#/components/schemas/WorkspaceList'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /v1/workspaces/{workspace_id}:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    get:
+      tags: [Workspaces]
+      summary: Get a workspace
+      operationId: getWorkspace
+      responses:
+        '200': {description: Workspace, content: {application/json: {schema: {$ref: '#/components/schemas/Workspace'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    delete:
+      tags: [Workspaces]
+      summary: Delete a workspace
+      operationId: deleteWorkspace
+      responses:
+        '204': {description: Workspace deleted}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /v1/workspaces/{workspace_id}/products:
+    parameters: [{$ref: '#/components/parameters/WorkspaceID'}]
+    post:
+      tags: [Products]
+      summary: Create a product in a workspace
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateProductRequest'}
+      responses:
+        '201': {description: Product created, content: {application/json: {schema: {$ref: '#/components/schemas/Product'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    get:
+      tags: [Products]
+      summary: List products in a workspace
+      operationId: listWorkspaceProducts
+      parameters: [{$ref: '#/components/parameters/Limit'}, {$ref: '#/components/parameters/Offset'}]
+      responses:
+        '200': {description: Product page, content: {application/json: {schema: {$ref: '#/components/schemas/ProductList'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /v1/products/{product_id}:
+    parameters: [{$ref: '#/components/parameters/ProductID'}]
+    get:
+      tags: [Products]
+      summary: Get a product
+      operationId: getProduct
+      responses:
+        '200': {description: Product, content: {application/json: {schema: {$ref: '#/components/schemas/Product'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    delete:
+      tags: [Products]
+      summary: Delete a product
+      operationId: deleteProduct
+      responses:
+        '204': {description: Product deleted}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /v1/components:
+    post:
+      tags: [Components]
+      summary: Create a component
+      operationId: createComponent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateComponentRequest'}
+      responses:
+        '201': {description: Component created, content: {application/json: {schema: {$ref: '#/components/schemas/Component'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /v1/components/{id}/consumer-apis:
+    parameters: [{$ref: '#/components/parameters/ComponentID'}]
+    post:
+      tags: [Components]
+      summary: Add a consumed API to a component
+      operationId: addComponentConsumerAPI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ConsumerAPIRequest'}
+      responses:
+        '204': {description: Consumer API added}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /v1/components/{id}/consumer-apis/{api_id}:
+    parameters: [{$ref: '#/components/parameters/ComponentID'}, {$ref: '#/components/parameters/APIID'}]
+    delete:
+      tags: [Components]
+      summary: Remove a consumed API from a component
+      operationId: removeComponentConsumerAPI
+      responses:
+        '204': {description: Consumer API removed}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /v1/components/{id}:
+    parameters: [{$ref: '#/components/parameters/ComponentID'}]
+    get:
+      tags: [Components]
+      summary: Get a component
+      operationId: getComponent
+      responses:
+        '200': {description: Component, content: {application/json: {schema: {$ref: '#/components/schemas/Component'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    delete:
+      tags: [Components]
+      summary: Delete a component
+      operationId: deleteComponent
+      responses:
+        '204': {description: Component deleted}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /v1/products/{product_id}/components:
+    parameters: [{$ref: '#/components/parameters/ProductID'}]
+    get:
+      tags: [Components]
+      summary: List components in a product
+      operationId: listProductComponents
+      parameters: [{$ref: '#/components/parameters/Limit'}, {$ref: '#/components/parameters/Offset'}]
+      responses:
+        '200': {description: Component page, content: {application/json: {schema: {$ref: '#/components/schemas/ComponentList'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+components:
+  parameters:
+    WorkspaceID: {name: workspace_id, in: path, required: true, schema: {allOf: [{$ref: '#/components/schemas/ID'}], example: 1001}}
+    ProductID: {name: product_id, in: path, required: true, schema: {allOf: [{$ref: '#/components/schemas/ID'}], example: 2001}}
+    ComponentID: {name: id, in: path, required: true, schema: {allOf: [{$ref: '#/components/schemas/ID'}], example: 3001}}
+    APIID: {name: api_id, in: path, required: true, schema: {allOf: [{$ref: '#/components/schemas/ID'}], example: 4001}}
+    Limit: {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20, example: 20}}
+    Offset: {name: offset, in: query, schema: {type: integer, minimum: 0, default: 0, example: 0}}
+  responses:
+    BadRequest: {description: Invalid request, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+    NotFound: {description: Resource not found, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+    Conflict: {description: Conflicting resource state, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+    InternalError: {description: Unexpected server error, content: {application/json: {schema: {$ref: '#/components/schemas/Error'}}}}
+  schemas:
+    ID: {type: integer, format: int64, minimum: 1, example: 1001}
+    ProductCode: {type: string, minLength: 1, maxLength: 10, pattern: "^[A-Z]+$", example: CHECKOUT}
+    Name: {type: string, minLength: 1, maxLength: 50, pattern: "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$", example: Payments Platform}
+    Description: {type: string, minLength: 1, maxLength: 1000, pattern: "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$", example: Processes card payments and refunds.}
+    Pagination:
+      type: object
+      required: [limit, offset]
+      properties:
+        limit: {type: integer, minimum: 1, maximum: 100, example: 20}
+        offset: {type: integer, minimum: 0, example: 0}
+    Error:
+      type: object
+      required: [message, code, status]
+      properties:
+        message: {type: string, example: "name is required"}
+        code: {type: string, example: invalid_request}
+        status: {type: integer, example: 400}
+    Workspace:
+      type: object
+      required: [id, name]
+      properties:
+        id: {allOf: [{$ref: '#/components/schemas/ID'}], example: 1001}
+        name: {allOf: [{$ref: '#/components/schemas/Name'}], example: Payments Platform}
+    CreateWorkspaceRequest:
+      type: object
+      required: [name]
+      properties:
+        name: {allOf: [{$ref: '#/components/schemas/Name'}], example: Payments Platform}
+    WorkspaceList:
+      type: object
+      required: [data, pagination]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/Workspace'}}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+    Criticality:
+      type: string
+      enum: [MISSION-CRITICAL, BUSINESS-CRITICAL, BUSINESS-OPERATIONAL, OFFICE-PRODUCTIVITY]
+      example: BUSINESS-CRITICAL
+    Product:
+      type: object
+      required: [id, workspace_id, owning_team_id, product_code, name, criticality, description]
+      properties:
+        id: {allOf: [{$ref: '#/components/schemas/ID'}], example: 2001}
+        workspace_id: {allOf: [{$ref: '#/components/schemas/ID'}], example: 1001}
+        owning_team_id: {allOf: [{$ref: '#/components/schemas/ID'}], nullable: true, example: 301}
+        product_code: {allOf: [{$ref: '#/components/schemas/ProductCode'}], example: CHECKOUT}
+        name: {allOf: [{$ref: '#/components/schemas/Name'}], example: Checkout Service}
+        criticality: {$ref: '#/components/schemas/Criticality'}
+        description: {allOf: [{$ref: '#/components/schemas/Description'}], nullable: true, example: Handles checkout and payment confirmation.}
+    CreateProductRequest:
+      type: object
+      required: [product_code, name, criticality]
+      properties:
+        owning_team_id: {allOf: [{$ref: '#/components/schemas/ID'}], example: 301}
+        product_code: {allOf: [{$ref: '#/components/schemas/ProductCode'}], example: CHECKOUT}
+        name: {allOf: [{$ref: '#/components/schemas/Name'}], example: Checkout Service}
+        criticality: {$ref: '#/components/schemas/Criticality'}
+        description: {allOf: [{$ref: '#/components/schemas/Description'}], example: Handles checkout and payment confirmation.}
+    ProductList:
+      type: object
+      required: [data, pagination]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/Product'}}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+    ComponentType:
+      type: string
+      enum: [Backend Service, Frontend Service, Infrastructure, Background Worker]
+      example: Backend Service
+    ServiceDetails:
+      type: object
+      required: [language]
+      properties:
+        language: {allOf: [{$ref: '#/components/schemas/Name'}], example: Go}
+        language_version: {allOf: [{$ref: '#/components/schemas/Name'}], example: "1.27"}
+        framework: {allOf: [{$ref: '#/components/schemas/Name'}], example: Gin}
+    BackgroundWorkerDetails:
+      allOf:
+        - {$ref: '#/components/schemas/ServiceDetails'}
+        - type: object
+          required: [broker]
+          properties:
+            broker: {type: string, enum: [RabbitMQ, Kafka, Redpanda, NATS/JetStream, Apache Pulsar, AWS SQS, Google Cloud Pub/Sub, Azure Service Bus, Redis Streams, ActiveMQ, IBM MQ], example: Kafka}
+    InfrastructureDetails:
+      type: object
+      required: [system]
+      properties:
+        system: {allOf: [{$ref: '#/components/schemas/Name'}], example: PostgreSQL}
+        version: {allOf: [{$ref: '#/components/schemas/Name'}], example: "17.2"}
+        network_address: {allOf: [{$ref: '#/components/schemas/Name'}], example: "postgres.internal:5432"}
+    ComponentDetails:
+      oneOf:
+        - {$ref: '#/components/schemas/ServiceDetails'}
+        - {$ref: '#/components/schemas/BackgroundWorkerDetails'}
+        - {$ref: '#/components/schemas/InfrastructureDetails'}
+    Component:
+      type: object
+      required: [id, product_id, name, type, description, details, apis]
+      properties:
+        id: {allOf: [{$ref: '#/components/schemas/ID'}], example: 3001}
+        product_id: {allOf: [{$ref: '#/components/schemas/ID'}], example: 2001}
+        name: {allOf: [{$ref: '#/components/schemas/Name'}], example: Checkout API}
+        type: {$ref: '#/components/schemas/ComponentType'}
+        description: {allOf: [{$ref: '#/components/schemas/Description'}], example: Serves checkout requests for the web and mobile apps.}
+        details: {$ref: '#/components/schemas/ComponentDetails'}
+        apis: {type: array, items: {$ref: '#/components/schemas/ComponentAPI'}}
+    CreateComponentRequest:
+      type: object
+      required: [product_id, name, type, details]
+      properties:
+        product_id: {allOf: [{$ref: '#/components/schemas/ID'}], example: 2001}
+        name: {allOf: [{$ref: '#/components/schemas/Name'}], example: Checkout API}
+        type: {$ref: '#/components/schemas/ComponentType'}
+        description: {allOf: [{$ref: '#/components/schemas/Description'}], example: Serves checkout requests for the web and mobile apps.}
+        details: {$ref: '#/components/schemas/ComponentDetails'}
+        apis: {type: array, items: {$ref: '#/components/schemas/CreateComponentAPI'}}
+    ConsumerAPIRequest:
+      type: object
+      required: [api_id]
+      additionalProperties: false
+      properties:
+        api_id: {allOf: [{$ref: '#/components/schemas/ID'}], example: 4001}
+    ComponentList:
+      type: object
+      required: [data, pagination]
+      properties:
+        data: {type: array, items: {$ref: '#/components/schemas/Component'}}
+        pagination: {$ref: '#/components/schemas/Pagination'}
+    APIType:
+      type: string
+      enum: [REST, GraphQL, gRPC, JSON-RPC, SOAP, WebSocket, OData, SSE, Event, Native Protocol]
+      example: REST
+    NetworkExposure: {type: string, enum: [internal, internet], example: internet}
+    ComponentAPI:
+      type: object
+      required: [id, name, api_type, network_exposure, role]
+      properties:
+        id: {allOf: [{$ref: '#/components/schemas/ID'}], example: 4001}
+        name: {allOf: [{$ref: '#/components/schemas/Name'}], example: Checkout Public API}
+        api_type: {$ref: '#/components/schemas/APIType'}
+        network_exposure: {$ref: '#/components/schemas/NetworkExposure'}
+        role: {$ref: '#/components/schemas/APIRole'}
+    CreateComponentAPI:
+      type: object
+      required: [name, api_type, network_exposure]
+      properties:
+        name: {allOf: [{$ref: '#/components/schemas/Name'}], example: Checkout Public API}
+        api_type: {$ref: '#/components/schemas/APIType'}
+        network_exposure: {$ref: '#/components/schemas/NetworkExposure'}
+    APIRole: {type: string, enum: [provider, consumer], example: provider}

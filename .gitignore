@@ -1,0 +1,9 @@
+REVIEW.md
+docker-compose.yaml
+.codegraph
+.serena
+allure-report
+vendor
+node_modules
+.zed
+.idea

@@ -1,0 +1,15 @@
+version: "2"
+
+sql:
+  - engine: "postgresql"
+    schema: "migrations/000001_create_inventory_schema.up.sql"
+    queries: "internal/adapters/postgres/inventory/queries"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/adapters/postgres/inventory/internal/sqlc"
+        sql_package: "pgx/v5"
+        emit_interface: true
+        emit_empty_slices: true
+        emit_enum_valid_method: true
+        emit_pointers_for_null_types: true

@@ -1,0 +1,13 @@
+.codegraph
+.git
+.next
+.serena
+.vinext
+.wrangler
+coverage
+dist
+node_modules
+test-results
+*.log
+.env*
+!.env.example

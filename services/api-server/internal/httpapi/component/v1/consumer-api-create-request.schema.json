@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "required": ["api_id"],
+  "additionalProperties": false,
+  "properties": {
+    "api_id": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}

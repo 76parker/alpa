@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BackgroundWorkerDetailsV1",
+  "description": "Version 1 details for a background worker component.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "core_language",
+    "broker"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1
+    },
+    "core_language": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$",
+      "maxLength": 50
+    },
+    "language_version": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$",
+      "maxLength": 50
+    },
+    "main_framework": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$",
+      "maxLength": 50
+    },
+    "broker": {
+      "type": "string",
+      "enum": [
+        "RabbitMQ",
+        "Kafka",
+        "Redpanda",
+        "NATS/JetStream",
+        "Apache Pulsar",
+        "AWS SQS",
+        "Google Cloud Pub/Sub",
+        "Azure Service Bus",
+        "Redis Streams",
+        "ActiveMQ",
+        "IBM MQ"
+      ]
+    }
+  }
+}

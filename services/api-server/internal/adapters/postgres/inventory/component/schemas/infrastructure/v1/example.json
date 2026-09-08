@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "system": "PostgreSQL",
+  "version": "18",
+  "network_address": "postgres.internal:5432"
+}

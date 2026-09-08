@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "core_language": "Go",
+  "language_version": "1.26",
+  "main_framework": "Watermill",
+  "broker": "Kafka"
+}

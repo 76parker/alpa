@@ -1,0 +1,8 @@
+{
+  "pid": 11037,
+  "port": 3001,
+  "hostname": "localhost",
+  "appUrl": "http://localhost:3001",
+  "startedAt": 1788859354450,
+  "cwd": "/Users/parkersec/go-projects/alpa/services/frontend"
+}

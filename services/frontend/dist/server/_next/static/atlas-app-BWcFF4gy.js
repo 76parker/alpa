@@ -1,0 +1,1 @@
+import{t as e}from"./rsc-CVy_C17F.js";var t=e(()=>{throw Error(`Unexpectedly client reference export 'AtlasApp' is called on server`)},`7ee97523f0d7`,`AtlasApp`);export{t};

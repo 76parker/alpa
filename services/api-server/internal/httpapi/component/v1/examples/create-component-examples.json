@@ -1,0 +1,6 @@
+[
+  { "product_id": 1, "name": "backend-api", "description": "Backend API service", "type": "Backend Service", "details": { "language": "Go", "language_version": "1.24", "framework": "Gin" } },
+  { "product_id": 1, "name": "frontend-web", "type": "Frontend Service", "details": { "language": "TypeScript", "framework": "React" } },
+  { "product_id": 1, "name": "postgres-db", "type": "Infrastructure", "details": { "system": "PostgreSQL", "version": "17", "network_address": "db.internal" } },
+  { "product_id": 1, "name": "scan-worker", "type": "Background Worker", "details": { "language": "Go", "broker": "Kafka" } }
+]

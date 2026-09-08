@@ -1,0 +1,5 @@
+{
+  "debugPortAddress": "127.0.0.1:61737",
+  "defaultEntrypointService": "core:user:__vite_proxy_worker__",
+  "userWorkerService": "core:user:__vite_proxy_worker__"
+}

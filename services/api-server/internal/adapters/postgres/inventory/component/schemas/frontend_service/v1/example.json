@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "core_language": "TypeScript",
+  "language_version": "5.9",
+  "main_framework": "React"
+}

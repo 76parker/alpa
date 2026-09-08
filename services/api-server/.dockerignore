@@ -1,0 +1,10 @@
+.git
+.serena
+.dockerignore
+Dockerfile
+docker-compose.yaml
+config.yaml
+*.log
+bin
+dist
+tmp

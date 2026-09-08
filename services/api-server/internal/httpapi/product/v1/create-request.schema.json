@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["product_code", "name", "criticality"],
+  "properties": {
+    "owning_team_id": { "type": "integer", "minimum": 1 },
+    "product_code": { "$ref": "#/$defs/product_code" },
+    "name": { "$ref": "#/$defs/string" },
+    "criticality": {
+      "enum": [
+        "MISSION-CRITICAL",
+        "BUSINESS-CRITICAL",
+        "BUSINESS-OPERATIONAL",
+        "OFFICE-PRODUCTIVITY"
+      ]
+    },
+    "description": { "$ref": "#/$defs/description" }
+  },
+  "$defs": {
+    "product_code": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 10,
+      "pattern": "^[A-Z]+$"
+    },
+    "string": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50,
+      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"
+    }
+  }
+}

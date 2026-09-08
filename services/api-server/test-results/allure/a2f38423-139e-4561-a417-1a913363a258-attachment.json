@@ -1,0 +1,1 @@
+{"message":"component type must be one of: Backend Service, Frontend Service, Infrastructure, Background Worker","code":"unknown_component_type","status":400}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["data", "pagination"],
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/product" }
+    },
+    "pagination": { "$ref": "#/$defs/pagination" }
+  },
+  "$defs": {
+    "product": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "workspace_id", "owning_team_id", "name", "criticality", "description"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "workspace_id": { "type": "integer", "minimum": 1 },
+        "owning_team_id": { "type": ["integer", "null"], "minimum": 1 },
+        "name": { "type": "string" },
+        "criticality": {
+          "enum": ["MISSION-CRITICAL", "BUSINESS-CRITICAL", "BUSINESS-OPERATIONAL", "OFFICE-PRODUCTIVITY"]
+        },
+        "description": { "type": ["string", "null"] }
+      }
+    },
+    "pagination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["limit", "offset"],
+      "properties": {
+        "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "offset": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

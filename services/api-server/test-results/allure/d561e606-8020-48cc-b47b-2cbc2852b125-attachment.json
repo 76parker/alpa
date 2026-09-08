@@ -1,0 +1,1 @@
+{"product_id":1,"name":"Test Component","type":"Backend Service","description":"Backend component used by the component E2E tests","details":{"language":""},"apis":[{"name":"Component API","api_type":"REST","network_exposure":"internal"}]}
