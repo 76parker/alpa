@@ -7,3 +7,4 @@ vendor
 node_modules
 .zed
 .idea
+.DS_Store
