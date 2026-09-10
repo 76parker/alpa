@@ -29,20 +29,20 @@ type PostgresConfig struct {
 type PoolConfig struct {
 	MaxConnections        int           `yaml:"max_connections" validate:"required,min=1,max=100"`
 	MinConnections        int           `yaml:"min_connections" validate:"required,min=1"`
-	MaxConnectionLifetime time.Duration `yaml:"max_connection_lifetime" validate:"required"`
-	MaxConnIdleTime       time.Duration `yaml:"max_conn_idle_time" validate:"required"`
-	HealthCheckPeriod     time.Duration `yaml:"health_check_period" validate:"required"`
-	ConnectTimeout        time.Duration `yaml:"connect_timeout" validate:"required"`
+	MaxConnectionLifetime time.Duration `yaml:"max_connection_lifetime" validate:"required,gt=0"`
+	MaxConnIdleTime       time.Duration `yaml:"max_conn_idle_time" validate:"required,gt=0"`
+	HealthCheckPeriod     time.Duration `yaml:"health_check_period" validate:"required,gt=0"`
+	ConnectTimeout        time.Duration `yaml:"connect_timeout" validate:"required,gt=0"`
 }
 
 type HTTPConfig struct {
 	UIAssetsDir       string        `yaml:"ui_assets_dir"`
 	Address           string        `yaml:"address" validate:"required"`
-	ReadHeaderTimeout time.Duration `yaml:"read_header_timeout" validate:"required"`
-	ReadTimeout       time.Duration `yaml:"read_timeout" validate:"required"`
-	WriteTimeout      time.Duration `yaml:"write_timeout" validate:"required"`
-	IdleTimeout       time.Duration `yaml:"idle_timeout" validate:"required"`
-	MaxHeaderBytes    int           `yaml:"max_header_bytes" validate:"required"`
+	ReadHeaderTimeout time.Duration `yaml:"read_header_timeout" validate:"required,gt=0"`
+	ReadTimeout       time.Duration `yaml:"read_timeout" validate:"required,gt=0"`
+	WriteTimeout      time.Duration `yaml:"write_timeout" validate:"required,gt=0"`
+	IdleTimeout       time.Duration `yaml:"idle_timeout" validate:"required,gt=0"`
+	MaxHeaderBytes    int           `yaml:"max_header_bytes" validate:"required,gt=0"`
 }
 
 // LoadConfig reads, decodes, and validates the application configuration at path.
