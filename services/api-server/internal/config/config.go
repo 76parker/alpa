@@ -35,6 +35,7 @@ type PoolConfig struct {
 }
 
 type HTTPConfig struct {
+	UIAssetsDir       string        `yaml:"ui_assets_dir"`
 	Address           string        `yaml:"address"`
 	ReadHeaderTimeout time.Duration `yaml:"read_header_timeout"`
 	ReadTimeout       time.Duration `yaml:"read_timeout"`

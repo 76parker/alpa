@@ -12,6 +12,7 @@ import (
 	"github.com/76parker/alpa/internal/config"
 	"github.com/76parker/alpa/internal/httpapi"
 	"github.com/76parker/alpa/internal/observability/logger"
+	"github.com/76parker/alpa/internal/webui"
 )
 
 const shutdownTimeout = 10 * time.Second
@@ -24,6 +25,16 @@ func Run(ctx context.Context, cfg config.Config, migrationsDir string) (returnEr
 	defer func() {
 		if err := log.Close(); err != nil {
 			returnErr = errors.Join(returnErr, fmt.Errorf("close logger: %w", err))
+		}
+	}()
+
+	ui, err := webui.Load(cfg.HTTP.UIAssetsDir)
+	if err != nil {
+		return fmt.Errorf("bootstrap UI: %w", err)
+	}
+	defer func() {
+		if err := ui.Close(); err != nil {
+			returnErr = errors.Join(returnErr, fmt.Errorf("close UI assets: %w", err))
 		}
 	}()
 
@@ -46,6 +57,7 @@ func Run(ctx context.Context, cfg config.Config, migrationsDir string) (returnEr
 	if err != nil {
 		return fmt.Errorf("create handlers: %w", err)
 	}
+	handlers.UI = ui
 	server := httpapi.NewServer(newServerConfig(*cfg.HTTP), log, handlers)
 
 	logSwaggerDocumentation(log, cfg.HTTP.Address)

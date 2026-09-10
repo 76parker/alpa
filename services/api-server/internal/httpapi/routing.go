@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/76parker/alpa/docs"
 	"github.com/76parker/alpa/internal/httpapi/component"
@@ -13,6 +14,7 @@ import (
 )
 
 type Handlers struct {
+	UI        http.Handler
 	Workspace *workspace.Handler
 	Product   *product.Handler
 	Component *component.Handler
@@ -29,6 +31,17 @@ func newRouter(log logger.Logger, handlers Handlers) *gin.Engine {
 	initWorkspaceRoutes(v1, &handlers)
 	initProductRoutes(v1, &handlers)
 	initComponentRoutes(v1, &handlers)
+	if handlers.UI != nil {
+		router.NoRoute(func(c *gin.Context) {
+			first := strings.SplitN(strings.TrimPrefix(c.Request.URL.Path, "/"), "/", 2)[0]
+			if first == "v1" || first == "docs" {
+				c.Status(http.StatusNotFound)
+				return
+			}
+			c.Set("handler_name", "webui")
+			handlers.UI.ServeHTTP(c.Writer, c.Request)
+		})
+	}
 	return router
 }
 
