@@ -5,7 +5,7 @@
 - Audience: application-security teams maintaining product, component, and API relationship records. Architecture, threat modeling, and security-check routes are explicitly in development.
 - Locale: English (`en`) with current Russian strings retained as model content only.
 - Accessibility target: WCAG 2.2 AA intent, with native semantics, visible focus, labelled controls, keyboard operation, and status announcements.
-- Design source: [DESIGN.md](DESIGN.md); runtime tokens live in `app/globals.css`.
+- Design source: [DESIGN.md](DESIGN.md); runtime tokens live in `globals.css`.
 
 ## Canonical URLs and titles
 
@@ -22,7 +22,7 @@ The client parses and serializes the following canonical paths. Navigation uses 
 | Teams | `/teams`, `/teams/:teamId` |
 | Settings | `/settings` |
 
-Every route sets `"<surface> · Alpa"` as its document title. A catch-all application route preserves direct refresh behavior.
+Every route sets `"<surface> · Alpa"` as its document title. The Go server serves the SPA entry point for HTML navigation, preserving direct opening and refresh of nested routes.
 
 ## Search and tables
 
@@ -42,8 +42,10 @@ Dashboard, Templates, Teams, Settings, architecture-map, threat-modeling, and se
 
 ## Persistence and resilience
 
-Workspaces, Products, Components, and API relationships come from the inventory API through the same-origin `/api/inventory/*` boundary. Inventory entities are never copied into browser storage. Only the active workspace ID is persisted under the compatibility key `appsec-atlas-active-workspace-v1`; retaining the pre-Alpa key prevents a brand-only update from discarding an existing user choice. A valid persisted choice wins, otherwise the API workspace named exactly `default` is selected, with the first returned workspace as the final fallback. All list endpoints are exhausted in pages of 100, while Products search is local and exact to the returned values and the visible table paginates by 20.
+Workspaces, Products, Components, and API relationships come from the inventory API directly through same-origin `/v1/...` endpoints. Inventory entities are never copied into browser storage. Only the active workspace ID is persisted under the compatibility key `appsec-atlas-active-workspace-v1`; retaining the pre-Alpa key prevents a brand-only update from discarding an existing user choice. A valid persisted choice wins, otherwise the API workspace named exactly `default` is selected, with the first returned workspace as the final fallback. All list endpoints are exhausted in pages of 100, while Products search is local and exact to the returned values and the visible table paginates by 20.
 
-The server-side proxy reads `API_SERVER_BASE_URL` from its runtime environment. Local development defaults to `http://localhost:8080`; hosted environments set the value through Sites runtime configuration. Browser cookies and authorization headers never cross this boundary.
+The Go service serves both UI and API at `http://localhost:8080` by default. Production embeds the Vite build in the Go binary. In local development Vite rebuilds files with `vite build --watch`, Go reads those files from `http.ui_assets_dir`, and the user refreshes the page manually. There is no frontend HTTP server, proxy, or CORS layer.
+
+Moving from port 3000 to port 8080 changes the browser origin. localStorage is not transferred between origins; active workspace selection follows the existing fallback rule. PostgreSQL data is unaffected.
 
 Dashboard is temporarily an in-development surface. It makes no inventory-specific requests beyond the application’s normal workspace/product hydration, introduces no demo entities or local persistence, and returns to Products through its Back action. Teams and Settings remain route-backed in-development notices until their inventory-backed implementations are available.
