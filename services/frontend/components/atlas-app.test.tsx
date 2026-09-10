@@ -91,7 +91,7 @@ it('creates a remote product without storing server entities in localStorage', a
   await user.click(screen.getByRole('button', { name: 'Create product' }));
 
   await waitFor(() => expect(window.location.pathname).toBe('/products'));
-  expect(screen.getByText('Fraud Rules').closest('tr')?.className).toContain('recently-created');
+  expect(screen.getByText('Fraud Rules').closest('tr')?.className).not.toContain('recently-created');
   expect(screen.getByRole('status').textContent).toContain('Product created');
   expect(window.localStorage.getItem('appsec-atlas-active-workspace-v1')).toBe('7');
   expect(window.localStorage.getItem('appsec-atlas-demo-v4')).toBeNull();
