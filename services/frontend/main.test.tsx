@@ -1,7 +1,7 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import type { ListResponse, Product, Workspace } from '../../lib/inventory/contracts';
-import AtlasRoute from './page';
+import type { ListResponse, Product, Workspace } from './lib/inventory/contracts';
+import { AtlasApp } from './components/atlas-app';
 
 beforeEach(() => {
   const storage = new Map<string, string>();
@@ -26,8 +26,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it('renders the server product surface on a direct non-root catch-all refresh', async () => {
-  render(<AtlasRoute />);
+it('renders the server product surface on a direct non-root SPA refresh', async () => {
+  render(<AtlasApp />);
   await waitFor(() => expect(document.title).toBe('Global Checkout and Payment Orchestration Platform · Alpa'));
   expect(screen.getByRole('heading', { name: 'Global Checkout and Payment Orchestration Platform' })).toBeTruthy();
 });

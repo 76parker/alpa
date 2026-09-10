@@ -8,7 +8,7 @@ import { FieldLabel } from './field-label';
 afterEach(cleanup);
 
 it('keeps create-form labels on one alignment row', () => {
-  const styles = readFileSync(resolve(process.cwd(), 'app/globals.css'), 'utf8');
+  const styles = readFileSync(resolve(process.cwd(), 'globals.css'), 'utf8');
 
   expect(styles).toContain('.final-app .create-fields .field-label { display: inline-flex; align-items: center; }');
   expect(styles).toContain('.field-help-tooltip { position: fixed; z-index: var(--z-tooltip);');

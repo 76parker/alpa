@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useState } from 'react';
 import { parseRoute, serializeRoute, type AtlasRoute } from '../lib/routes';
 import { InventoryApp } from './inventory/inventory-app';

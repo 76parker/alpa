@@ -1,5 +1,3 @@
-'use client';
-
 import { Search, X } from 'lucide-react';
 import { useId, useRef } from 'react';
 

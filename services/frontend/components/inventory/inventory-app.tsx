@@ -1,5 +1,3 @@
-'use client';
-
 import {
   AlertCircle,
   Boxes,
@@ -18,7 +16,6 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import Image from 'next/image';
 import { cloneElement, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactElement, type ReactNode } from 'react';
 import { InventoryRequestError } from '../../lib/inventory/client';
 import {
@@ -251,7 +248,7 @@ function InventorySidebar({ route, workspaces, activeWorkspaceID, onWorkspaceCre
 }) {
   const productsActive = ['products', 'product-create', 'product', 'component', 'component-check'].includes(route.kind);
   return <aside className="sidebar" aria-label="Workspace navigation">
-    <button className="brand" type="button" aria-label="Alpa" onClick={() => navigate({ kind: 'overview' })}><span className="brand-mark" aria-hidden="true"><Image src="/alpa-logo.png" width={67} height={67} alt="" priority unoptimized /></span><span className="brand-copy"><strong>Alpa</strong><small>Security platform</small></span></button>
+    <button className="brand" type="button" aria-label="Alpa" onClick={() => navigate({ kind: 'overview' })}><span className="brand-mark" aria-hidden="true"><img src="/alpa-logo.png" width={67} height={67} alt="" /></span><span className="brand-copy"><strong>Alpa</strong><small>Security platform</small></span></button>
     <WorkspaceSwitcher workspaces={workspaces} activeWorkspaceID={activeWorkspaceID} onSelect={onWorkspaceSelect} onCreate={onWorkspaceCreate} />
     <nav className="main-nav" aria-label="Primary navigation">
       <NavButton label="Dashboard" icon={<LayoutDashboard size={19} />} active={route.kind === 'overview'} onClick={() => navigate({ kind: 'overview' })} />
