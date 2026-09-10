@@ -1,1 +1,0 @@
-{"id":2,"product_id":1,"name":"Consumer Component","type":"Backend Service","description":"Backend component used by the component E2E tests","details":{"language":"Go","language_version":"1.25","framework":"Gin"},"apis":[]}

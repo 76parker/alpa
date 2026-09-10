@@ -1,12 +1,10 @@
 REVIEW.md
 .codegraph
 .serena
-allure-report
 vendor
 node_modules
 .zed
 .idea
-.DS_Store
 
 # Generated frontend, embedded UI and local build output
 services/frontend/dist/
@@ -16,9 +14,17 @@ services/frontend/.wrangler/
 services/api-server/internal/webui/dist/
 bin/
 *.tsbuildinfo
-coverage/
 .env
 .env.*
 !*.example
 services/api-server/config.yaml
-services/api-server/test-results/
+
+# Generated test results and reports (at any depth)
+test-results/
+allure-results/
+allure-report/
+playwright-report/
+coverage/
+
+# macOS metadata (at any depth)
+.DS_Store
