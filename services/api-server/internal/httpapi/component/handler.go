@@ -17,6 +17,7 @@ type application interface {
 	ListByProduct(ctx context.Context, productID int64, limit int, offset int) ([]inventory.Component, error)
 	Delete(ctx context.Context, id int64) error
 	AddConsumerAPI(ctx context.Context, componentID, apiID int64) error
+	//AddProvidedAPI(ctx context.Context, componentID int64, api appcomponent.APIInput) error
 	RemoveConsumerAPI(ctx context.Context, componentID, apiID int64) error
 }
 
@@ -165,3 +166,27 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 	c.Status(http.StatusNoContent)
 }
+
+// func (h *Handler) AddProvidedAPI(c *gin.Context) {
+// 	request, err := httputil.DecodeAndValidateJSON[APIRequestV1](c, h.validator)
+// 	if err != nil {
+// 		httputil.FailRequest(c, err)
+// 		return
+// 	}
+// 	componentID, err := httputil.ParseID(c, "id")
+// 	if err != nil {
+// 		httputil.FailRequest(c, err)
+// 		return
+// 	}
+// 	applicationInput := appcomponent.APIInput{
+// 		Name:     request.Name,
+// 		APIType:  request.APIType,
+// 		Exposure: request.NetworkExposure,
+// 	}
+// 	if err := h.application.AddProvidedAPI(c.Request.Context(), componentID, applicationInput); err != nil {
+// 		httputil.FailRequest(c, err)
+// 		return
+// 	}
+// 	c.Status(http.StatusNoContent)
+
+// }

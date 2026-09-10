@@ -24,7 +24,7 @@ CREATE TABLE inventory.products (
     description TEXT
 );
 
-CREATE UNIQUE INDEX ON inventory.products (workspace_id, product_code);
+CREATE UNIQUE INDEX inventory_unique_product_code ON inventory.products (workspace_id, product_code);
 
 -- Table for components
 -- Represents the components that make up a product

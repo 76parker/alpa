@@ -36,6 +36,7 @@ const (
 	CodeConsumerAPILinkAlreadyExists Code = "consumer_api_link_already_exists"
 	CodeNotFound                     Code = "not_found"
 	CodeInternal                     Code = "internal"
+	CodeAlreadyExists                Code = "resource_already_exists"
 )
 
 var (
@@ -92,6 +93,8 @@ func Resolve(err error) (Error, bool) {
 		return newError("consumer api link already exists", CodeConsumerAPILinkAlreadyExists, http.StatusConflict), true
 	case errors.Is(err, postgres.ErrNotFound):
 		return newError("resource not found", CodeNotFound, http.StatusNotFound), true
+	case errors.Is(err, postgres.ErrUniqueViolation):
+		return newError("resource with this name/code already exists", CodeAlreadyExists, http.StatusConflict), true
 	case errors.Is(err, ErrInvalidRequest),
 		errors.Is(err, httputil.ErrInvalidJSONBody):
 		return newBadRequest(CodeInvalidRequest, "invalid request"), true

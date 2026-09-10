@@ -12,6 +12,7 @@ import (
 )
 
 const productWorkspaceForeignKey = "products_workspace_id_fkey"
+const uniqueProductCodeConstraintName = "inventory_unique_product_code"
 
 type Repository struct {
 	queries *sqlc.Queries
@@ -37,10 +38,15 @@ func (r *Repository) Create(ctx context.Context, product *inventory.Product) (in
 	if err != nil {
 		mappedErr := postgres.MapDatabaseError(err)
 		pgErr, isPGError := errors.AsType[*pgconn.PgError](err)
-		if isPGError &&
-			errors.Is(mappedErr, postgres.ErrForeignKeyViolation) &&
-			pgErr.ConstraintName == productWorkspaceForeignKey {
-			mappedErr = fmt.Errorf("%w: %w", postgres.ErrNotFound, mappedErr)
+		if isPGError && errors.Is(mappedErr, postgres.ErrForeignKeyViolation) {
+			if pgErr.ConstraintName == productWorkspaceForeignKey {
+				mappedErr = fmt.Errorf("%w: %w", postgres.ErrNotFound, mappedErr)
+				return inventory.Product{}, fmt.Errorf("create product: %w", mappedErr)
+			}
+			if pgErr.ConstraintName == uniqueProductCodeConstraintName {
+				mappedErr = fmt.Errorf("%w: %w", postgres.ErrUniqueViolation, mappedErr)
+				return inventory.Product{}, fmt.Errorf("create product: %w", mappedErr)
+			}
 		}
 		return inventory.Product{}, fmt.Errorf("create product: %w", mappedErr)
 	}

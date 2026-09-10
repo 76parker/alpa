@@ -181,6 +181,34 @@ func TestProductE2E(t *testing.T) {
 			t.Require().Equal(http.StatusNotFound, statusCode, "deleting a missing product returns 404 Not Found")
 		})
 	}, allure.WithOutputDir("../../test-results/allure")))
+	t.Run("CreateTwoProductsWithSameProductCode", testo.Test(func(t T) {
+		t.Epic("Inventory")
+		t.Feature("Product")
+		t.Story("Create product")
+		t.Severity(allure.SeverityCritical)
+		t.Tags("e2e", "negative")
+		t.Title("Reject create product with existing product code")
+		resetDatabase(t)
+		workspace, statusCode := createTestWorkspace(t, environment.server.URL, client, "Test Workspace")
+		allure.Step(t, "verify prerequisite workspace", func(t T) {
+			t.Require().Equal(http.StatusCreated, statusCode, "workspace creation returns 201 Created")
+		})
+		testRequest := product.CreateRequestV1{
+			Name:         "Test Product_2",
+			Criticality:  inventory.CriticalityMissionCritical,
+			OwningTeamID: nil,
+			Description:  nil,
+			ProductCode:  "TRD",
+		}
+		_, statusCode = createTestProduct(t, client, workspace.ID, testRequest)
+		allure.Step(t, "verify first product creation", func(t T) {
+			t.Require().Equal(http.StatusCreated, statusCode, "first product creation returns 201 Created")
+		})
+		_, statusCode = createTestProduct(t, client, workspace.ID, testRequest)
+		allure.Step(t, "verify second product with same product code is rejected", func(t T) {
+			t.Require().Equal(http.StatusConflict, statusCode, "second product creation returns 409 Conflict")
+		})
+	}, allure.WithOutputDir("../../test-results/allure")))
 }
 
 func createTestProduct(t T,
