@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/76parker/alpa/internal/observability/logger"
+	"github.com/go-playground/validator/v10"
 	"github.com/goccy/go-yaml"
 )
 
@@ -16,8 +17,8 @@ type Config struct {
 }
 
 type PostgresConfig struct {
-	Host       string     `yaml:"host" validate:"required"`
-	Port       int        `yaml:"port" validate:"required"`
+	Host       string     `yaml:"host" validate:"required,hostname_rfc1123|ip"`
+	Port       int        `yaml:"port" validate:"required,min=3000,max=65535"`
 	Database   string     `yaml:"database" validate:"required"`
 	SSL        string     `yaml:"ssl" validate:"required"`
 	Username   string     `yaml:"username" validate:"required"`
@@ -26,8 +27,8 @@ type PostgresConfig struct {
 }
 
 type PoolConfig struct {
-	MaxConnections        int           `yaml:"max_connections" validate:"required"`
-	MinConnections        int           `yaml:"min_connections" validate:"required"`
+	MaxConnections        int           `yaml:"max_connections" validate:"required,min=1,max=100"`
+	MinConnections        int           `yaml:"min_connections" validate:"required,min=1"`
 	MaxConnectionLifetime time.Duration `yaml:"max_connection_lifetime" validate:"required"`
 	MaxConnIdleTime       time.Duration `yaml:"max_conn_idle_time" validate:"required"`
 	HealthCheckPeriod     time.Duration `yaml:"health_check_period" validate:"required"`
@@ -36,12 +37,12 @@ type PoolConfig struct {
 
 type HTTPConfig struct {
 	UIAssetsDir       string        `yaml:"ui_assets_dir"`
-	Address           string        `yaml:"address"`
-	ReadHeaderTimeout time.Duration `yaml:"read_header_timeout"`
-	ReadTimeout       time.Duration `yaml:"read_timeout"`
-	WriteTimeout      time.Duration `yaml:"write_timeout"`
-	IdleTimeout       time.Duration `yaml:"idle_timeout"`
-	MaxHeaderBytes    int           `yaml:"max_header_bytes"`
+	Address           string        `yaml:"address" validate:"required"`
+	ReadHeaderTimeout time.Duration `yaml:"read_header_timeout" validate:"required"`
+	ReadTimeout       time.Duration `yaml:"read_timeout" validate:"required"`
+	WriteTimeout      time.Duration `yaml:"write_timeout" validate:"required"`
+	IdleTimeout       time.Duration `yaml:"idle_timeout" validate:"required"`
+	MaxHeaderBytes    int           `yaml:"max_header_bytes" validate:"required"`
 }
 
 // LoadConfig reads, decodes, and validates the application configuration at path.
@@ -54,6 +55,10 @@ func LoadConfig(path string) (Config, error) {
 	var cfg Config
 	if err := yaml.UnmarshalWithOptions(data, &cfg, yaml.Strict()); err != nil {
 		return Config{}, fmt.Errorf("decode configuration: %w", err)
+	}
+	v := validator.New()
+	if err := v.Struct(cfg); err != nil {
+		return Config{}, fmt.Errorf("validate configuration: %w", err)
 	}
 	if cfg.Logger == nil {
 		return Config{}, fmt.Errorf("configuration logger section is required")
