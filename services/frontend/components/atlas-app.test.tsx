@@ -14,7 +14,15 @@ const components: Component[] = [{
   id: 101, product_id: 12, name: 'Checkout API', type: 'Backend Service',
   description: 'Accepts checkout requests.',
   details: { language: 'Go', language_version: '1.25', framework: 'Gin' },
-  apis: [{ id: 201, name: 'Checkout REST API', api_type: 'REST', network_exposure: 'internet', role: 'provider' }],
+  apis: [
+    { id: 201, name: 'Checkout REST API', api_type: 'REST', network_exposure: 'internet', role: 'provider' },
+    { id: 202, name: 'Checkout GraphQL API', api_type: 'GraphQL', network_exposure: 'internal', role: 'provider' },
+  ],
+}, {
+  id: 102, product_id: 12, name: 'Checkout UI', type: 'Frontend Service',
+  description: 'Collects customer checkout input.',
+  details: { language: 'TypeScript', language_version: '5', framework: 'React' },
+  apis: [{ id: 201, name: 'Checkout REST API', api_type: 'REST', network_exposure: 'internet', role: 'consumer' }],
 }];
 
 let requests: string[];
@@ -153,16 +161,101 @@ it('keeps product rows non-interactive and exposes a named product button', asyn
   expect(row?.getAttribute('onclick')).toBeNull();
 });
 
-it('shows route-backed development notices with Back navigation', async () => {
+it('opens the architecture map from a direct route and loads components', async () => {
   window.history.replaceState({}, '', '/products/GCPAY/architecture');
   const user = userEvent.setup();
   render(<AtlasApp />);
 
-  expect(await screen.findByRole('heading', { name: 'Architecture map is in development' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: 'Global Checkout and Payment Orchestration Platform' })).toBeTruthy();
+  expect(await screen.findByTestId('architecture-node-101')).toBeTruthy();
+  expect(screen.getByText('REST')).toBeTruthy();
+  expect(screen.getByText('GraphQL')).toBeTruthy();
+  expect(screen.getByTestId('architecture-provider-api-201')).toBeTruthy();
+  expect(screen.getByTestId('architecture-provider-api-202')).toBeTruthy();
+  expect(requests.filter((url) => url.includes('/products/12/components')).length).toBe(1);
   expect(document.title).toBe('Architecture map · Alpa');
-  await user.click(screen.getByRole('button', { name: 'Back' }));
+  const componentTrigger = screen.getByTestId('architecture-node-101').querySelector<HTMLButtonElement>('.architecture-node-trigger');
+  const apiTrigger = screen.getByTestId('architecture-node-101').querySelector<HTMLButtonElement>('.architecture-api-badge');
+  expect(componentTrigger).not.toBeNull();
+  expect(apiTrigger).not.toBeNull();
+  await user.hover(componentTrigger!);
+  expect((await screen.findByRole('tooltip')).textContent).toContain('Description');
+  expect((await screen.findByRole('tooltip')).textContent).toContain('Language');
+  expect((await screen.findByRole('tooltip')).textContent).toContain('Framework');
+  await user.unhover(componentTrigger!);
+  await user.hover(apiTrigger!);
+  expect((await screen.findByRole('tooltip')).textContent).toContain('Checkout REST API');
+  expect((await screen.findByRole('tooltip')).textContent).toContain('Network exposure');
+  expect((await screen.findByRole('tooltip')).textContent).toContain('Role');
+});
+
+it('switches to the architecture map from the product tabs and reuses loaded components', async () => {
+  window.history.replaceState({}, '', '/products/GCPAY');
+  const user = userEvent.setup();
+  render(<AtlasApp />);
+
+  await user.click(await screen.findByRole('button', { name: 'Architecture map' }));
+  await waitFor(() => expect(window.location.pathname).toBe('/products/GCPAY/architecture'));
+  expect(await screen.findByTestId('architecture-node-102')).toBeTruthy();
+  expect(requests.filter((url) => url.includes('/products/12/components')).length).toBe(1);
+  expect(document.title).toBe('Architecture map · Alpa');
+});
+
+it('returns from the architecture map to the product overview', async () => {
+  window.history.replaceState({}, '', '/products/GCPAY/architecture');
+  const user = userEvent.setup();
+  render(<AtlasApp />);
+
+  await screen.findByTestId('architecture-node-101');
+  await user.click(screen.getByRole('button', { name: 'Overview' }));
   await waitFor(() => expect(window.location.pathname).toBe('/products/GCPAY'));
   expect(await screen.findByRole('heading', { name: 'Global Checkout and Payment Orchestration Platform' })).toBeTruthy();
+});
+
+it('shows the component loading error on the architecture route', async () => {
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes('/workspaces?')) return response<ListResponse<Workspace>>({ data: [workspace], pagination: { limit: 100, offset: 0 } });
+    if (url.includes('/workspaces/7/products')) return response<ListResponse<Product>>({ data: baseProducts, pagination: { limit: 100, offset: 0 } });
+    if (url.includes('/products/12/components')) return response({ message: 'Components unavailable', code: 'components_unavailable', status: 503 }, 503);
+    throw new Error(`Unexpected request: ${url}`);
+  }));
+  window.history.replaceState({}, '', '/products/GCPAY/architecture');
+  render(<AtlasApp />);
+
+  expect((await screen.findByRole('alert')).textContent).toContain('Components unavailable');
+});
+
+it('keeps the architecture loading state visible until components arrive', async () => {
+  let resolveComponents: ((value: Response) => void) | undefined;
+  vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes('/workspaces?')) return Promise.resolve(response<ListResponse<Workspace>>({ data: [workspace], pagination: { limit: 100, offset: 0 } }));
+    if (url.includes('/workspaces/7/products')) return Promise.resolve(response<ListResponse<Product>>({ data: baseProducts, pagination: { limit: 100, offset: 0 } }));
+    if (url.includes('/products/12/components')) return new Promise<Response>((resolve) => { resolveComponents = resolve; });
+    return Promise.reject(new Error(`Unexpected request: ${url}`));
+  }));
+  window.history.replaceState({}, '', '/products/GCPAY/architecture');
+  render(<AtlasApp />);
+
+  expect(await screen.findByText('Loading components…')).toBeTruthy();
+  resolveComponents?.(response({ data: components, pagination: { limit: 100, offset: 0 } }));
+  expect(await screen.findByTestId('architecture-node-101')).toBeTruthy();
+});
+
+it('shows an empty state when the product has no components', async () => {
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes('/workspaces?')) return response<ListResponse<Workspace>>({ data: [workspace], pagination: { limit: 100, offset: 0 } });
+    if (url.includes('/workspaces/7/products')) return response<ListResponse<Product>>({ data: baseProducts, pagination: { limit: 100, offset: 0 } });
+    if (url.includes('/products/12/components')) return response({ data: [], pagination: { limit: 100, offset: 0 } });
+    throw new Error(`Unexpected request: ${url}`);
+  }));
+  window.history.replaceState({}, '', '/products/GCPAY/architecture');
+  render(<AtlasApp />);
+
+  expect(await screen.findByText('No components yet')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Open product overview' })).toBeTruthy();
 });
 
 it('validates the server product contract without owner or team fields', async () => {

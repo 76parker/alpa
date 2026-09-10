@@ -37,6 +37,7 @@ import { serializeRoute, type AtlasRoute } from '../../lib/routes';
 import { FieldLabel } from '../field-label';
 import { SearchField } from '../search-field';
 import { TooltipTrigger } from '../tooltip-trigger';
+import { ArchitectureMap } from './architecture-map';
 import { DevelopmentNotice } from './development-notice';
 import { InventoryDialog } from './inventory-dialog';
 import { useInventory } from './inventory-context';
@@ -221,7 +222,7 @@ function renderInventoryRoute({
       }} />;
     case 'product':
       if (!product) return inventory.productsStatus === 'loading' ? <LoadingState label="Loading product" /> : <NotFound label="Product not found" onBack={() => navigate({ kind: 'products' })} />;
-      if (route.tab === 'architecture') return <DevelopmentNotice message="Architecture map is in development" onBack={() => navigate({ kind: 'product', productKey: product.product_code })} />;
+      if (route.tab === 'architecture') return <ProductArchitecturePage product={product} components={inventory.components} status={inventory.componentsStatus} error={inventory.componentsError} navigate={navigate} />;
       if (route.tab === 'threat-model') return <DevelopmentNotice message="Threat modeling is in development" onBack={() => navigate({ kind: 'product', productKey: product.product_code })} />;
       return <ProductPage product={product} components={inventory.components} status={inventory.componentsStatus} error={inventory.componentsError} navigate={navigate} createComponent={inventory.createComponent} notify={notify} />;
     case 'component': {
@@ -417,6 +418,15 @@ function ProductPage({ product, components, status, error, navigate, createCompo
       notify('Component created');
       navigate({ kind: 'component', productKey: product.product_code, componentId: String(component.id) });
     }} /> : null}
+  </section>;
+}
+
+function ProductArchitecturePage({ product, components, status, error, navigate }: { product: Product; components: Component[]; status: string; error: string; navigate: Navigate }) {
+  return <section className="products-page architecture-page">
+    <button className="back-link" type="button" onClick={() => navigate({ kind: 'products' })}><ChevronLeft size={14} />Back to Products</button>
+    <PageHeader eyebrow={product.product_code} title={product.name} description={product.description || 'No description provided.'} actions={<CriticalityBadge value={product.criticality} />} />
+    <nav className="tabs" aria-label="Product sections"><button type="button" onClick={() => navigate({ kind: 'product', productKey: product.product_code })}>Overview</button><button className="active" type="button" aria-current="page">Architecture map</button><button type="button" onClick={() => navigate({ kind: 'product', productKey: product.product_code, tab: 'threat-model' })}>Threat modeling</button></nav>
+    {status === 'loading' ? <section className="panel architecture-state"><LoadingState label="Loading components" /></section> : error ? <section className="panel architecture-state"><RequestError message={error} /></section> : components.length ? <ArchitectureMap product={product} components={components} /> : <section className="empty-state architecture-empty"><span><Network size={21} /></span><strong>No components yet</strong><p>Add components from the product overview to map their API relationships.</p><button className="button secondary" type="button" onClick={() => navigate({ kind: 'product', productKey: product.product_code })}>Open product overview</button></section>}
   </section>;
 }
 

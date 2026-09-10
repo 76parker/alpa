@@ -174,6 +174,62 @@ button:focus-visible { outline: 2px solid rgba(120,199,255,.72); outline-offset:
   .coverage-head, .coverage-row { grid-template-columns: minmax(125px,1fr) repeat(5,32px); }
 }
 
+/* Architecture map */
+.inventory-app .architecture-page .tabs { margin-bottom: 17px; }
+.inventory-app .architecture-map { overflow: hidden; background: var(--surface); }
+.inventory-app .architecture-map .topology-toolbar { min-height: 64px; background: var(--surface-muted); }
+.inventory-app .architecture-map .topology-context { grid-template-columns: 8px minmax(0,1fr); }
+.inventory-app .architecture-map .topology-context > div { display: grid; gap: 3px; }
+.inventory-app .architecture-map .topology-context strong { color: var(--text); font-size: 12px; }
+.inventory-app .architecture-map .topology-context small { color: var(--muted); font-size: 10px; }
+.inventory-app .architecture-map-hint { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); background: var(--input); font-size: 10px; }
+.inventory-app .architecture-canvas { position: relative; height: min(660px, calc(100vh - 300px)); min-height: 470px; background: #19212b; }
+.inventory-app .architecture-canvas .react-flow { background: #19212b; }
+.inventory-app .architecture-canvas .react-flow__background { pointer-events: none; }
+.inventory-app .architecture-canvas .react-flow__pane { cursor: grab; }
+.inventory-app .architecture-canvas .react-flow__pane:active { cursor: grabbing; }
+.inventory-app .architecture-canvas .react-flow__edge-path { stroke: #78c7ff; stroke-width: 1.7; }
+.inventory-app .architecture-canvas .react-flow__arrowhead { fill: #78c7ff; }
+.inventory-app .architecture-canvas .react-flow__controls { border-color: var(--line); background: var(--surface); box-shadow: 0 5px 18px rgba(7,12,20,.35); }
+.inventory-app .architecture-canvas .react-flow__controls button { border-color: var(--line); color: var(--muted); background: var(--surface); }
+.inventory-app .architecture-canvas .react-flow__controls button:hover { color: var(--text); background: var(--hover); }
+.inventory-app .architecture-node { position: relative; display: grid; width: 238px; overflow: visible; grid-template-columns: 78px minmax(0,1fr); border: 1px solid #536983; border-radius: 6px; color: var(--text); background: #222c38; box-shadow: 0 8px 22px rgba(3,9,18,.36); }
+.inventory-app .architecture-node:not(.has-provider-apis) { grid-template-columns: minmax(0,1fr); }
+.inventory-app .architecture-node:hover { border-color: var(--teal); box-shadow: 0 10px 28px rgba(5,14,25,.48); }
+.inventory-app .architecture-provider-rail { display: grid; min-width: 0; height: 100%; grid-auto-rows: minmax(0,1fr); border-right: 1px solid rgba(120,199,255,.18); border-radius: 5px 0 0 5px; background: rgba(120,199,255,.035); }
+.inventory-app .architecture-provider-row { display: flex; min-width: 0; align-items: center; justify-content: center; padding: 4px 6px; }
+.inventory-app .architecture-provider-row + .architecture-provider-row { border-top: 1px solid rgba(120,199,255,.12); }
+.inventory-app .architecture-node-body { display: flex; min-width: 0; align-items: center; }
+.inventory-app .architecture-node-body.full { grid-column: 1 / -1; }
+.inventory-app .architecture-node-trigger { display: grid; width: 100%; min-width: 0; cursor: pointer; grid-template-columns: 33px minmax(0,1fr); align-items: center; gap: 10px; padding: 12px; border: 0; border-radius: 5px; color: inherit; background: transparent; text-align: left; }
+.inventory-app .architecture-node-trigger:hover, .inventory-app .architecture-node-trigger[aria-expanded="true"] { background: rgba(120,199,255,.08); }
+.inventory-app .architecture-node-heading { display: contents; }
+.inventory-app .architecture-node-icon { display: grid; width: 33px; height: 33px; place-items: center; border: 1px solid rgba(120,199,255,.25); border-radius: 5px; color: var(--teal); background: rgba(120,199,255,.1); }
+.inventory-app .architecture-node-icon.infrastructure { color: var(--yellow); border-color: rgba(240,202,131,.25); background: rgba(240,202,131,.1); }
+.inventory-app .architecture-node-copy { display: grid; min-width: 0; gap: 3px; }
+.inventory-app .architecture-node-copy strong { overflow: hidden; color: var(--text); font-size: 12px; font-weight: 680; text-overflow: ellipsis; white-space: nowrap; }
+.inventory-app .architecture-node-copy small { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.inventory-app .architecture-api-badges { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 12px 12px; }
+.inventory-app .architecture-api-badge { display: inline-flex; width: 100%; min-height: 23px; cursor: help; align-items: center; justify-content: center; overflow: hidden; padding: 0 5px; border: 1px solid rgba(120,199,255,.28); border-radius: 4px; color: var(--cyan); background: rgba(116,211,221,.1); font-family: var(--font-mono); font-size: 9px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.inventory-app .architecture-api-badge:hover, .inventory-app .architecture-api-badge[aria-expanded="true"] { border-color: var(--teal); color: var(--text); background: rgba(120,199,255,.16); }
+.inventory-app .architecture-node .react-flow__handle { width: 8px; height: 8px; border: 2px solid #222c38; background: var(--teal); }
+.inventory-app .architecture-node .architecture-provider-handle { z-index: 2; background: var(--yellow); }
+.inventory-app .architecture-node .architecture-consumer-handle { z-index: 2; background: var(--teal); }
+.inventory-app .architecture-tooltip { position: fixed; z-index: var(--z-tooltip); width: max-content; max-width: min(360px, calc(100vw - 24px)); padding: 9px 11px; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--text); background: #111923; box-shadow: 0 9px 26px rgba(0,0,0,.48); font-size: 11px; line-height: 1.5; pointer-events: none; text-align: left; white-space: normal; }
+.inventory-app .architecture-tooltip-content { display: grid; gap: 6px; }
+.inventory-app .architecture-tooltip-row { display: grid; min-width: 220px; grid-template-columns: max-content minmax(0,1fr); gap: 10px; }
+.inventory-app .architecture-tooltip-row strong { color: var(--muted); font-size: 10px; font-weight: 700; }
+.inventory-app .architecture-tooltip-row > span { overflow-wrap: anywhere; color: var(--text); font-size: 11px; text-align: right; }
+.inventory-app .architecture-empty { min-height: 470px; border-color: var(--line); color: var(--muted); background: var(--surface); }
+.inventory-app .architecture-empty strong { color: var(--text); font-size: 14px; }
+.inventory-app .architecture-empty p { color: var(--muted); font-size: 11px; }
+.inventory-app .architecture-state { overflow: hidden; }
+
+@media (max-width: 760px) {
+  .inventory-app .architecture-canvas { height: 560px; min-height: 560px; }
+  .inventory-app .architecture-map .topology-toolbar { align-items: flex-start; flex-direction: column; }
+}
+
 /* Server-backed inventory */
 .inventory-app .sidebar-workspace { grid-template-columns: minmax(0,1fr) 14px; cursor: pointer; }
 .inventory-app .sidebar-workspace:hover { border-color: var(--line-strong); background: var(--hover); }

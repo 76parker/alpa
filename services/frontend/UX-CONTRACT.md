@@ -2,7 +2,7 @@
 
 ## Scope and accessibility
 
-- Audience: application-security teams maintaining product, component, and API relationship records. Architecture, threat modeling, and security-check routes are explicitly in development.
+- Audience: application-security teams maintaining product, component, API relationship, and architecture-map records. Threat modeling and security-check routes are explicitly in development.
 - Locale: English (`en`) with current Russian strings retained as model content only.
 - Accessibility target: WCAG 2.2 AA intent, with native semantics, visible focus, labelled controls, keyboard operation, and status announcements.
 - Design source: [DESIGN.md](DESIGN.md); runtime tokens live in `globals.css`.
@@ -38,7 +38,7 @@ Workspace is a first-class sidebar destination at `/workspaces`; the switcher op
 
 Create Product returns to Products and announces `Product created` only after the server confirms creation; the new row uses the table's standard resting state. Creating a component closes its modal and navigates to the server-created component summary. Adding an API relationship offers only unlinked provider APIs from other components in the current product. A relationship is announced only after the POST and component refetch confirm it; duplicate `409` responses remain inline in the open dialog, while an unknown mutation result is refreshed before another attempt is allowed. Cancel and Back return to the owning list/workspace.
 
-Dashboard, Templates, Teams, Settings, architecture-map, threat-modeling, and security-check URLs remain canonical route-backed screens. They show the shared in-development notice, set the route-specific document title, perform no local mutations, and return to the owning surface. Dashboard’s Back action returns to Products. The previous editable template and topology surfaces are not exposed from inventory routes.
+Dashboard, Templates, Teams, Settings, threat-modeling, and security-check URLs remain canonical route-backed screens. They show the shared in-development notice, set the route-specific document title, perform no local mutations, and return to the owning surface. Dashboard’s Back action returns to Products. The architecture-map URL is a read-only React Flow view built from the current product component response: each component is a node, consumer-to-provider API relationships are directed edges, provider API types are compact badges, and node positions are session-only. The previous editable template and topology surfaces are not exposed from inventory routes.
 
 ## Persistence and resilience
 

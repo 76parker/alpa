@@ -5,12 +5,13 @@ type TooltipTriggerProps = {
   ariaLabel: string;
   buttonClassName: string;
   children: ReactNode;
-  content: string;
+  content: ReactNode;
+  accessibleContent?: string;
   descriptionID?: string;
   tooltipClassName?: string;
 };
 
-export function TooltipTrigger({ ariaLabel, buttonClassName, children, content, descriptionID: providedDescriptionID, tooltipClassName = 'field-help-tooltip' }: TooltipTriggerProps) {
+export function TooltipTrigger({ ariaLabel, buttonClassName, children, content, accessibleContent, descriptionID: providedDescriptionID, tooltipClassName = 'field-help-tooltip' }: TooltipTriggerProps) {
   const generatedID = useId();
   const descriptionID = providedDescriptionID ?? `${generatedID}-description`;
   const tooltipID = `${generatedID}-tooltip`;
@@ -81,10 +82,12 @@ export function TooltipTrigger({ ariaLabel, buttonClassName, children, content, 
       onKeyDown={dismissTooltip}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
+      onPointerEnter={() => setOpen(true)}
+      onPointerLeave={() => setOpen(false)}
     >
       {children}
     </button>
-    <span id={descriptionID} className="sr-only">{content}</span>
+    <span id={descriptionID} className="sr-only">{accessibleContent ?? (typeof content === 'string' ? content : '')}</span>
     {open && portalRoot ? createPortal(
       <span
         ref={tooltipRef}
