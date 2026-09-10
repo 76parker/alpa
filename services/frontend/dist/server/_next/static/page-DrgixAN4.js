@@ -1,1 +1,0 @@
-import{t as e}from"./framework~index~page~layout~page~app-page-cache-render~app-page-cache~app-route-handler-dispatch-CJ9jz_uE.js";import{t}from"./atlas-app-BWcFF4gy.js";var n=e();function r(){return(0,n.jsx)(t,{})}export{r as default};
