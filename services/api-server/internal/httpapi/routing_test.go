@@ -12,7 +12,10 @@ import (
 
 func TestUIRouting(t *testing.T) {
 	// UI routes use the normal logging middleware; API and documentation keep priority.
-	ui, err := webui.New(fstest.MapFS{"index.html": {Data: []byte("<title>Alpa</title>")}}, false)
+	ui, err := webui.New(fstest.MapFS{
+		"index.html":             {Data: []byte("<title>Alpa</title>")},
+		"assets/app-12345678.js": {Data: []byte("console.log('alpa')")},
+	}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,15 +25,18 @@ func TestUIRouting(t *testing.T) {
 		path   string
 		status int
 		body   string
+		logged bool
 	}{
-		{"/products/PAY", 200, "<title>Alpa"},
-		{"/docs", 200, "Swagger"},
-		{"/docs/openapi.json", 200, "openapi"},
-		{"/v1/unknown", 404, ""},
-		{"/docs/unknown", 404, ""},
-		{"/api/inventory/workspaces", 404, ""},
+		{"/products/PAY", 200, "<title>Alpa", false},
+		{"/assets/app-12345678.js", 200, "console.log", false},
+		{"/docs", 200, "Swagger", false},
+		{"/docs/openapi.json", 200, "openapi", false},
+		{"/v1/unknown", 404, "", true},
+		{"/docs/unknown", 404, "", true},
+		{"/api/inventory/workspaces", 404, "", true},
 	} {
 		t.Run(test.path, func(t *testing.T) {
+			beforeLogs := log.infoCount
 			req := httptest.NewRequest("GET", test.path, nil)
 			req.Header.Set("Accept", "text/html")
 			rec := httptest.NewRecorder()
@@ -38,16 +44,20 @@ func TestUIRouting(t *testing.T) {
 			if rec.Code != test.status || !strings.Contains(rec.Body.String(), test.body) {
 				t.Fatalf("response = %d %s", rec.Code, rec.Body.String())
 			}
-			if test.path == "/products/PAY" && log.handler != "webui" {
-				t.Fatalf("logged handler = %q", log.handler)
+			if got := log.infoCount - beforeLogs; (got > 0) != test.logged {
+				t.Fatalf("request log count = %d, logged = %t", got, test.logged)
 			}
 		})
 	}
 }
 
-type requestLogger struct{ handler string }
+type requestLogger struct {
+	handler   string
+	infoCount int
+}
 
 func (l *requestLogger) Info(_ string, fields ...any) {
+	l.infoCount++
 	for i := 0; i+1 < len(fields); i += 2 {
 		if fields[i] == "handler" {
 			l.handler, _ = fields[i+1].(string)

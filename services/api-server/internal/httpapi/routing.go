@@ -34,7 +34,7 @@ func newRouter(log logger.Logger, handlers Handlers) *gin.Engine {
 	if handlers.UI != nil {
 		router.NoRoute(func(c *gin.Context) {
 			first := strings.SplitN(strings.TrimPrefix(c.Request.URL.Path, "/"), "/", 2)[0]
-			if first == "v1" || first == "docs" {
+			if first == "v1" || first == "docs" || first == "api" {
 				c.Status(http.StatusNotFound)
 				return
 			}

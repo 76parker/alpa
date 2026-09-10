@@ -37,6 +37,10 @@ func withLogging(log logger.Logger) gin.HandlerFunc {
 		startedAt := time.Now()
 		c.Next()
 
+		if shouldSkipRequestLogging(c) {
+			return
+		}
+
 		fields := requestLogFields(c, startedAt)
 		if err := c.Errors.Last(); err != nil {
 			if c.Writer.Status() >= http.StatusBadRequest && c.Writer.Status() < http.StatusInternalServerError {
@@ -47,6 +51,15 @@ func withLogging(log logger.Logger) gin.HandlerFunc {
 			return
 		}
 		log.Info("request completed", fields...)
+	}
+}
+
+func shouldSkipRequestLogging(c *gin.Context) bool {
+	switch c.GetString("handler_name") {
+	case "documentation", "webui":
+		return true
+	default:
+		return false
 	}
 }
 
