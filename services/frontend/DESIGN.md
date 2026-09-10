@@ -6,7 +6,7 @@ Alpa is an operational security console: dense, calm, and legible. Its canonical
 
 ## Token ownership
 
-`app/globals.css` is the runtime token source. This document is the normative record of the values and intent; components consume CSS custom properties rather than duplicating values.
+`globals.css` is the runtime token source. This document is the normative record of the values and intent; components consume CSS custom properties rather than duplicating values.
 
 | Semantic token | Runtime token | Value | Use |
 |---|---|---|---|

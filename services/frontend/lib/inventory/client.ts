@@ -30,7 +30,7 @@ export class InventoryClient {
 
     let response: Response;
     try {
-      response = await fetch(`/api/inventory/${path}`, { ...init, headers });
+      response = await fetch(`/v1/${path}`, { ...init, headers });
     } catch {
       throw new InventoryRequestError({
         code: 'api_unavailable',

@@ -77,3 +77,23 @@ postgres:
 		})
 	}
 }
+
+func TestUIAssetsConfiguration(t *testing.T) {
+	// An omitted or empty path selects embedding; local paths retain cwd-relative semantics.
+	for _, directory := range []string{"", "../frontend/dist"} {
+		t.Run(directory, func(t *testing.T) {
+			filename := filepath.Join(t.TempDir(), "config.yaml")
+			body := "logger:\n  level: info\npostgres:\n  host: localhost\nhttp:\n  ui_assets_dir: \"" + directory + "\"\n"
+			if err := os.WriteFile(filename, []byte(body), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := LoadConfig(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.HTTP.UIAssetsDir != directory {
+				t.Fatalf("UIAssetsDir = %q", cfg.HTTP.UIAssetsDir)
+			}
+		})
+	}
+}

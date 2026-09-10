@@ -1,5 +1,4 @@
 REVIEW.md
-docker-compose.yaml
 .codegraph
 .serena
 allure-report
@@ -8,3 +7,18 @@ node_modules
 .zed
 .idea
 .DS_Store
+
+# Generated frontend, embedded UI and local build output
+services/frontend/dist/
+services/frontend/.next/
+services/frontend/.vinext/
+services/frontend/.wrangler/
+services/api-server/internal/webui/dist/
+bin/
+*.tsbuildinfo
+coverage/
+.env
+.env.*
+!*.example
+services/api-server/config.yaml
+services/api-server/test-results/

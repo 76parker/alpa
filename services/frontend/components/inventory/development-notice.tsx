@@ -1,5 +1,3 @@
-'use client';
-
 import { ArrowLeft, Construction } from 'lucide-react';
 
 export function DevelopmentNotice({ message, onBack }: { message: string; onBack: () => void }) {

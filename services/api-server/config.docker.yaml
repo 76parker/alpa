@@ -11,6 +11,7 @@ logger:
     compress: false # использовать ли gzip-компрессию для старых log-файлов
 
 http:
+  ui_assets_dir: ""
   address: "0.0.0.0:8080"
   read_header_timeout: 5s
   read_timeout: 10s

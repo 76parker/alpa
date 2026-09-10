@@ -54,7 +54,7 @@ describe('InventoryClient', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
-    expect(String(url)).toBe('/api/inventory/components/4/consumer-apis');
+    expect(String(url)).toBe('/v1/components/4/consumer-apis');
     expect(init?.method).toBe('POST');
     expect(JSON.parse(String(init?.body))).toEqual({ api_id: 9 });
   });
