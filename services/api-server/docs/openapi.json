@@ -1059,6 +1059,7 @@
           "odata",
           "sse",
           "event",
+          "topic",
           "native-protocol"
         ],
         "example": "rest",

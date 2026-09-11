@@ -46,7 +46,7 @@
       "properties": {
         "id": { "type": "integer", "minimum": 1 },
         "name": { "type": "string" },
-        "api_type": { "type": "string", "maxLength": 50, "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event", "native-protocol"] },
+        "api_type": { "type": "string", "maxLength": 50, "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event", "topic", "native-protocol"] },
         "network_exposure": { "type": "string", "maxLength": 50, "enum": ["internal", "internet"] },
         "role": { "type": "string", "maxLength": 50, "enum": ["provider", "consumer"] }
       }

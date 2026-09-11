@@ -29,7 +29,7 @@
       "required": ["name", "api_type", "network_exposure"],
       "properties": {
         "name": { "$ref": "#/$defs/string" },
-        "api_type": { "type": "string", "maxLength": 50, "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event", "native-protocol"] },
+        "api_type": { "type": "string", "maxLength": 50, "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event", "topic", "native-protocol"] },
         "network_exposure": { "type": "string", "maxLength": 50, "enum": ["internal", "internet"] }
       }
     },

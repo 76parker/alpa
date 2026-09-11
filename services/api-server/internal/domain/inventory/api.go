@@ -22,6 +22,7 @@ const (
 	APITypeOdata          APIType = "odata"
 	APITypeSSE            APIType = "sse"
 	APITypeEventStream    APIType = "event"
+	APITypeTopic          APIType = "topic"
 	APITypeNativeProtocol APIType = "native-protocol"
 
 	APIRoleProvider APIRole = "provider"
@@ -84,6 +85,7 @@ func isValidAPIType(apiType APIType) bool {
 		APITypeOdata,
 		APITypeSSE,
 		APITypeEventStream,
+		APITypeTopic,
 		APITypeNativeProtocol:
 		return true
 	default:
