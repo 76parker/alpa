@@ -12,7 +12,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Boxes, ExternalLink, GripVertical, Network, RotateCcw, Server } from 'lucide-react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import type { Component, ComponentAPI, Product } from '../../lib/inventory/contracts';
+import { apiTypeLabels, componentTypeLabels, eventBrokerLabels, systemTypeLabels, type Component, type ComponentAPI, type Product } from '../../lib/inventory/contracts';
 import {
   architectureNodeHeight,
   architectureNodeWidth,
@@ -256,10 +256,10 @@ function ArchitectureNodeCard({ data }: NodeProps<ArchitectureNode>) {
     </div> : null}
     <div className={`architecture-node-body ${providerAPIs.length ? '' : 'full'}`}>
       <span className="architecture-node-heading" aria-hidden="true">
-        <span className={`architecture-node-icon ${component.type === 'Infrastructure' ? 'infrastructure' : ''}`}>
-          {component.type === 'Infrastructure' ? <Boxes size={16} /> : <Server size={16} />}
+        <span className={`architecture-node-icon ${component.type === 'infrastructure' ? 'infrastructure' : ''}`}>
+          {component.type === 'infrastructure' ? <Boxes size={16} /> : <Server size={16} />}
         </span>
-        <span className="architecture-node-copy"><strong>{component.name}</strong><small>{component.type}</small></span>
+        <span className="architecture-node-copy"><strong>{component.name}</strong><small>{componentTypeLabels[component.type]}</small></span>
       </span>
       <span className="architecture-node-actions">
         {interactions.canDrag ? <MoveHandle component={component} /> : null}
@@ -323,14 +323,14 @@ function APIBadge({ api }: { api: ComponentAPI }) {
     accessibleContent={apiTooltipText(api)}
     tooltipClassName="architecture-tooltip"
     title={apiTooltipText(api)}
-  >{api.api_type}</TooltipTrigger>;
+  >{apiTypeLabels[api.api_type]}</TooltipTrigger>;
 }
 
 function ComponentTooltip({ component }: { component: Component }) {
   return <TooltipRows rows={[
     ['Description', component.description || 'No description provided.'],
     ['ID', String(component.id)],
-    ['Type', component.type],
+    ['Type', componentTypeLabels[component.type]],
     ...componentFacts(component),
     ['Provider APIs', String(component.apis.filter((api) => api.role === 'provider').length)],
     ['Consumer APIs', String(component.apis.filter((api) => api.role === 'consumer').length)],
@@ -341,7 +341,7 @@ function APITooltip({ api }: { api: ComponentAPI }) {
   return <TooltipRows rows={[
     ['Name', api.name],
     ['ID', String(api.id)],
-    ['Type', api.api_type],
+    ['Type', apiTypeLabels[api.api_type]],
     ['Network exposure', api.network_exposure],
     ['Role', api.role],
   ]} />;
@@ -352,10 +352,11 @@ function TooltipRows({ rows }: { rows: Array<[string, string]> }) {
 }
 
 function componentFacts(component: Component): Array<[string, string]> {
-  if (component.type === 'Infrastructure') return [
+  if (component.type === 'infrastructure') return [
     ['System', component.details.system],
+    ['System type', systemTypeLabels[component.details.system_type]],
     ['Version', component.details.version],
-    ['Network address', component.details.network_address],
+    ['Network addresses', component.details.network_address.join(', ')],
   ];
 
   const facts: Array<[string, string]> = [
@@ -363,7 +364,7 @@ function componentFacts(component: Component): Array<[string, string]> {
     ['Language version', component.details.language_version],
     ['Framework', component.details.framework],
   ];
-  if (component.type === 'Background Worker') facts.push(['Broker', component.details.broker]);
+  if (component.type === 'background-worker') facts.push(['Broker', eventBrokerLabels[component.details.broker]]);
   return facts;
 }
 
@@ -371,7 +372,7 @@ function componentTooltipText(component: Component) {
   return [
     ['Description', component.description || 'No description provided.'],
     ['ID', String(component.id)],
-    ['Type', component.type],
+    ['Type', componentTypeLabels[component.type]],
     ...componentFacts(component),
     ['Provider APIs', String(component.apis.filter((api) => api.role === 'provider').length)],
     ['Consumer APIs', String(component.apis.filter((api) => api.role === 'consumer').length)],
@@ -382,7 +383,7 @@ function apiTooltipText(api: ComponentAPI) {
   return [
     ['Name', api.name],
     ['ID', String(api.id)],
-    ['Type', api.api_type],
+    ['Type', apiTypeLabels[api.api_type]],
     ['Network exposure', api.network_exposure],
     ['Role', api.role],
   ].map(([label, value]) => `${label}: ${value || '—'}`).join(' · ');

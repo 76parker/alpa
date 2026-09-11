@@ -4,13 +4,15 @@ export type Workspace = {
 };
 
 export const productCriticalities = [
-  'MISSION-CRITICAL',
-  'BUSINESS-CRITICAL',
-  'BUSINESS-OPERATIONAL',
-  'OFFICE-PRODUCTIVITY',
+  { value: 'mission-critical', label: 'Mission critical', badge: 'MISSION-CRITICAL' },
+  { value: 'business-critical', label: 'Business critical', badge: 'BUSINESS-CRITICAL' },
+  { value: 'business-operational', label: 'Business operational', badge: 'BUSINESS-OPERATIONAL' },
+  { value: 'office-productivity', label: 'Office productivity', badge: 'OFFICE-PRODUCTIVITY' },
 ] as const;
 
-export type ProductCriticality = typeof productCriticalities[number];
+export type ProductCriticality = typeof productCriticalities[number]['value'];
+export const productCriticalityLabels: Record<ProductCriticality, string> = Object.fromEntries(productCriticalities.map((option) => [option.value, option.label])) as Record<ProductCriticality, string>;
+export const productCriticalityBadgeLabels: Record<ProductCriticality, string> = Object.fromEntries(productCriticalities.map((option) => [option.value, option.badge])) as Record<ProductCriticality, string>;
 
 export type Product = {
   id: number;
@@ -23,13 +25,14 @@ export type Product = {
 };
 
 export const componentTypes = [
-  'Backend Service',
-  'Frontend Service',
-  'Background Worker',
-  'Infrastructure',
+  { value: 'backend-service', label: 'Backend Service' },
+  { value: 'frontend-service', label: 'Frontend Service' },
+  { value: 'background-worker', label: 'Background Worker' },
+  { value: 'infrastructure', label: 'Infrastructure' },
 ] as const;
 
-export type ComponentType = typeof componentTypes[number];
+export type ComponentType = typeof componentTypes[number]['value'];
+export const componentTypeLabels: Record<ComponentType, string> = Object.fromEntries(componentTypes.map((option) => [option.value, option.label])) as Record<ComponentType, string>;
 
 export type ServiceDetails = {
   language: string;
@@ -43,42 +46,55 @@ export type BackgroundWorkerDetails = ServiceDetails & {
 
 export type InfrastructureDetails = {
   system: string;
+  system_type: SystemType;
   version: string;
-  network_address: string;
+  network_address: string[];
 };
 
-export const apiTypes = [
-  'REST',
-  'GraphQL',
-  'gRPC',
-  'JSON-RPC',
-  'SOAP',
-  'WebSocket',
-  'OData',
-  'SSE',
-  'Event',
-  'Native Protocol',
+export const systemTypes = [
+  { value: 'queue/stream', label: 'Queue / Stream' },
+  { value: 'sql-database', label: 'SQL Database' },
+  { value: 'nosql-database', label: 'NoSQL Database' },
+  { value: 'workflow-engine', label: 'Workflow Engine' },
 ] as const;
 
-export type APIType = typeof apiTypes[number];
+export type SystemType = typeof systemTypes[number]['value'];
+export const systemTypeLabels: Record<SystemType, string> = Object.fromEntries(systemTypes.map((option) => [option.value, option.label])) as Record<SystemType, string>;
+
+export const apiTypes = [
+  { value: 'rest', label: 'REST' },
+  { value: 'graphql', label: 'GraphQL' },
+  { value: 'grpc', label: 'gRPC' },
+  { value: 'json-rpc', label: 'JSON-RPC' },
+  { value: 'soap', label: 'SOAP' },
+  { value: 'websocket', label: 'WebSocket' },
+  { value: 'odata', label: 'OData' },
+  { value: 'sse', label: 'SSE' },
+  { value: 'event', label: 'Event' },
+  { value: 'native-protocol', label: 'Native Protocol' },
+] as const;
+
+export type APIType = typeof apiTypes[number]['value'];
+export const apiTypeLabels: Record<APIType, string> = Object.fromEntries(apiTypes.map((option) => [option.value, option.label])) as Record<APIType, string>;
 export type NetworkExposure = 'internal' | 'internet';
 export type APIRole = 'provider' | 'consumer';
 
 export const eventBrokers = [
-  'RabbitMQ',
-  'Kafka',
-  'Redpanda',
-  'NATS/JetStream',
-  'Apache Pulsar',
-  'AWS SQS',
-  'Google Cloud Pub/Sub',
-  'Azure Service Bus',
-  'Redis Streams',
-  'ActiveMQ',
-  'IBM MQ',
+  { value: 'rabbitmq', label: 'RabbitMQ' },
+  { value: 'kafka', label: 'Kafka' },
+  { value: 'redpanda', label: 'Redpanda' },
+  { value: 'nats-jetstream', label: 'NATS/JetStream' },
+  { value: 'apache-pulsar', label: 'Apache Pulsar' },
+  { value: 'aws-sqs', label: 'AWS SQS' },
+  { value: 'google-cloud-pub-sub', label: 'Google Cloud Pub/Sub' },
+  { value: 'azure-service-bus', label: 'Azure Service Bus' },
+  { value: 'redis-streams', label: 'Redis Streams' },
+  { value: 'activemq', label: 'ActiveMQ' },
+  { value: 'ibm-mq', label: 'IBM MQ' },
 ] as const;
 
-export type EventBroker = typeof eventBrokers[number];
+export type EventBroker = typeof eventBrokers[number]['value'];
+export const eventBrokerLabels: Record<EventBroker, string> = Object.fromEntries(eventBrokers.map((option) => [option.value, option.label])) as Record<EventBroker, string>;
 
 export type ComponentAPI = {
   id: number;
@@ -97,9 +113,9 @@ type ComponentBase = {
 };
 
 export type Component = ComponentBase & (
-  | { type: 'Backend Service' | 'Frontend Service'; details: ServiceDetails }
-  | { type: 'Background Worker'; details: BackgroundWorkerDetails }
-  | { type: 'Infrastructure'; details: InfrastructureDetails }
+  | { type: 'backend-service' | 'frontend-service'; details: ServiceDetails }
+  | { type: 'background-worker'; details: BackgroundWorkerDetails }
+  | { type: 'infrastructure'; details: InfrastructureDetails }
 );
 
 export type Pagination = {
@@ -139,8 +155,9 @@ export type BackgroundWorkerDetailsInput = ServiceDetailsInput & {
 
 export type InfrastructureDetailsInput = {
   system: string;
+  system_type: SystemType;
   version?: string;
-  network_address?: string;
+  network_address?: string[];
 };
 
 export type CreateComponentInput = {

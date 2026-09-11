@@ -120,25 +120,25 @@ it('shows Dashboard as an in-development route', async () => {
     });
     if (url.includes('/workspaces/7/products')) return response<ListResponse<Product>>({
       data: [
-        { id: 1, workspace_id: 7, product_code: 'PAY', name: 'Payments', criticality: 'MISSION-CRITICAL', description: '' },
-        { id: 2, workspace_id: 7, product_code: 'CRM', name: 'Customer records', criticality: 'BUSINESS-CRITICAL', description: 'Stores customer records' },
-        { id: 3, workspace_id: 7, product_code: 'OPS', name: 'Operations', criticality: 'BUSINESS-OPERATIONAL', description: 'Runs operations' },
+        { id: 1, workspace_id: 7, product_code: 'PAY', name: 'Payments', criticality: 'mission-critical', description: '' },
+        { id: 2, workspace_id: 7, product_code: 'CRM', name: 'Customer records', criticality: 'business-critical', description: 'Stores customer records' },
+        { id: 3, workspace_id: 7, product_code: 'OPS', name: 'Operations', criticality: 'business-operational', description: 'Runs operations' },
       ],
       pagination: { limit: 100, offset: 0 },
     });
     if (url.includes('/products/1/components')) return response<ListResponse<Component>>({ data: [
-      { id: 11, product_id: 1, name: 'Payments API', type: 'Backend Service', description: '', details: { language: 'Go', language_version: '', framework: '' }, apis: [
-        { id: 100, name: 'Payments', api_type: 'REST', network_exposure: 'internal', role: 'provider' },
-        { id: 101, name: 'Identity', api_type: 'REST', network_exposure: 'internal', role: 'consumer' },
+      { id: 11, product_id: 1, name: 'Payments API', type: 'backend-service', description: '', details: { language: 'Go', language_version: '', framework: '' }, apis: [
+        { id: 100, name: 'Payments', api_type: 'rest', network_exposure: 'internal', role: 'provider' },
+        { id: 101, name: 'Identity', api_type: 'rest', network_exposure: 'internal', role: 'consumer' },
       ] },
-      { id: 12, product_id: 1, name: 'Payments UI', type: 'Frontend Service', description: '', details: { language: 'TypeScript', language_version: '', framework: '' }, apis: [
-        { id: 102, name: 'UI API', api_type: 'GraphQL', network_exposure: 'internet', role: 'provider' },
+      { id: 12, product_id: 1, name: 'Payments UI', type: 'frontend-service', description: '', details: { language: 'TypeScript', language_version: '', framework: '' }, apis: [
+        { id: 102, name: 'UI API', api_type: 'graphql', network_exposure: 'internet', role: 'provider' },
       ] },
     ], pagination: { limit: 100, offset: 0 } });
     if (url.includes('/products/2/components')) return response<ListResponse<Component>>({ data: [], pagination: { limit: 100, offset: 0 } });
     if (url.includes('/products/3/components')) return response<ListResponse<Component>>({ data: [
-      { id: 13, product_id: 3, name: 'Operations worker', type: 'Background Worker', description: '', details: { language: 'Go', language_version: '', framework: '', broker: 'Kafka' }, apis: [
-        { id: 103, name: 'Events', api_type: 'Event', network_exposure: 'internal', role: 'provider' },
+      { id: 13, product_id: 3, name: 'Operations worker', type: 'background-worker', description: '', details: { language: 'Go', language_version: '', framework: '', broker: 'kafka' }, apis: [
+        { id: 103, name: 'Events', api_type: 'event', network_exposure: 'internal', role: 'provider' },
       ] },
     ], pagination: { limit: 100, offset: 0 } });
     throw new Error(`Unexpected request: ${url}`);
@@ -161,7 +161,7 @@ it('does not render Recently visited while Dashboard is in development', async (
       pagination: { limit: 100, offset: 0 },
     });
     if (url.includes('/workspaces/7/products')) return response<ListResponse<Product>>({
-      data: [{ id: 1, workspace_id: 7, product_code: 'PAY', name: 'Payments', criticality: 'BUSINESS-CRITICAL' }],
+      data: [{ id: 1, workspace_id: 7, product_code: 'PAY', name: 'Payments', criticality: 'business-critical' }],
       pagination: { limit: 100, offset: 0 },
     });
     if (url.includes('/products/1/components')) return response<ListResponse<Component>>({ data: [], pagination: { limit: 100, offset: 0 } });
@@ -245,7 +245,7 @@ it('creates a product with the exact API payload and returns to Products', async
       workspace_id: 7,
       product_code: 'PAY',
       name: 'Payments API',
-      criticality: 'BUSINESS-CRITICAL',
+      criticality: 'business-critical',
       description: 'Processes payments',
     }, 201);
     return response<ListResponse<Product>>({ data: [], pagination: { limit: 100, offset: 0 } });
@@ -266,8 +266,8 @@ it('creates a product with the exact API payload and returns to Products', async
   await user.type(screen.getByRole('textbox', { name: 'Product code' }), 'PAY');
   await user.type(screen.getByRole('textbox', { name: 'Product name' }), 'Payments API');
   const criticality = screen.getByRole('combobox', { name: 'Criticality' });
-  expect(criticality.querySelector('option:checked')?.getAttribute('value')).toBe('BUSINESS-OPERATIONAL');
-  await user.selectOptions(criticality, 'BUSINESS-CRITICAL');
+  expect(criticality.querySelector('option:checked')?.getAttribute('value')).toBe('business-operational');
+  await user.selectOptions(criticality, 'business-critical');
   await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Processes payments');
   await user.click(screen.getByRole('button', { name: 'Create product' }));
 
@@ -284,46 +284,112 @@ it('creates a product with the exact API payload and returns to Products', async
   expect(JSON.parse(String(createRequest?.init?.body))).toEqual({
     product_code: 'PAY',
     name: 'Payments API',
-    criticality: 'BUSINESS-CRITICAL',
+    criticality: 'business-critical',
     description: 'Processes payments',
   });
 });
 
 describe('component request variants', () => {
   it.each([
-    ['Backend Service', { language: 'Go', languageVersion: '1.25', framework: 'Gin' }, { language: 'Go', language_version: '1.25', framework: 'Gin' }],
-    ['Frontend Service', { language: 'TypeScript', languageVersion: '', framework: 'React' }, { language: 'TypeScript', framework: 'React' }],
-    ['Background Worker', { language: 'Go', languageVersion: '', framework: '', broker: 'Kafka' }, { language: 'Go', broker: 'Kafka' }],
-    ['Infrastructure', { system: 'PostgreSQL', version: '17', networkAddress: 'db.internal:5432' }, { system: 'PostgreSQL', version: '17', network_address: 'db.internal:5432' }],
+    ['backend-service', { language: 'Go', languageVersion: '1.25', framework: 'Gin' }, { language: 'Go', language_version: '1.25', framework: 'Gin' }],
+    ['frontend-service', { language: 'TypeScript', languageVersion: '', framework: 'React' }, { language: 'TypeScript', framework: 'React' }],
+    ['background-worker', { language: 'Go', languageVersion: '', framework: '', broker: 'kafka' }, { language: 'Go', broker: 'kafka' }],
+    ['infrastructure', { system: 'PostgreSQL', systemType: 'sql-database', version: '17', networkAddresses: ['db.internal:5432', 'db-replica.internal:5432'] }, { system: 'PostgreSQL', system_type: 'sql-database', version: '17', network_address: ['db.internal:5432', 'db-replica.internal:5432'] }],
   ] as const)('builds the %s details contract', (type, details, expected) => {
     expect(buildComponentInput(9, {
       name: 'Catalog',
       type,
       description: '',
       details,
-    }, [{ name: 'Catalog API', api_type: 'REST', network_exposure: 'internal' }])).toEqual({
+    }, [{ name: 'Catalog API', api_type: 'rest', network_exposure: 'internal' }])).toEqual({
       product_id: 9,
       name: 'Catalog',
       type,
       details: expected,
-      apis: [{ name: 'Catalog API', api_type: 'REST', network_exposure: 'internal' }],
+      apis: [{ name: 'Catalog API', api_type: 'rest', network_exposure: 'internal' }],
     });
   });
 
   it('preserves multiple provided APIs in the creation payload', () => {
     expect(buildComponentInput(9, {
       name: 'Catalog',
-      type: 'Backend Service',
+      type: 'backend-service',
       description: '',
       details: { language: 'Go', languageVersion: '', framework: '' },
     }, [
-      { name: 'Catalog REST', api_type: 'REST', network_exposure: 'internal' },
-      { name: 'Catalog events', api_type: 'Event', network_exposure: 'internet' },
+      { name: 'Catalog REST', api_type: 'rest', network_exposure: 'internal' },
+      { name: 'Catalog events', api_type: 'event', network_exposure: 'internet' },
     ]).apis).toEqual([
-      { name: 'Catalog REST', api_type: 'REST', network_exposure: 'internal' },
-      { name: 'Catalog events', api_type: 'Event', network_exposure: 'internet' },
+      { name: 'Catalog REST', api_type: 'rest', network_exposure: 'internal' },
+      { name: 'Catalog events', api_type: 'event', network_exposure: 'internet' },
     ]);
   });
+});
+
+it('creates infrastructure components with a system type and multiple network addresses', async () => {
+  let createPayload: unknown;
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url.includes('/workspaces?')) return response<ListResponse<Workspace>>({
+      data: [{ id: 7, name: 'Payments' }],
+      pagination: { limit: 100, offset: 0 },
+    });
+    if (url.includes('/workspaces/7/products')) return response<ListResponse<Product>>({
+      data: [{ id: 9, workspace_id: 7, product_code: 'PAY', name: 'Payments', criticality: 'mission-critical' }],
+      pagination: { limit: 100, offset: 0 },
+    });
+    if (url.includes('/products/9/components')) return response<ListResponse<Component>>({
+      data: [],
+      pagination: { limit: 100, offset: 0 },
+    });
+    if (url.endsWith('/components') && init?.method === 'POST') {
+      createPayload = JSON.parse(String(init.body));
+      return response<Component>({
+        id: 17,
+        product_id: 9,
+        name: 'Redis cache',
+        type: 'infrastructure',
+        description: '',
+        details: {
+          system: 'Redis',
+          system_type: 'nosql-database',
+          version: '7',
+          network_address: ['cache.internal:6379', 'cache-replica.internal:6379'],
+        },
+        apis: [],
+      }, 201);
+    }
+    throw new Error(`Unexpected request: ${url}`);
+  }));
+
+  const user = userEvent.setup();
+  render(<StatefulInventory initialRoute={{ kind: 'product', productKey: 'PAY' }} />);
+
+  await user.click((await screen.findAllByRole('button', { name: 'Create component' }))[0]);
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Component type' }), 'infrastructure');
+  const systemType = screen.getByRole('combobox', { name: 'System type' });
+  expect(within(systemType).getByRole('option', { name: 'SQL Database' })).toBeTruthy();
+  await user.selectOptions(systemType, 'nosql-database');
+  await user.type(screen.getByRole('textbox', { name: 'Component name' }), 'Redis cache');
+  await user.type(screen.getByRole('textbox', { name: 'System' }), 'Redis');
+  await user.click(screen.getByRole('button', { name: 'Add network address' }));
+  await user.type(screen.getByRole('textbox', { name: 'Network address 1' }), 'cache.internal:6379');
+  await user.click(screen.getByRole('button', { name: 'Add network address' }));
+  await user.type(screen.getByRole('textbox', { name: 'Network address 2' }), 'cache-replica.internal:6379');
+  await user.click(screen.getByRole('button', { name: 'Create component' }));
+
+  await waitFor(() => expect(createPayload).toEqual({
+    product_id: 9,
+    name: 'Redis cache',
+    type: 'infrastructure',
+    details: {
+      system: 'Redis',
+      system_type: 'nosql-database',
+      network_address: ['cache.internal:6379', 'cache-replica.internal:6379'],
+    },
+  }));
+  expect(await screen.findByRole('heading', { name: 'Redis cache' })).toBeTruthy();
+  expect(screen.getByText('NoSQL Database')).toBeTruthy();
 });
 
 it('keeps component creation open when the server rejects the request', async () => {
@@ -334,7 +400,7 @@ it('keeps component creation open when the server rejects the request', async ()
       pagination: { limit: 100, offset: 0 },
     });
     if (url.includes('/workspaces/7/products')) return response<ListResponse<Product>>({
-      data: [{ id: 9, workspace_id: 7, product_code: 'PAY', name: 'Payments', criticality: 'MISSION-CRITICAL' }],
+      data: [{ id: 9, workspace_id: 7, product_code: 'PAY', name: 'Payments', criticality: 'mission-critical' }],
       pagination: { limit: 100, offset: 0 },
     });
     if (url.includes('/products/9/components')) return response<ListResponse<Component>>({
@@ -387,7 +453,7 @@ it('explains API directions and keeps the full entity context for a component', 
       pagination: { limit: 100, offset: 0 },
     });
     if (url.includes('/workspaces/7/products')) return response<ListResponse<Product>>({
-      data: [{ id: 9, workspace_id: 7, product_code: 'PAY', name: 'Payments', criticality: 'MISSION-CRITICAL' }],
+      data: [{ id: 9, workspace_id: 7, product_code: 'PAY', name: 'Payments', criticality: 'mission-critical' }],
       pagination: { limit: 100, offset: 0 },
     });
     if (url.includes('/products/9/components')) return response<ListResponse<Component>>({
@@ -420,7 +486,7 @@ it('keeps the relationship dialog open and shows the duplicate conflict inline',
       pagination: { limit: 100, offset: 0 },
     });
     if (url.includes('/workspaces/7/products')) return response<ListResponse<Product>>({
-      data: [{ id: 9, workspace_id: 7, product_code: 'PAY', name: 'Payments', criticality: 'MISSION-CRITICAL' }],
+      data: [{ id: 9, workspace_id: 7, product_code: 'PAY', name: 'Payments', criticality: 'mission-critical' }],
       pagination: { limit: 100, offset: 0 },
     });
     if (url.includes('/products/9/components')) return response<ListResponse<Component>>({
@@ -452,7 +518,7 @@ it('announces a relationship only after a failed mutation is confirmed by refres
     ...components[0],
     apis: [
       ...components[0].apis,
-      { id: 202, name: 'Available API', api_type: 'GraphQL', network_exposure: 'internet', role: 'consumer' },
+      { id: 202, name: 'Available API', api_type: 'graphql', network_exposure: 'internet', role: 'consumer' },
     ],
   };
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -462,7 +528,7 @@ it('announces a relationship only after a failed mutation is confirmed by refres
       pagination: { limit: 100, offset: 0 },
     });
     if (url.includes('/workspaces/7/products')) return response<ListResponse<Product>>({
-      data: [{ id: 9, workspace_id: 7, product_code: 'PAY', name: 'Payments', criticality: 'MISSION-CRITICAL' }],
+      data: [{ id: 9, workspace_id: 7, product_code: 'PAY', name: 'Payments', criticality: 'mission-critical' }],
       pagination: { limit: 100, offset: 0 },
     });
     if (url.includes('/products/9/components')) return response<ListResponse<Component>>({
@@ -494,24 +560,24 @@ function componentFixtures(): Component[] {
       id: 101,
       product_id: 9,
       name: 'Consumer',
-      type: 'Backend Service',
+      type: 'backend-service',
       description: '',
       details: { language: 'Go', language_version: '', framework: '' },
       apis: [
-        { id: 100, name: 'Own API', api_type: 'REST', network_exposure: 'internal', role: 'provider' },
-        { id: 201, name: 'Already linked', api_type: 'REST', network_exposure: 'internal', role: 'consumer' },
+        { id: 100, name: 'Own API', api_type: 'rest', network_exposure: 'internal', role: 'provider' },
+        { id: 201, name: 'Already linked', api_type: 'rest', network_exposure: 'internal', role: 'consumer' },
       ],
     },
     {
       id: 102,
       product_id: 9,
       name: 'Provider',
-      type: 'Frontend Service',
+      type: 'frontend-service',
       description: '',
       details: { language: 'TypeScript', language_version: '', framework: 'React' },
       apis: [
-        { id: 201, name: 'Already linked', api_type: 'REST', network_exposure: 'internal', role: 'provider' },
-        { id: 202, name: 'Available API', api_type: 'GraphQL', network_exposure: 'internet', role: 'provider' },
+        { id: 201, name: 'Already linked', api_type: 'rest', network_exposure: 'internal', role: 'provider' },
+        { id: 202, name: 'Available API', api_type: 'graphql', network_exposure: 'internet', role: 'provider' },
       ],
     },
   ];

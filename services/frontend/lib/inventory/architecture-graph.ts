@@ -1,5 +1,5 @@
 import { MarkerType, type Edge, type Node } from '@xyflow/react';
-import type { Component, ComponentAPI } from './contracts';
+import { componentTypeLabels, type Component, type ComponentAPI } from './contracts';
 
 export type ArchitectureNodeData = {
   component: Component;
@@ -108,7 +108,7 @@ export function architectureNodeHeight(component: Component) {
 
 export function architectureNodeWidth(component: Component) {
   const providerRailWidth = component.apis.some((api) => api.role === 'provider') ? PROVIDER_API_RAIL_WIDTH : 0;
-  const longestLabelLength = Math.max(Array.from(component.name).length, Array.from(component.type).length);
+  const longestLabelLength = Math.max(Array.from(component.name).length, Array.from(componentTypeLabels[component.type]).length);
   return Math.max(
     NODE_MIN_WIDTH,
     providerRailWidth + NODE_ICON_AND_PADDING_WIDTH + longestLabelLength * NODE_LABEL_CHARACTER_WIDTH,

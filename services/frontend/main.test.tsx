@@ -14,7 +14,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.includes('/workspaces?')) return response<ListResponse<Workspace>>({ data: [{ id: 7, name: 'Payments' }], pagination: { limit: 100, offset: 0 } });
-    if (url.includes('/workspaces/7/products')) return response<ListResponse<Product>>({ data: [{ id: 12, workspace_id: 7, product_code: 'GCPAY', name: 'Global Checkout and Payment Orchestration Platform', criticality: 'MISSION-CRITICAL' }], pagination: { limit: 100, offset: 0 } });
+    if (url.includes('/workspaces/7/products')) return response<ListResponse<Product>>({ data: [{ id: 12, workspace_id: 7, product_code: 'GCPAY', name: 'Global Checkout and Payment Orchestration Platform', criticality: 'mission-critical' }], pagination: { limit: 100, offset: 0 } });
     if (url.includes('/products/12/components')) return response({ data: [], pagination: { limit: 100, offset: 0 } });
     throw new Error(`Unexpected request: ${url}`);
   }));

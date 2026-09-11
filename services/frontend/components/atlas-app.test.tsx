@@ -8,21 +8,21 @@ const workspace: Workspace = { id: 7, name: 'Payments' };
 const baseProducts: Product[] = [{
   id: 12, workspace_id: 7, product_code: 'GCPAY',
   name: 'Global Checkout and Payment Orchestration Platform',
-  criticality: 'MISSION-CRITICAL', description: 'Coordinates global checkout and payments.',
+  criticality: 'mission-critical', description: 'Coordinates global checkout and payments.',
 }];
 const components: Component[] = [{
-  id: 101, product_id: 12, name: 'Checkout API', type: 'Backend Service',
+  id: 101, product_id: 12, name: 'Checkout API', type: 'backend-service',
   description: 'Accepts checkout requests.',
   details: { language: 'Go', language_version: '1.25', framework: 'Gin' },
   apis: [
-    { id: 201, name: 'Checkout REST API', api_type: 'REST', network_exposure: 'internet', role: 'provider' },
-    { id: 202, name: 'Checkout GraphQL API', api_type: 'GraphQL', network_exposure: 'internal', role: 'provider' },
+    { id: 201, name: 'Checkout REST API', api_type: 'rest', network_exposure: 'internet', role: 'provider' },
+    { id: 202, name: 'Checkout GraphQL API', api_type: 'graphql', network_exposure: 'internal', role: 'provider' },
   ],
 }, {
-  id: 102, product_id: 12, name: 'Checkout UI', type: 'Frontend Service',
+  id: 102, product_id: 12, name: 'Checkout UI', type: 'frontend-service',
   description: 'Collects customer checkout input.',
   details: { language: 'TypeScript', language_version: '5', framework: 'React' },
-  apis: [{ id: 201, name: 'Checkout REST API', api_type: 'REST', network_exposure: 'internet', role: 'consumer' }],
+  apis: [{ id: 201, name: 'Checkout REST API', api_type: 'rest', network_exposure: 'internet', role: 'consumer' }],
 }];
 
 let requests: string[];
@@ -95,7 +95,7 @@ it('creates a remote product without storing server entities in localStorage', a
 
   await user.type(await screen.findByRole('textbox', { name: 'Product code' }), 'FRAUD');
   await user.type(screen.getByRole('textbox', { name: 'Product name' }), 'Fraud Rules');
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Criticality' }), 'BUSINESS-CRITICAL');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Criticality' }), 'business-critical');
   await user.click(screen.getByRole('button', { name: 'Create product' }));
 
   await waitFor(() => expect(window.location.pathname).toBe('/products'));

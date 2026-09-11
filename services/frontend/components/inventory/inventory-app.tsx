@@ -20,18 +20,27 @@ import { cloneElement, useEffect, useId, useMemo, useRef, useState, type FormEve
 import { InventoryRequestError } from '../../lib/inventory/client';
 import {
   apiTypes,
+  apiTypeLabels,
   componentTypes,
+  componentTypeLabels,
   eventBrokers,
+  eventBrokerLabels,
   productCriticalities,
+  productCriticalityBadgeLabels,
+  productCriticalityLabels,
+  systemTypes,
+  systemTypeLabels,
   type APIType,
   type Component,
   type ComponentAPI,
   type ComponentType,
   type CreateComponentAPIInput,
   type CreateComponentInput,
+  type EventBroker,
   type NetworkExposure,
   type Product,
   type ProductCriticality,
+  type SystemType,
 } from '../../lib/inventory/contracts';
 import { serializeRoute, type AtlasRoute } from '../../lib/routes';
 import { FieldLabel } from '../field-label';
@@ -48,8 +57,8 @@ const PAGE_SIZE = 20;
 type Navigate = (route: AtlasRoute) => void;
 
 type ServiceDraft = { language: string; languageVersion: string; framework: string };
-type WorkerDraft = ServiceDraft & { broker: string };
-type InfrastructureDraft = { system: string; version: string; networkAddress: string };
+type WorkerDraft = ServiceDraft & { broker: EventBroker };
+type InfrastructureDraft = { system: string; systemType: SystemType; version: string; networkAddresses: readonly string[] };
 
 export type ComponentDraft = {
   name: string;
@@ -78,12 +87,14 @@ export function buildComponentInput(
   apis: CreateComponentAPIInput[],
 ): CreateComponentInput {
   let details: CreateComponentInput['details'];
-  if (draft.type === 'Infrastructure') {
+  if (draft.type === 'infrastructure') {
     const values = draft.details as InfrastructureDraft;
+    const networkAddresses = values.networkAddresses.map((value) => value.trim()).filter(Boolean);
     details = {
       system: values.system.trim(),
+      system_type: values.systemType,
       ...(optional(values.version) ? { version: optional(values.version) } : {}),
-      ...(optional(values.networkAddress) ? { network_address: optional(values.networkAddress) } : {}),
+      ...(networkAddresses.length ? { network_address: networkAddresses } : {}),
     };
   } else {
     const values = draft.details as ServiceDraft | WorkerDraft;
@@ -91,7 +102,7 @@ export function buildComponentInput(
       language: values.language.trim(),
       ...(optional(values.languageVersion) ? { language_version: optional(values.languageVersion) } : {}),
       ...(optional(values.framework) ? { framework: optional(values.framework) } : {}),
-      ...(draft.type === 'Background Worker' ? { broker: (values as WorkerDraft).broker as (typeof eventBrokers)[number] } : {}),
+      ...(draft.type === 'background-worker' ? { broker: (values as WorkerDraft).broker } : {}),
     };
   }
   return {
@@ -344,7 +355,7 @@ function ProductCreatePage({ onCancel, onCreate }: { onCancel: () => void; onCre
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
-  const [criticality, setCriticality] = useState<ProductCriticality>('BUSINESS-OPERATIONAL');
+  const [criticality, setCriticality] = useState<ProductCriticality>('business-operational');
   const [description, setDescription] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -383,13 +394,6 @@ function ProductCreatePage({ onCancel, onCreate }: { onCancel: () => void; onCre
   </section>;
 }
 
-const criticalityCopy: Record<ProductCriticality, string> = {
-  'MISSION-CRITICAL': 'Mission critical',
-  'BUSINESS-CRITICAL': 'Business critical',
-  'BUSINESS-OPERATIONAL': 'Business operational',
-  'OFFICE-PRODUCTIVITY': 'Office productivity',
-};
-
 function ProductCriticalityField({ value, onChange }: { value: ProductCriticality; onChange: (value: ProductCriticality) => void }) {
   const id = useId();
   const helpID = `${id}-help`;
@@ -397,7 +401,7 @@ function ProductCriticalityField({ value, onChange }: { value: ProductCriticalit
   return <div className="field full criticality-field">
     <FieldLabel htmlFor={selectID} label="Criticality" help="How severely the business is affected if this product becomes unavailable or compromised." required helpID={helpID} />
     <select id={selectID} value={value} aria-describedby={helpID} onChange={(event) => onChange(event.target.value as ProductCriticality)}>
-      {productCriticalities.map((option) => <option key={option} value={option}>{criticalityCopy[option]}</option>)}
+      {productCriticalities.map((option) => <option key={option.value} value={option.value}>{productCriticalityLabels[option.value]}</option>)}
     </select>
   </div>;
 }
@@ -410,7 +414,7 @@ function ProductPage({ product, components, status, error, navigate, createCompo
     <nav className="tabs" aria-label="Product sections"><button className="active" type="button" aria-current="page">Overview</button><button type="button" onClick={() => navigate({ kind: 'product', productKey: product.product_code, tab: 'architecture' })}>Architecture map</button><button type="button" onClick={() => navigate({ kind: 'product', productKey: product.product_code, tab: 'threat-model' })}>Threat modeling</button></nav>
     <section className="panel table-panel">
       <div className="component-filter-toolbar"><h2>Components <span>{components.length}</span></h2><button className="button primary" type="button" onClick={() => setCreateOpen(true)}><Plus size={15} />Create component</button></div>
-      {status === 'loading' ? <LoadingState label="Loading components" compact /> : error ? <RequestError message={error} compact /> : components.length ? <div className="table-scroll" tabIndex={0} aria-label="Components table; scroll horizontally to view all columns"><table className="data-table component-table inventory-component-table"><thead><tr><th>Name</th><th>Type</th><th>Details</th><th>APIs</th></tr></thead><tbody>{components.map((component) => <tr key={component.id}><td><button type="button" className="table-link entity-name" onClick={() => navigate({ kind: 'component', productKey: product.product_code, componentId: String(component.id) })}><ComponentGlyph type={component.type} /><span><strong>{component.name}</strong><small>#{component.id}</small></span></button></td><td>{component.type}</td><td>{detailsSummary(component)}</td><td>{component.apis.length}</td></tr>)}</tbody></table></div> : <section className="empty-state embedded"><span><Server size={21} /></span><strong>No components yet</strong><p>Add the first component for this product.</p><button className="button primary" type="button" onClick={() => setCreateOpen(true)}>Create component</button></section>}
+      {status === 'loading' ? <LoadingState label="Loading components" compact /> : error ? <RequestError message={error} compact /> : components.length ? <div className="table-scroll" tabIndex={0} aria-label="Components table; scroll horizontally to view all columns"><table className="data-table component-table inventory-component-table"><thead><tr><th>Name</th><th>Type</th><th>Details</th><th>APIs</th></tr></thead><tbody>{components.map((component) => <tr key={component.id}><td><button type="button" className="table-link entity-name" onClick={() => navigate({ kind: 'component', productKey: product.product_code, componentId: String(component.id) })}><ComponentGlyph type={component.type} /><span><strong>{component.name}</strong><small>#{component.id}</small></span></button></td><td>{componentTypeLabels[component.type]}</td><td>{detailsSummary(component)}</td><td>{component.apis.length}</td></tr>)}</tbody></table></div> : <section className="empty-state embedded"><span><Server size={21} /></span><strong>No components yet</strong><p>Add the first component for this product.</p><button className="button primary" type="button" onClick={() => setCreateOpen(true)}>Create component</button></section>}
     </section>
     {createOpen ? <ComponentCreateDialog product={product} onClose={() => setCreateOpen(false)} onCreate={async (input) => {
       const component = await createComponent(input);
@@ -432,49 +436,57 @@ function ProductArchitecturePage({ product, components, status, error, navigate 
 
 function ComponentCreateDialog({ product, onClose, onCreate }: { product: Product; onClose: () => void; onCreate: (input: CreateComponentInput) => Promise<void> }) {
   const [name, setName] = useState('');
-  const [type, setType] = useState<ComponentType>('Backend Service');
+  const [type, setType] = useState<ComponentType>('backend-service');
   const [description, setDescription] = useState('');
   const [language, setLanguage] = useState('');
   const [languageVersion, setLanguageVersion] = useState('');
   const [framework, setFramework] = useState('');
-  const [broker, setBroker] = useState<(typeof eventBrokers)[number]>('Kafka');
+  const [broker, setBroker] = useState<EventBroker>('kafka');
   const [system, setSystem] = useState('');
+  const [systemType, setSystemType] = useState<SystemType>('sql-database');
   const [version, setVersion] = useState('');
-  const [networkAddress, setNetworkAddress] = useState('');
+  const [networkAddresses, setNetworkAddresses] = useState<string[]>([]);
   const [apis, setAPIs] = useState<CreateComponentAPIInput[]>([]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  function addAPI() { setAPIs((current) => [...current, { name: '', api_type: 'REST', network_exposure: 'internal' }]); }
+  function addAPI() { setAPIs((current) => [...current, { name: '', api_type: 'rest', network_exposure: 'internal' }]); }
   function updateAPI(index: number, patch: Partial<CreateComponentAPIInput>) { setAPIs((current) => current.map((api, itemIndex) => itemIndex === index ? { ...api, ...patch } : api)); }
+  function addNetworkAddress() { setNetworkAddresses((current) => current.length >= 10 ? current : [...current, '']); }
+  function updateNetworkAddress(index: number, value: string) { setNetworkAddresses((current) => current.map((address, itemIndex) => itemIndex === index ? value : address)); }
+  function removeNetworkAddress(index: number) { setNetworkAddresses((current) => current.filter((_, itemIndex) => itemIndex !== index)); }
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!name.trim()) return setError('Component name is required');
     if (name.trim().length > 50) return setError('Component name must be 50 characters or fewer');
     if (description.length > 1000) return setError('Description must be 1,000 characters or fewer');
-    if (type === 'Infrastructure' ? !system.trim() : !language.trim()) return setError(type === 'Infrastructure' ? 'System is required' : 'Language is required');
+    if (type === 'infrastructure' ? !system.trim() : !language.trim()) return setError(type === 'infrastructure' ? 'System is required' : 'Language is required');
     if (apis.some((api) => !api.name.trim())) return setError('Every provided API needs a name');
-    const details = type === 'Infrastructure' ? { system, version, networkAddress } : type === 'Background Worker' ? { language, languageVersion, framework, broker } : { language, languageVersion, framework };
+    const details = type === 'infrastructure' ? { system, systemType, version, networkAddresses } : type === 'background-worker' ? { language, languageVersion, framework, broker } : { language, languageVersion, framework };
     setSaving(true); setError('');
     try { await onCreate(buildComponentInput(product.id, { name, type, description, details }, apis)); } catch (cause) { setError(publicError(cause)); setSaving(false); }
   }
   return <InventoryDialog title="Create component" eyebrow={product.product_code} onClose={onClose} wide><form className="modal-form inventory-component-form" onSubmit={submit} noValidate>
     <Field label="Component name" help="The human-readable name used to identify this component in the product inventory." required><input autoFocus value={name} maxLength={50} onChange={(event) => setName(event.target.value)} /></Field>
-    <Field label="Component type" help="Controls which technical details and security checks apply to this component." required><select value={type} onChange={(event) => setType(event.target.value as ComponentType)}>{componentTypes.map((value) => <option key={value}>{value}</option>)}</select></Field>
-    {type === 'Infrastructure' ? <>
+    <Field label="Component type" help="Controls which technical details and security checks apply to this component." required><select value={type} onChange={(event) => setType(event.target.value as ComponentType)}>{componentTypes.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Field>
+    {type === 'infrastructure' ? <>
       <Field label="System" help="The infrastructure technology or managed service, such as PostgreSQL or Redis." required><input value={system} maxLength={50} onChange={(event) => setSystem(event.target.value)} /></Field>
+      <Field label="System type" help="The kind of infrastructure system represented by this component." required><select value={systemType} onChange={(event) => setSystemType(event.target.value as SystemType)}>{systemTypes.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Field>
       <Field label="Version" help="The deployed system version, when it is known and relevant for security tracking."><input value={version} maxLength={50} onChange={(event) => setVersion(event.target.value)} /></Field>
-      <Field label="Network address" help="The hostname, URL, or internal address used to reach this infrastructure component." full><input value={networkAddress} maxLength={50} onChange={(event) => setNetworkAddress(event.target.value)} /></Field>
+      <section className="form-field full api-editor network-address-editor" aria-labelledby="network-addresses-heading"><header className="api-editor-heading"><div><span>Connectivity</span><h3 id="network-addresses-heading">Network addresses</h3></div><button className="button secondary compact" type="button" onClick={addNetworkAddress} disabled={networkAddresses.length >= 10}><Plus size={14} />Add network address</button></header>{networkAddresses.length ? networkAddresses.map((address, index) => <section className="api-editor-card network-address-card" key={index} role="group" aria-labelledby={`network-address-${index}`}>
+        <header><h4 id={`network-address-${index}`}>Network address {index + 1}</h4><button className="icon-button" type="button" onClick={() => removeNetworkAddress(index)} aria-label={`Remove network address ${index + 1}`}><Trash2 size={15} /></button></header>
+        <div className="network-address-fields"><Field label={`Network address ${index + 1}`} help="The hostname, URL, or internal address used to reach this infrastructure component."><input value={address} maxLength={50} onChange={(event) => updateNetworkAddress(index, event.target.value)} /></Field></div>
+      </section>) : <p className="api-empty">No network addresses added.</p>}<small className="network-address-count">{networkAddresses.length}/10 addresses</small></section>
     </> : <>
       <Field label="Language" help="The primary programming language used to implement this component." required><input value={language} maxLength={50} onChange={(event) => setLanguage(event.target.value)} /></Field>
       <Field label="Language version" help="The runtime or compiler version used by the deployed component."><input value={languageVersion} maxLength={50} onChange={(event) => setLanguageVersion(event.target.value)} /></Field>
       <Field label="Framework" help="The main application framework used by this component."><input value={framework} maxLength={50} onChange={(event) => setFramework(event.target.value)} /></Field>
-      {type === 'Background Worker' ? <Field label="Broker" help="The messaging system from which this worker consumes jobs or events." required><select value={broker} onChange={(event) => setBroker(event.target.value as (typeof eventBrokers)[number])}>{eventBrokers.map((value) => <option key={value}>{value}</option>)}</select></Field> : null}
+      {type === 'background-worker' ? <Field label="Broker" help="The messaging system from which this worker consumes jobs or events." required><select value={broker} onChange={(event) => setBroker(event.target.value as EventBroker)}>{eventBrokers.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Field> : null}
     </>}
     <Field label="Description" help="A brief explanation of the component responsibility and its place in the product." full><textarea value={description} maxLength={1000} onChange={(event) => setDescription(event.target.value)} /></Field>
     <section className="form-field full api-editor" aria-labelledby="provided-apis-heading"><header className="api-editor-heading"><div><span>Interfaces</span><h3 id="provided-apis-heading">Provided APIs</h3></div><button className="button secondary compact" type="button" onClick={addAPI}><Plus size={14} />Add API</button></header>{apis.map((api, index) => <section className="api-editor-card" key={index} role="group" aria-labelledby={`provided-api-${index}`}>
       <header><h4 id={`provided-api-${index}`}>API {index + 1}</h4><button className="icon-button" type="button" onClick={() => setAPIs((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove API ${index + 1}`}><Trash2 size={15} /></button></header>
       <div className="api-editor-fields"><Field label="API name" help="The name consumers use to recognize this provided interface." required><input value={api.name} maxLength={50} onChange={(event) => updateAPI(index, { name: event.target.value })} /></Field>
-        <Field label="API type" help="The protocol or interface style exposed by this API."><select value={api.api_type} onChange={(event) => updateAPI(index, { api_type: event.target.value as APIType })}>{apiTypes.map((value) => <option key={value}>{value}</option>)}</select></Field>
+        <Field label="API type" help="The protocol or interface style exposed by this API."><select value={api.api_type} onChange={(event) => updateAPI(index, { api_type: event.target.value as APIType })}>{apiTypes.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Field>
         <Field label="Network exposure" help="Whether this API is reachable only inside trusted networks or from the internet."><select value={api.network_exposure} onChange={(event) => updateAPI(index, { network_exposure: event.target.value as NetworkExposure })}><option value="internal">internal</option><option value="internet">internet</option></select></Field>
       </div>
     </section>)}</section>
@@ -493,7 +505,7 @@ function ComponentPage({ product, component, components, navigate, addConsumerAP
   }
   return <section className="products-page">
     <button className="back-link" type="button" onClick={() => navigate({ kind: 'product', productKey: product.product_code })}><ChevronLeft size={14} />Back to {product.name}</button>
-    <PageHeader eyebrow={component.type} title={component.name} description={component.description || 'No description provided.'} actions={<button className="button secondary" type="button" onClick={() => navigate({ kind: 'component', productKey: product.product_code, componentId: String(component.id), tab: 'security' })}><ShieldCheck size={15} />Security checks</button>} />
+    <PageHeader eyebrow={componentTypeLabels[component.type]} title={component.name} description={component.description || 'No description provided.'} actions={<button className="button secondary" type="button" onClick={() => navigate({ kind: 'component', productKey: product.product_code, componentId: String(component.id), tab: 'security' })}><ShieldCheck size={15} />Security checks</button>} />
     <section className="component-summary-grid">
       <article className="panel component-summary-block component-description-block"><div className="block-heading">Component details</div><dl className="component-facts">{detailFacts(component).map(([term, value]) => <div key={term}><dt>{term}</dt><dd>{value || '—'}</dd></div>)}</dl></article>
       <article className="panel component-summary-block component-technologies-block"><div className="block-heading">Inventory identity</div><dl className="component-facts"><div><dt>Component ID</dt><dd>{component.id}</dd></div><div><dt>Product</dt><dd>{product.product_code}</dd></div></dl></article>
@@ -534,14 +546,14 @@ function RelationshipDialog({ component, candidates, onClose, onConfirmed, onAdd
     }
   }
   return <InventoryDialog title="Add API relationship" eyebrow={component.name} onClose={onClose}><form className="modal-form single" onSubmit={submit} noValidate>
-    {candidates.length ? <Field label="Provider API" help="The API this component consumes from another component in the active product." required full><select value={apiID} onChange={(event) => setAPIID(Number(event.target.value))}>{candidates.map(({ component: provider, api }) => <option key={api.id} value={api.id}>{provider.name} — {api.name} ({api.api_type})</option>)}</select></Field> : <div className="inventory-no-results"><strong>No available provider APIs</strong><p>Other components must provide an API before a relationship can be added.</p></div>}
+    {candidates.length ? <Field label="Provider API" help="The API this component consumes from another component in the active product." required full><select value={apiID} onChange={(event) => setAPIID(Number(event.target.value))}>{candidates.map(({ component: provider, api }) => <option key={api.id} value={api.id}>{provider.name} — {api.name} ({apiTypeLabels[api.api_type]})</option>)}</select></Field> : <div className="inventory-no-results"><strong>No available provider APIs</strong><p>Other components must provide an API before a relationship can be added.</p></div>}
     {error ? <InlineError message={error} /> : null}
     <footer><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={saving || candidates.length === 0}>{saving ? 'Adding…' : 'Add relationship'}</button></footer>
   </form></InventoryDialog>;
 }
 
 function APIList({ title, help, apis, empty, action }: { title: string; help: string; apis: ComponentAPI[]; empty: string; action?: ReactNode }) {
-  return <section className="panel api-panel"><header className="panel-heading"><div><div className="api-panel-title"><h2>{title}</h2><FieldLabel label={title} help={help} /></div><p>{apis.length} {apis.length === 1 ? 'API' : 'APIs'}</p></div>{action}</header>{apis.length ? <div className="api-list">{apis.map((api) => <article key={`${api.role}-${api.id}`}><div><strong>{api.name}</strong><small>#{api.id}</small></div><span>{api.api_type}</span><span className={`state-badge ${api.network_exposure === 'internet' ? 'needs-review' : 'confirmed'}`}>{api.network_exposure}</span></article>)}</div> : <p className="api-empty">{empty}</p>}</section>;
+  return <section className="panel api-panel"><header className="panel-heading"><div><div className="api-panel-title"><h2>{title}</h2><FieldLabel label={title} help={help} /></div><p>{apis.length} {apis.length === 1 ? 'API' : 'APIs'}</p></div>{action}</header>{apis.length ? <div className="api-list">{apis.map((api) => <article key={`${api.role}-${api.id}`}><div><strong>{api.name}</strong><small>#{api.id}</small></div><span>{apiTypeLabels[api.api_type]}</span><span className={`state-badge ${api.network_exposure === 'internet' ? 'needs-review' : 'confirmed'}`}>{api.network_exposure}</span></article>)}</div> : <p className="api-empty">{empty}</p>}</section>;
 }
 
 function ContextTrail({ route, workspaceName, product, components, navigate }: { route: AtlasRoute; workspaceName: string; product?: Product; components: Component[]; navigate: Navigate }) {
@@ -593,22 +605,22 @@ function NotFound({ label, onBack }: { label: string; onBack: () => void }) {
 }
 
 function CriticalityBadge({ value }: { value: ProductCriticality }) {
-  return <span className={`severity-badge ${value.toLocaleLowerCase()}`}>{value}</span>;
+  return <span className={`severity-badge ${value.toLocaleLowerCase()}`}>{productCriticalityBadgeLabels[value]}</span>;
 }
 
 function ComponentGlyph({ type }: { type: ComponentType }) {
-  return <span className={`component-list-avatar ${type.toLocaleLowerCase().replaceAll(' ', '-')}`} aria-hidden="true">{type === 'Infrastructure' ? <Boxes size={16} /> : <Server size={16} />}</span>;
+  return <span className={`component-list-avatar ${type}`} aria-hidden="true">{type === 'infrastructure' ? <Boxes size={16} /> : <Server size={16} />}</span>;
 }
 
 function detailsSummary(component: Component) {
-  if (component.type === 'Infrastructure') return [component.details.system, component.details.version].filter(Boolean).join(' · ');
-  return [component.details.language, component.details.language_version, component.details.framework, component.type === 'Background Worker' ? component.details.broker : ''].filter(Boolean).join(' · ');
+  if (component.type === 'infrastructure') return [component.details.system, systemTypeLabels[component.details.system_type], component.details.version, component.details.network_address.join(', ')].filter(Boolean).join(' · ');
+  return [component.details.language, component.details.language_version, component.details.framework, component.type === 'background-worker' ? eventBrokerLabels[component.details.broker] : ''].filter(Boolean).join(' · ');
 }
 
 function detailFacts(component: Component): Array<[string, string | number]> {
-  if (component.type === 'Infrastructure') return [['System', component.details.system], ['Version', component.details.version], ['Network address', component.details.network_address]];
+  if (component.type === 'infrastructure') return [['System', component.details.system], ['System type', systemTypeLabels[component.details.system_type]], ['Version', component.details.version], ['Network addresses', component.details.network_address.join(', ')]];
   const facts: Array<[string, string]> = [['Language', component.details.language], ['Language version', component.details.language_version], ['Framework', component.details.framework]];
-  if (component.type === 'Background Worker') facts.push(['Broker', component.details.broker]);
+  if (component.type === 'background-worker') facts.push(['Broker', eventBrokerLabels[component.details.broker]]);
   return facts;
 }
 

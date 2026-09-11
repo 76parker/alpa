@@ -7,35 +7,35 @@ const components: Component[] = [
     id: 10,
     product_id: 1,
     name: 'Checkout UI',
-    type: 'Frontend Service',
+    type: 'frontend-service',
     description: 'Accepts customer checkout input.',
     details: { language: 'TypeScript', language_version: '5', framework: 'React' },
     apis: [
-      { id: 301, name: 'Checkout API', api_type: 'REST', network_exposure: 'internal', role: 'consumer' },
-      { id: 303, name: 'Local callback', api_type: 'REST', network_exposure: 'internal', role: 'consumer' },
+      { id: 301, name: 'Checkout API', api_type: 'rest', network_exposure: 'internal', role: 'consumer' },
+      { id: 303, name: 'Local callback', api_type: 'rest', network_exposure: 'internal', role: 'consumer' },
     ],
   },
   {
     id: 20,
     product_id: 1,
     name: 'Checkout Service',
-    type: 'Backend Service',
+    type: 'backend-service',
     description: 'Runs checkout orchestration.',
     details: { language: 'Go', language_version: '1.25', framework: 'Gin' },
     apis: [
-      { id: 301, name: 'Checkout API', api_type: 'REST', network_exposure: 'internal', role: 'provider' },
-      { id: 302, name: 'Events', api_type: 'Event', network_exposure: 'internal', role: 'provider' },
+      { id: 301, name: 'Checkout API', api_type: 'rest', network_exposure: 'internal', role: 'provider' },
+      { id: 302, name: 'Events', api_type: 'event', network_exposure: 'internal', role: 'provider' },
     ],
   },
   {
     id: 30,
     product_id: 1,
     name: 'Ledger Worker',
-    type: 'Background Worker',
+    type: 'background-worker',
     description: 'Records payment events.',
-    details: { language: 'Go', language_version: '1.25', framework: '', broker: 'Kafka' },
+    details: { language: 'Go', language_version: '1.25', framework: '', broker: 'kafka' },
     apis: [
-      { id: 302, name: 'Events', api_type: 'Event', network_exposure: 'internal', role: 'consumer' },
+      { id: 302, name: 'Events', api_type: 'event', network_exposure: 'internal', role: 'consumer' },
     ],
   },
 ];
@@ -53,7 +53,7 @@ describe('buildArchitectureGraph', () => {
     expect(nodes[2].position.x).toBeLessThan(nodes[1].position.x);
     expect(nodes[0].position.y).not.toBe(nodes[2].position.y);
     expect(nodes[0].dragHandle).toBe('.architecture-node-drag-handle');
-    expect(nodes[1].data.providerAPIs.map((api) => api.api_type)).toEqual(['REST', 'Event']);
+    expect(nodes[1].data.providerAPIs.map((api) => api.api_type)).toEqual(['rest', 'event']);
     expect(nodes[0].data.component).toBe(components[0]);
   });
 
@@ -73,19 +73,19 @@ describe('buildArchitectureGraph', () => {
         id: 50,
         product_id: 1,
         name: 'Self-referencing service',
-        type: 'Backend Service',
+        type: 'backend-service',
         description: '',
         details: { language: 'Go', language_version: '', framework: '' },
         apis: [
-          { id: 505, name: 'Internal API', api_type: 'REST', network_exposure: 'internal', role: 'provider' },
-          { id: 505, name: 'Internal API', api_type: 'REST', network_exposure: 'internal', role: 'consumer' },
+          { id: 505, name: 'Internal API', api_type: 'rest', network_exposure: 'internal', role: 'provider' },
+          { id: 505, name: 'Internal API', api_type: 'rest', network_exposure: 'internal', role: 'consumer' },
         ],
       },
       {
         ...components[2],
         id: 40,
         name: 'External Worker',
-        apis: [{ id: 999, name: 'External API', api_type: 'REST', network_exposure: 'internet', role: 'consumer' }],
+        apis: [{ id: 999, name: 'External API', api_type: 'rest', network_exposure: 'internet', role: 'consumer' }],
       },
     ]);
 
@@ -101,7 +101,7 @@ describe('buildArchitectureGraph', () => {
         ...components[0],
         id: 40,
         name: 'Mobile Checkout',
-        apis: [{ id: 302, name: 'Events', api_type: 'Event', network_exposure: 'internal', role: 'consumer' }],
+        apis: [{ id: 302, name: 'Events', api_type: 'event', network_exposure: 'internal', role: 'consumer' }],
       },
     ]);
 
@@ -117,7 +117,7 @@ describe('buildArchitectureGraph', () => {
         ...components[0],
         id: 40,
         name: longName,
-        apis: [{ id: 301, name: 'Checkout API', api_type: 'REST', network_exposure: 'internal', role: 'consumer' }],
+        apis: [{ id: 301, name: 'Checkout API', api_type: 'rest', network_exposure: 'internal', role: 'consumer' }],
       },
     ]);
 
@@ -130,14 +130,14 @@ describe('buildArchitectureGraph', () => {
   });
 
   it('expands a node for a long component type even when its name is short', () => {
-    const longType = 'Background Worker';
+    const longType = 'background-worker';
     const { nodes } = buildArchitectureGraph([{
       id: 40,
       product_id: 1,
       name: 'API',
       type: longType,
       description: '',
-      details: { language: 'Go', language_version: '1.25', framework: '', broker: 'Kafka' },
+      details: { language: 'Go', language_version: '1.25', framework: '', broker: 'kafka' },
       apis: [],
     }]);
 

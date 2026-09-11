@@ -89,7 +89,7 @@ it('keeps products from the latest workspace when an older response arrives late
       return new Promise<Response>((resolve) => { resolveFirst = resolve; });
     }
     return Promise.resolve(jsonResponse<ListResponse<Product>>({
-      data: [{ id: 22, workspace_id: 2, product_code: 'TWO', name: 'Second product', criticality: 'BUSINESS-CRITICAL' }],
+      data: [{ id: 22, workspace_id: 2, product_code: 'TWO', name: 'Second product', criticality: 'business-critical' }],
       pagination: { limit: 100, offset: 0 },
     }));
   }));
@@ -103,7 +103,7 @@ it('keeps products from the latest workspace when an older response arrives late
 
   await act(async () => {
     resolveFirst?.(jsonResponse<ListResponse<Product>>({
-      data: [{ id: 11, workspace_id: 1, product_code: 'ONE', name: 'Stale product', criticality: 'MISSION-CRITICAL' }],
+      data: [{ id: 11, workspace_id: 1, product_code: 'ONE', name: 'Stale product', criticality: 'mission-critical' }],
       pagination: { limit: 100, offset: 0 },
     }));
   });
