@@ -9,10 +9,10 @@
     "name": { "$ref": "#/$defs/string" },
     "criticality": {
       "enum": [
-        "MISSION-CRITICAL",
-        "BUSINESS-CRITICAL",
-        "BUSINESS-OPERATIONAL",
-        "OFFICE-PRODUCTIVITY"
+        "mission-critical",
+        "business-critical",
+        "business-operational",
+        "office-productivity"
       ]
     },
     "description": { "$ref": "#/$defs/description" }

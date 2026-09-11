@@ -8,10 +8,10 @@ CREATE TABLE inventory.workspaces (
 -- Table for products
 
 CREATE TYPE inventory.product_criticality AS ENUM (
-      'MISSION-CRITICAL',
-      'BUSINESS-CRITICAL',
-      'BUSINESS-OPERATIONAL',
-      'OFFICE-PRODUCTIVITY'
+      'mission-critical',
+      'business-critical',
+      'business-operational',
+      'office-productivity'
   );
 
 CREATE TABLE inventory.products (
@@ -29,10 +29,10 @@ CREATE UNIQUE INDEX inventory_unique_product_code ON inventory.products (workspa
 -- Table for components
 -- Represents the components that make up a product
 CREATE TYPE inventory.component_type AS ENUM (
-    'Backend Service',
-    'Frontend Service',
-    'Infrastructure',
-    'Background Worker'
+    'backend-service',
+    'frontend-service',
+    'infrastructure',
+    'background-worker'
 );
 
 CREATE TABLE inventory.components (

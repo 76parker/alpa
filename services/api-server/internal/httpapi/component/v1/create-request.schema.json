@@ -6,7 +6,7 @@
   "properties": {
     "product_id": { "type": "integer", "minimum": 1 },
     "name": { "$ref": "#/$defs/string" },
-    "type": { "enum": ["Backend Service", "Frontend Service", "Infrastructure", "Background Worker"] },
+    "type": { "enum": ["backend-service", "frontend-service", "infrastructure", "background-worker"] },
     "description": { "$ref": "#/$defs/description" },
     "details": { "type": "object" },
     "apis": {
@@ -15,10 +15,10 @@
     }
   },
   "allOf": [
-    { "if": { "properties": { "type": { "const": "Backend Service" } }, "required": ["type"] }, "then": { "properties": { "details": { "$ref": "#/$defs/service" } } } },
-    { "if": { "properties": { "type": { "const": "Frontend Service" } }, "required": ["type"] }, "then": { "properties": { "details": { "$ref": "#/$defs/service" } } } },
-    { "if": { "properties": { "type": { "const": "Infrastructure" } }, "required": ["type"] }, "then": { "properties": { "details": { "$ref": "#/$defs/infrastructure" } } } },
-    { "if": { "properties": { "type": { "const": "Background Worker" } }, "required": ["type"] }, "then": { "properties": { "details": { "$ref": "#/$defs/backgroundWorker" } } } }
+    { "if": { "properties": { "type": { "const": "backend-service" } }, "required": ["type"] }, "then": { "properties": { "details": { "$ref": "#/$defs/service" } } } },
+    { "if": { "properties": { "type": { "const": "frontend-service" } }, "required": ["type"] }, "then": { "properties": { "details": { "$ref": "#/$defs/service" } } } },
+    { "if": { "properties": { "type": { "const": "infrastructure" } }, "required": ["type"] }, "then": { "properties": { "details": { "$ref": "#/$defs/infrastructure" } } } },
+    { "if": { "properties": { "type": { "const": "background-worker" } }, "required": ["type"] }, "then": { "properties": { "details": { "$ref": "#/$defs/backgroundWorker" } } } }
   ],
   "$defs": {
     "string": { "type": "string", "minLength": 1, "maxLength": 50, "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$" },
@@ -29,12 +29,12 @@
       "required": ["name", "api_type", "network_exposure"],
       "properties": {
         "name": { "$ref": "#/$defs/string" },
-        "api_type": { "enum": ["REST", "GraphQL", "gRPC", "JSON-RPC", "SOAP", "WebSocket", "OData", "SSE", "Event", "Native Protocol"] },
+        "api_type": { "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event", "native-protocol"] },
         "network_exposure": { "enum": ["internal", "internet"] }
       }
     },
     "service": { "type": "object", "additionalProperties": false, "required": ["language"], "properties": { "language": { "$ref": "#/$defs/string" }, "language_version": { "$ref": "#/$defs/string" }, "framework": { "$ref": "#/$defs/string" } } },
-    "backgroundWorker": { "type": "object", "additionalProperties": false, "required": ["language", "broker"], "properties": { "language": { "$ref": "#/$defs/string" }, "language_version": { "$ref": "#/$defs/string" }, "framework": { "$ref": "#/$defs/string" }, "broker": { "enum": ["RabbitMQ", "Kafka", "Redpanda", "NATS/JetStream", "Apache Pulsar", "AWS SQS", "Google Cloud Pub/Sub", "Azure Service Bus", "Redis Streams", "ActiveMQ", "IBM MQ"] } } },
+    "backgroundWorker": { "type": "object", "additionalProperties": false, "required": ["language", "broker"], "properties": { "language": { "$ref": "#/$defs/string" }, "language_version": { "$ref": "#/$defs/string" }, "framework": { "$ref": "#/$defs/string" }, "broker": { "enum": ["rabbitmq", "kafka", "redpanda", "nats-jetstream", "apache-pulsar", "aws-sqs", "google-cloud-pub-sub", "azure-service-bus", "redis-streams", "activemq", "ibm-mq"] } } },
     "infrastructure": { "type": "object", "additionalProperties": false, "required": ["system"], "properties": { "system": { "$ref": "#/$defs/string" }, "version": { "$ref": "#/$defs/string" }, "network_address": { "$ref": "#/$defs/string" } } }
   }
 }

@@ -13,16 +13,16 @@ type APIRole string
 type NetworkExposure string
 
 const (
-	APITypeREST           APIType = "REST"
-	APITypeGraphQL        APIType = "GraphQL"
-	APITypeGRPC           APIType = "gRPC"
-	APITypeJSONRPC        APIType = "JSON-RPC"
-	APITypeSOAP           APIType = "SOAP"
-	APITypeWebSocket      APIType = "WebSocket"
-	APITypeOdata          APIType = "OData"
-	APITypeSSE            APIType = "SSE"
-	APITypeEventStream    APIType = "Event"
-	APITypeNativeProtocol APIType = "Native Protocol"
+	APITypeREST           APIType = "rest"
+	APITypeGraphQL        APIType = "graphql"
+	APITypeGRPC           APIType = "grpc"
+	APITypeJSONRPC        APIType = "json-rpc"
+	APITypeSOAP           APIType = "soap"
+	APITypeWebSocket      APIType = "websocket"
+	APITypeOdata          APIType = "odata"
+	APITypeSSE            APIType = "sse"
+	APITypeEventStream    APIType = "event"
+	APITypeNativeProtocol APIType = "native-protocol"
 
 	APIRoleProvider APIRole = "provider"
 	APIRoleConsumer APIRole = "consumer"

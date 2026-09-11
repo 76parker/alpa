@@ -13,7 +13,7 @@ import (
 type CreateRequestV1 struct {
 	ProductID   int64                   `json:"product_id" validate:"gt=0"`
 	Name        string                  `json:"name" validate:"required,max=50,allowed_text"`
-	Type        inventory.ComponentType `json:"type" validate:"required,oneof='Backend Service' 'Frontend Service' Infrastructure 'Background Worker'"`
+	Type        inventory.ComponentType `json:"type" validate:"required,oneof='backend-service' 'frontend-service' infrastructure 'background-worker'"`
 	Description *string                 `json:"description,omitempty" validate:"omitempty,min=1,max=1000,allowed_text"`
 	Details     json.RawMessage         `json:"details" validate:"required"`
 	APIs        []APIRequestV1          `json:"apis,omitempty" validate:"dive"`
@@ -25,7 +25,7 @@ type ConsumerAPICreateRequestV1 struct {
 
 type APIRequestV1 struct {
 	Name            string                    `json:"name" validate:"required,max=50,allowed_text"`
-	APIType         inventory.APIType         `json:"api_type" validate:"required,oneof=REST GraphQL gRPC JSON-RPC SOAP WebSocket OData SSE Event 'Native Protocol'"`
+	APIType         inventory.APIType         `json:"api_type" validate:"required,oneof=rest graphql grpc json-rpc soap websocket odata sse event 'native-protocol'"`
 	NetworkExposure inventory.NetworkExposure `json:"network_exposure" validate:"required,oneof=internal internet"`
 }
 
@@ -39,7 +39,7 @@ type BackgroundWorkerDetailsV1 struct {
 	Language        string                    `json:"language" validate:"required,max=50,allowed_text"`
 	LanguageVersion *string                   `json:"language_version,omitempty" validate:"omitempty,min=1,max=50,allowed_text"`
 	Framework       *string                   `json:"framework,omitempty" validate:"omitempty,min=1,max=50,allowed_text"`
-	Broker          inventory.EventBrokerType `json:"broker" validate:"required,oneof=RabbitMQ Kafka Redpanda NATS/JetStream 'Apache Pulsar' 'AWS SQS' 'Google Cloud Pub/Sub' 'Azure Service Bus' 'Redis Streams' ActiveMQ 'IBM MQ'"`
+	Broker          inventory.EventBrokerType `json:"broker" validate:"required,oneof=rabbitmq kafka redpanda nats-jetstream 'apache-pulsar' 'aws-sqs' 'google-cloud-pub-sub' 'azure-service-bus' 'redis-streams' activemq 'ibm-mq'"`
 }
 
 type InfrastructureDetailsV1 struct {

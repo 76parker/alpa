@@ -19,22 +19,22 @@
         "id": { "type": "integer", "minimum": 1 },
         "product_id": { "type": "integer", "minimum": 1 },
         "name": { "type": "string" },
-        "type": { "enum": ["Backend Service", "Frontend Service", "Infrastructure", "Background Worker"] },
+        "type": { "enum": ["backend-service", "frontend-service", "infrastructure", "background-worker"] },
         "description": { "type": "string" },
         "details": { "type": "object" },
         "apis": { "type": "array", "items": { "$ref": "#/$defs/api" } }
       },
       "allOf": [
         {
-          "if": { "properties": { "type": { "enum": ["Backend Service", "Frontend Service"] } }, "required": ["type"] },
+          "if": { "properties": { "type": { "enum": ["backend-service", "frontend-service"] } }, "required": ["type"] },
           "then": { "properties": { "details": { "$ref": "#/$defs/service" } } }
         },
         {
-          "if": { "properties": { "type": { "const": "Infrastructure" } }, "required": ["type"] },
+          "if": { "properties": { "type": { "const": "infrastructure" } }, "required": ["type"] },
           "then": { "properties": { "details": { "$ref": "#/$defs/infrastructure" } } }
         },
         {
-          "if": { "properties": { "type": { "const": "Background Worker" } }, "required": ["type"] },
+          "if": { "properties": { "type": { "const": "background-worker" } }, "required": ["type"] },
           "then": { "properties": { "details": { "$ref": "#/$defs/background_worker" } } }
         }
       ]
@@ -46,7 +46,7 @@
       "properties": {
         "id": { "type": "integer", "minimum": 1 },
         "name": { "type": "string" },
-        "api_type": { "enum": ["REST", "GraphQL", "gRPC", "JSON-RPC", "SOAP", "WebSocket", "OData", "SSE", "Event", "Native Protocol"] },
+        "api_type": { "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event", "native-protocol"] },
         "network_exposure": { "enum": ["internal", "internet"] },
         "role": { "enum": ["provider", "consumer"] }
       }
@@ -80,7 +80,7 @@
         "language_version": { "type": "string" },
         "framework": { "type": "string" },
         "broker": {
-          "enum": ["RabbitMQ", "Kafka", "Redpanda", "NATS/JetStream", "Apache Pulsar", "AWS SQS", "Google Cloud Pub/Sub", "Azure Service Bus", "Redis Streams", "ActiveMQ", "IBM MQ"]
+          "enum": ["rabbitmq", "kafka", "redpanda", "nats-jetstream", "apache-pulsar", "aws-sqs", "google-cloud-pub-sub", "azure-service-bus", "redis-streams", "activemq", "ibm-mq"]
         }
       }
     },

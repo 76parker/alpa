@@ -224,8 +224,8 @@ components:
         pagination: {$ref: '#/components/schemas/Pagination'}
     Criticality:
       type: string
-      enum: [MISSION-CRITICAL, BUSINESS-CRITICAL, BUSINESS-OPERATIONAL, OFFICE-PRODUCTIVITY]
-      example: BUSINESS-CRITICAL
+      enum: [mission-critical, business-critical, business-operational, office-productivity]
+      example: business-critical
     Product:
       type: object
       required: [id, workspace_id, owning_team_id, product_code, name, criticality, description]
@@ -254,8 +254,8 @@ components:
         pagination: {$ref: '#/components/schemas/Pagination'}
     ComponentType:
       type: string
-      enum: [Backend Service, Frontend Service, Infrastructure, Background Worker]
-      example: Backend Service
+      enum: [backend-service, frontend-service, infrastructure, background-worker]
+      example: backend-service
     ServiceDetails:
       type: object
       required: [language]
@@ -269,7 +269,7 @@ components:
         - type: object
           required: [broker]
           properties:
-            broker: {type: string, enum: [RabbitMQ, Kafka, Redpanda, NATS/JetStream, Apache Pulsar, AWS SQS, Google Cloud Pub/Sub, Azure Service Bus, Redis Streams, ActiveMQ, IBM MQ], example: Kafka}
+            broker: {type: string, enum: [rabbitmq, kafka, redpanda, nats-jetstream, apache-pulsar, aws-sqs, google-cloud-pub-sub, azure-service-bus, redis-streams, activemq, ibm-mq], example: kafka}
     InfrastructureDetails:
       type: object
       required: [system]
@@ -317,8 +317,8 @@ components:
         pagination: {$ref: '#/components/schemas/Pagination'}
     APIType:
       type: string
-      enum: [REST, GraphQL, gRPC, JSON-RPC, SOAP, WebSocket, OData, SSE, Event, Native Protocol]
-      example: REST
+      enum: [rest, graphql, grpc, json-rpc, soap, websocket, odata, sse, event, native-protocol]
+      example: rest
     NetworkExposure: {type: string, enum: [internal, internet], example: internet}
     ComponentAPI:
       type: object

@@ -25,22 +25,22 @@ type ComponentDetails interface {
 }
 
 const (
-	ComponentTypeFrontend         ComponentType = "Frontend Service"
-	ComponentTypeBackend          ComponentType = "Backend Service"
-	ComponentTypeInfrastructure   ComponentType = "Infrastructure"
-	ComponentTypeBackgroundWorker ComponentType = "Background Worker"
+	ComponentTypeFrontend         ComponentType = "frontend-service"
+	ComponentTypeBackend          ComponentType = "backend-service"
+	ComponentTypeInfrastructure   ComponentType = "infrastructure"
+	ComponentTypeBackgroundWorker ComponentType = "background-worker"
 
-	RabbitMQBroker        EventBrokerType = "RabbitMQ"
-	KafkaBroker           EventBrokerType = "Kafka"
-	RedpandaBroker        EventBrokerType = "Redpanda"
-	NATSBroker            EventBrokerType = "NATS/JetStream"
-	PulsarBroker          EventBrokerType = "Apache Pulsar"
-	SQSBroker             EventBrokerType = "AWS SQS"
-	GCPBroker             EventBrokerType = "Google Cloud Pub/Sub"
-	AzureServiceBusBroker EventBrokerType = "Azure Service Bus"
-	RedisStreamsBroker    EventBrokerType = "Redis Streams"
-	ActiveMQBroker        EventBrokerType = "ActiveMQ"
-	IBMMQBroker           EventBrokerType = "IBM MQ"
+	RabbitMQBroker        EventBrokerType = "rabbitmq"
+	KafkaBroker           EventBrokerType = "kafka"
+	RedpandaBroker        EventBrokerType = "redpanda"
+	NATSBroker            EventBrokerType = "nats-jetstream"
+	PulsarBroker          EventBrokerType = "apache-pulsar"
+	SQSBroker             EventBrokerType = "aws-sqs"
+	GCPBroker             EventBrokerType = "google-cloud-pub-sub"
+	AzureServiceBusBroker EventBrokerType = "azure-service-bus"
+	RedisStreamsBroker    EventBrokerType = "redis-streams"
+	ActiveMQBroker        EventBrokerType = "activemq"
+	IBMMQBroker           EventBrokerType = "ibm-mq"
 )
 
 type Component struct {

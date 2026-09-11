@@ -656,12 +656,12 @@
       "Criticality": {
         "type": "string",
         "enum": [
-          "MISSION-CRITICAL",
-          "BUSINESS-CRITICAL",
-          "BUSINESS-OPERATIONAL",
-          "OFFICE-PRODUCTIVITY"
+          "mission-critical",
+          "business-critical",
+          "business-operational",
+          "office-productivity"
         ],
-        "example": "BUSINESS-CRITICAL"
+        "example": "business-critical"
       },
       "Product": {
         "type": "object",
@@ -796,12 +796,12 @@
       "ComponentType": {
         "type": "string",
         "enum": [
-          "Backend Service",
-          "Frontend Service",
-          "Infrastructure",
-          "Background Worker"
+          "backend-service",
+          "frontend-service",
+          "infrastructure",
+          "background-worker"
         ],
-        "example": "Backend Service"
+        "example": "backend-service"
       },
       "ServiceDetails": {
         "type": "object",
@@ -849,19 +849,19 @@
               "broker": {
                 "type": "string",
                 "enum": [
-                  "RabbitMQ",
-                  "Kafka",
-                  "Redpanda",
-                  "NATS/JetStream",
-                  "Apache Pulsar",
-                  "AWS SQS",
-                  "Google Cloud Pub/Sub",
-                  "Azure Service Bus",
-                  "Redis Streams",
-                  "ActiveMQ",
-                  "IBM MQ"
+                  "rabbitmq",
+                  "kafka",
+                  "redpanda",
+                  "nats-jetstream",
+                  "apache-pulsar",
+                  "aws-sqs",
+                  "google-cloud-pub-sub",
+                  "azure-service-bus",
+                  "redis-streams",
+                  "activemq",
+                  "ibm-mq"
                 ],
-                "example": "Kafka"
+                "example": "kafka"
               }
             }
           }
@@ -1039,18 +1039,18 @@
       "APIType": {
         "type": "string",
         "enum": [
-          "REST",
-          "GraphQL",
-          "gRPC",
-          "JSON-RPC",
-          "SOAP",
-          "WebSocket",
-          "OData",
-          "SSE",
-          "Event",
-          "Native Protocol"
+          "rest",
+          "graphql",
+          "grpc",
+          "json-rpc",
+          "soap",
+          "websocket",
+          "odata",
+          "sse",
+          "event",
+          "native-protocol"
         ],
-        "example": "REST"
+        "example": "rest"
       },
       "NetworkExposure": {
         "type": "string",

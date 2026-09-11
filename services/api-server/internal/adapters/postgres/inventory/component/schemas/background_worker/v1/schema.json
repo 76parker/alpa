@@ -36,17 +36,17 @@
     "broker": {
       "type": "string",
       "enum": [
-        "RabbitMQ",
-        "Kafka",
-        "Redpanda",
-        "NATS/JetStream",
-        "Apache Pulsar",
-        "AWS SQS",
-        "Google Cloud Pub/Sub",
-        "Azure Service Bus",
-        "Redis Streams",
-        "ActiveMQ",
-        "IBM MQ"
+        "rabbitmq",
+        "kafka",
+        "redpanda",
+        "nats-jetstream",
+        "apache-pulsar",
+        "aws-sqs",
+        "google-cloud-pub-sub",
+        "azure-service-bus",
+        "redis-streams",
+        "activemq",
+        "ibm-mq"
       ]
     }
   }

@@ -101,30 +101,30 @@ type BackgroundWorkerDetailsV1 struct {
 
 type BackgroundWorkerDetailsV1Broker string
 
-const BackgroundWorkerDetailsV1BrokerAWSSQS BackgroundWorkerDetailsV1Broker = "AWS SQS"
-const BackgroundWorkerDetailsV1BrokerActiveMQ BackgroundWorkerDetailsV1Broker = "ActiveMQ"
-const BackgroundWorkerDetailsV1BrokerApachePulsar BackgroundWorkerDetailsV1Broker = "Apache Pulsar"
-const BackgroundWorkerDetailsV1BrokerAzureServiceBus BackgroundWorkerDetailsV1Broker = "Azure Service Bus"
-const BackgroundWorkerDetailsV1BrokerGoogleCloudPubSub BackgroundWorkerDetailsV1Broker = "Google Cloud Pub/Sub"
-const BackgroundWorkerDetailsV1BrokerIBMMQ BackgroundWorkerDetailsV1Broker = "IBM MQ"
-const BackgroundWorkerDetailsV1BrokerKafka BackgroundWorkerDetailsV1Broker = "Kafka"
-const BackgroundWorkerDetailsV1BrokerNATSJetStream BackgroundWorkerDetailsV1Broker = "NATS/JetStream"
-const BackgroundWorkerDetailsV1BrokerRabbitMQ BackgroundWorkerDetailsV1Broker = "RabbitMQ"
-const BackgroundWorkerDetailsV1BrokerRedisStreams BackgroundWorkerDetailsV1Broker = "Redis Streams"
-const BackgroundWorkerDetailsV1BrokerRedpanda BackgroundWorkerDetailsV1Broker = "Redpanda"
+const BackgroundWorkerDetailsV1BrokerAWSSQS BackgroundWorkerDetailsV1Broker = "aws-sqs"
+const BackgroundWorkerDetailsV1BrokerActiveMQ BackgroundWorkerDetailsV1Broker = "activemq"
+const BackgroundWorkerDetailsV1BrokerApachePulsar BackgroundWorkerDetailsV1Broker = "apache-pulsar"
+const BackgroundWorkerDetailsV1BrokerAzureServiceBus BackgroundWorkerDetailsV1Broker = "azure-service-bus"
+const BackgroundWorkerDetailsV1BrokerGoogleCloudPubSub BackgroundWorkerDetailsV1Broker = "google-cloud-pub-sub"
+const BackgroundWorkerDetailsV1BrokerIBMMQ BackgroundWorkerDetailsV1Broker = "ibm-mq"
+const BackgroundWorkerDetailsV1BrokerKafka BackgroundWorkerDetailsV1Broker = "kafka"
+const BackgroundWorkerDetailsV1BrokerNATSJetStream BackgroundWorkerDetailsV1Broker = "nats-jetstream"
+const BackgroundWorkerDetailsV1BrokerRabbitMQ BackgroundWorkerDetailsV1Broker = "rabbitmq"
+const BackgroundWorkerDetailsV1BrokerRedisStreams BackgroundWorkerDetailsV1Broker = "redis-streams"
+const BackgroundWorkerDetailsV1BrokerRedpanda BackgroundWorkerDetailsV1Broker = "redpanda"
 
 var enumValues_BackgroundWorkerDetailsV1Broker = []interface{}{
-	"RabbitMQ",
-	"Kafka",
-	"Redpanda",
-	"NATS/JetStream",
-	"Apache Pulsar",
-	"AWS SQS",
-	"Google Cloud Pub/Sub",
-	"Azure Service Bus",
-	"Redis Streams",
-	"ActiveMQ",
-	"IBM MQ",
+	"rabbitmq",
+	"kafka",
+	"redpanda",
+	"nats-jetstream",
+	"apache-pulsar",
+	"aws-sqs",
+	"google-cloud-pub-sub",
+	"azure-service-bus",
+	"redis-streams",
+	"activemq",
+	"ibm-mq",
 }
 
 // UnmarshalJSON implements json.Unmarshaler.

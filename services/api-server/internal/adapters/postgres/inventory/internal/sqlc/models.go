@@ -12,10 +12,10 @@ import (
 type InventoryComponentType string
 
 const (
-	InventoryComponentTypeBackendService   InventoryComponentType = "Backend Service"
-	InventoryComponentTypeFrontendService  InventoryComponentType = "Frontend Service"
-	InventoryComponentTypeInfrastructure   InventoryComponentType = "Infrastructure"
-	InventoryComponentTypeBackgroundWorker InventoryComponentType = "Background Worker"
+	InventoryComponentTypeBackendService   InventoryComponentType = "backend-service"
+	InventoryComponentTypeFrontendService  InventoryComponentType = "frontend-service"
+	InventoryComponentTypeInfrastructure   InventoryComponentType = "infrastructure"
+	InventoryComponentTypeBackgroundWorker InventoryComponentType = "background-worker"
 )
 
 func (e *InventoryComponentType) Scan(src interface{}) error {
@@ -118,10 +118,10 @@ func (e InventoryNetworkExposure) Valid() bool {
 type InventoryProductCriticality string
 
 const (
-	InventoryProductCriticalityMISSIONCRITICAL     InventoryProductCriticality = "MISSION-CRITICAL"
-	InventoryProductCriticalityBUSINESSCRITICAL    InventoryProductCriticality = "BUSINESS-CRITICAL"
-	InventoryProductCriticalityBUSINESSOPERATIONAL InventoryProductCriticality = "BUSINESS-OPERATIONAL"
-	InventoryProductCriticalityOFFICEPRODUCTIVITY  InventoryProductCriticality = "OFFICE-PRODUCTIVITY"
+	InventoryProductCriticalityMissionCritical     InventoryProductCriticality = "mission-critical"
+	InventoryProductCriticalityBusinessCritical    InventoryProductCriticality = "business-critical"
+	InventoryProductCriticalityBusinessOperational InventoryProductCriticality = "business-operational"
+	InventoryProductCriticalityOfficeProductivity  InventoryProductCriticality = "office-productivity"
 )
 
 func (e *InventoryProductCriticality) Scan(src interface{}) error {
@@ -161,10 +161,10 @@ func (ns NullInventoryProductCriticality) Value() (driver.Value, error) {
 
 func (e InventoryProductCriticality) Valid() bool {
 	switch e {
-	case InventoryProductCriticalityMISSIONCRITICAL,
-		InventoryProductCriticalityBUSINESSCRITICAL,
-		InventoryProductCriticalityBUSINESSOPERATIONAL,
-		InventoryProductCriticalityOFFICEPRODUCTIVITY:
+	case InventoryProductCriticalityMissionCritical,
+		InventoryProductCriticalityBusinessCritical,
+		InventoryProductCriticalityBusinessOperational,
+		InventoryProductCriticalityOfficeProductivity:
 		return true
 	}
 	return false

@@ -13,10 +13,10 @@ var (
 )
 
 const (
-	CriticalityMissionCritical     ProductCriticality = "MISSION-CRITICAL"
-	CriticalityBusinessCritical    ProductCriticality = "BUSINESS-CRITICAL"
-	CriticalityBusinessOperational ProductCriticality = "BUSINESS-OPERATIONAL"
-	CriticalityOfficeProductivity  ProductCriticality = "OFFICE-PRODUCTIVITY"
+	CriticalityMissionCritical     ProductCriticality = "mission-critical"
+	CriticalityBusinessCritical    ProductCriticality = "business-critical"
+	CriticalityBusinessOperational ProductCriticality = "business-operational"
+	CriticalityOfficeProductivity  ProductCriticality = "office-productivity"
 )
 
 func isValidCriticality(s ProductCriticality) bool {
