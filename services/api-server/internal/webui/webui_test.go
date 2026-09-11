@@ -1,6 +1,7 @@
 package webui
 
 import (
+	"errors"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,14 @@ import (
 	"testing"
 	"testing/fstest"
 )
+
+type readFileRejectingFS struct {
+	fs.FS
+}
+
+func (readFileRejectingFS) ReadFile(string) ([]byte, error) {
+	return nil, errors.New("unexpected whole-file read")
+}
 
 func TestServeSPA(t *testing.T) {
 	// Navigation gets the SPA; resource and service requests must retain their own semantics.
@@ -84,6 +93,37 @@ func TestServeSPA(t *testing.T) {
 				t.Fatal("missing Allow header")
 			}
 		})
+	}
+}
+
+func TestServeSPAStreamsAssetFromFileSystem(t *testing.T) {
+	// Serving a large bundle must use Open, rather than allocating its complete
+	// contents through fs.ReadFile for each request.
+	directory := t.TempDir()
+	if err := os.Mkdir(filepath.Join(directory, "assets"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, "index.html"), []byte("<!doctype html>"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	const assetName = "assets/index-aB12_cD3.js"
+	const assetContents = "console.log('streamed')"
+	if err := os.WriteFile(filepath.Join(directory, assetName), []byte(assetContents), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	handler, err := New(readFileRejectingFS{FS: os.DirFS(directory)}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/"+assetName, nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusOK, rec.Body.String())
+	}
+	if rec.Body.String() != assetContents {
+		t.Fatalf("body = %q, want %q", rec.Body.String(), assetContents)
 	}
 }
 

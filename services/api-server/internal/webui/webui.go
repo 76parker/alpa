@@ -2,7 +2,6 @@
 package webui
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -14,7 +13,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 var hashedAsset = regexp.MustCompile(`^assets/.+-[A-Za-z0-9_-]{8,}\.[A-Za-z0-9]+$`)
@@ -32,8 +30,12 @@ func New(assets fs.FS, local bool) (*Handler, error) {
 	if assets == nil {
 		return nil, errors.New("UI assets are unavailable")
 	}
-	if _, err := fs.ReadFile(assets, "index.html"); err != nil {
-		return nil, fmt.Errorf("read UI index.html (build the frontend first): %w", err)
+	entry, err := fs.Stat(assets, "index.html")
+	if err != nil {
+		return nil, fmt.Errorf("stat UI index.html (build the frontend first): %w", err)
+	}
+	if entry.IsDir() {
+		return nil, errors.New("UI index.html is a directory")
 	}
 	return &Handler{assets: assets, local: local}, nil
 }
@@ -84,19 +86,23 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if name == "" {
 		name = "index.html"
 	}
-	contents, err := fs.ReadFile(h.assets, name)
+	entry, err := fs.Stat(h.assets, name)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) || !navigation(r, name) {
 			http.NotFound(w, r)
 			return
 		}
-		// Read on every request so local rebuilds need no Go restart.
+		// Stat on every request so local rebuilds need no Go restart.
 		name = "index.html"
-		contents, err = fs.ReadFile(h.assets, name)
+		entry, err = fs.Stat(h.assets, name)
 		if err != nil {
 			http.Error(w, "UI assets unavailable", http.StatusServiceUnavailable)
 			return
 		}
+	}
+	if entry.IsDir() {
+		http.NotFound(w, r)
+		return
 	}
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -105,9 +111,24 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else if hashedAsset.MatchString(name) {
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	}
-	// A zero modification time avoids stale second-granularity 304 responses when
-	// Vite rebuilds several times within a second. ServeContent handles HEAD/ranges/MIME.
-	http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(contents))
+	// ServeFileFS handles HEAD, ranges, and MIME types without reading each asset
+	// into a new byte slice. Preserve ServeContent's former zero-modification-time
+	// behavior so local Vite rebuilds cannot receive stale conditional responses.
+	if strings.HasSuffix(r.URL.Path, "/index.html") || r.Header.Get("If-Modified-Since") != "" || r.Header.Get("If-Unmodified-Since") != "" || r.Header.Get("If-Range") != "" {
+		r = r.Clone(r.Context())
+		r.Header.Del("If-Modified-Since")
+		r.Header.Del("If-Unmodified-Since")
+		if r.Header.Get("If-Range") != "" {
+			r.Header.Del("If-Range")
+			r.Header.Del("Range")
+		}
+	}
+	// ServeFileFS redirects paths ending in /index.html, unlike the existing
+	// handler contract, so hide that URL detail from it.
+	if strings.HasSuffix(r.URL.Path, "/index.html") {
+		r.URL.Path = strings.TrimSuffix(r.URL.Path, "index.html")
+	}
+	http.ServeFileFS(w, r, h.assets, name)
 }
 
 func publicPath(name string) bool {
