@@ -9,9 +9,11 @@ type TooltipTriggerProps = {
   accessibleContent?: string;
   descriptionID?: string;
   tooltipClassName?: string;
+  onClick?: () => void;
+  title?: string;
 };
 
-export function TooltipTrigger({ ariaLabel, buttonClassName, children, content, accessibleContent, descriptionID: providedDescriptionID, tooltipClassName = 'field-help-tooltip' }: TooltipTriggerProps) {
+export function TooltipTrigger({ ariaLabel, buttonClassName, children, content, accessibleContent, descriptionID: providedDescriptionID, tooltipClassName = 'field-help-tooltip', onClick, title }: TooltipTriggerProps) {
   const generatedID = useId();
   const descriptionID = providedDescriptionID ?? `${generatedID}-description`;
   const tooltipID = `${generatedID}-tooltip`;
@@ -72,12 +74,16 @@ export function TooltipTrigger({ ariaLabel, buttonClassName, children, content, 
       ref={controlRef}
       className={buttonClassName}
       type="button"
+      title={title}
       aria-label={ariaLabel}
       aria-describedby={descriptionID}
       aria-controls={tooltipID}
       aria-expanded={open}
       onBlur={() => setOpen(false)}
-      onClick={() => setOpen(true)}
+      onClick={() => {
+        setOpen(true);
+        onClick?.();
+      }}
       onFocus={() => setOpen(true)}
       onKeyDown={dismissTooltip}
       onMouseEnter={() => setOpen(true)}

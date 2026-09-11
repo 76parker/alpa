@@ -13,10 +13,14 @@ export type ArchitectureGraph = {
   edges: Edge[];
 };
 
-const COLUMN_GAP = 300;
+const COLUMN_GAP = 36;
 const NODE_GAP = 36;
 const ORIGIN_X = 80;
 const ORIGIN_Y = 80;
+const NODE_MIN_WIDTH = 238;
+const NODE_LABEL_CHARACTER_WIDTH = 7;
+const NODE_ICON_AND_PADDING_WIDTH = 96;
+const PROVIDER_API_RAIL_WIDTH = 78;
 
 export function buildArchitectureGraph(components: Component[]): ArchitectureGraph {
   const providerByAPI = new Map<number, Component>();
@@ -47,11 +51,19 @@ export function buildArchitectureGraph(components: Component[]): ArchitectureGra
   }
 
   const maxLayerHeight = Math.max(0, ...Array.from(layerMembers.values(), layerHeight));
+  const orderedLayers = Array.from(layerMembers.entries()).sort(([first], [second]) => first - second);
+  const layerPositions = new Map<number, number>();
+  let x = ORIGIN_X;
+  for (const [layer, members] of orderedLayers) {
+    layerPositions.set(layer, x);
+    x += Math.max(...members.map(architectureNodeWidth)) + COLUMN_GAP;
+  }
+
   const positions = new Map<number, { x: number; y: number }>();
-  for (const [layer, members] of layerMembers) {
+  for (const [layer, members] of orderedLayers) {
     let y = ORIGIN_Y + (maxLayerHeight - layerHeight(members)) / 2;
     for (const component of members) {
-      positions.set(component.id, { x: ORIGIN_X + layer * COLUMN_GAP, y });
+      positions.set(component.id, { x: layerPositions.get(layer) ?? ORIGIN_X, y });
       y += architectureNodeHeight(component) + NODE_GAP;
     }
   }
@@ -60,6 +72,8 @@ export function buildArchitectureGraph(components: Component[]): ArchitectureGra
     id: componentNodeID(component.id),
     type: 'architecture',
     position: positions.get(component.id) ?? { x: ORIGIN_X, y: ORIGIN_Y },
+    dragHandle: '.architecture-node-drag-handle',
+    style: { width: architectureNodeWidth(component) },
     data: {
       component,
       providerAPIs: component.apis.filter((api) => api.role === 'provider'),
@@ -89,7 +103,16 @@ export function buildArchitectureGraph(components: Component[]): ArchitectureGra
 }
 
 export function architectureNodeHeight(component: Component) {
-  return Math.max(96, 68 + component.apis.filter((api) => api.role === 'provider').length * 32);
+  return Math.max(116, 68 + component.apis.filter((api) => api.role === 'provider').length * 32);
+}
+
+export function architectureNodeWidth(component: Component) {
+  const providerRailWidth = component.apis.some((api) => api.role === 'provider') ? PROVIDER_API_RAIL_WIDTH : 0;
+  const longestLabelLength = Math.max(Array.from(component.name).length, Array.from(component.type).length);
+  return Math.max(
+    NODE_MIN_WIDTH,
+    providerRailWidth + NODE_ICON_AND_PADDING_WIDTH + longestLabelLength * NODE_LABEL_CHARACTER_WIDTH,
+  );
 }
 
 export function componentNodeID(componentID: number) {

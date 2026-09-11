@@ -174,10 +174,17 @@ it('opens the architecture map from a direct route and loads components', async 
   expect(screen.getByTestId('architecture-provider-api-202')).toBeTruthy();
   expect(requests.filter((url) => url.includes('/products/12/components')).length).toBe(1);
   expect(document.title).toBe('Architecture map · Alpa');
+  expect(screen.getByText('Drag cards to arrange')).toBeTruthy();
   const componentTrigger = screen.getByTestId('architecture-node-101').querySelector<HTMLButtonElement>('.architecture-node-trigger');
+  const dragHandle = screen.getByTestId('architecture-node-101').querySelector<HTMLButtonElement>('.architecture-node-drag-handle');
+  const openButton = screen.getByTestId('architecture-node-101').querySelector<HTMLButtonElement>('.architecture-node-open');
   const apiTrigger = screen.getByTestId('architecture-node-101').querySelector<HTMLButtonElement>('.architecture-api-badge');
   expect(componentTrigger).not.toBeNull();
+  expect(dragHandle).not.toBeNull();
+  expect(openButton).not.toBeNull();
   expect(apiTrigger).not.toBeNull();
+  expect(apiTrigger?.title).toContain('Checkout REST API');
+  expect(apiTrigger?.title).toContain('Network exposure: internet');
   await user.hover(componentTrigger!);
   expect((await screen.findByRole('tooltip')).textContent).toContain('Description');
   expect((await screen.findByRole('tooltip')).textContent).toContain('Language');
@@ -187,6 +194,64 @@ it('opens the architecture map from a direct route and loads components', async 
   expect((await screen.findByRole('tooltip')).textContent).toContain('Checkout REST API');
   expect((await screen.findByRole('tooltip')).textContent).toContain('Network exposure');
   expect((await screen.findByRole('tooltip')).textContent).toContain('Role');
+  await user.click(apiTrigger!);
+  expect(window.location.pathname).toBe('/products/GCPAY/architecture');
+});
+
+it('opens a component from its dedicated architecture-card action', async () => {
+  window.history.replaceState({}, '', '/products/GCPAY/architecture');
+  const user = userEvent.setup();
+  render(<AtlasApp />);
+
+  const componentNode = await screen.findByTestId('architecture-node-101');
+  const componentTrigger = componentNode.querySelector<HTMLButtonElement>('.architecture-node-trigger');
+  const openButton = componentNode.querySelector<HTMLButtonElement>('.architecture-node-open');
+  expect(componentTrigger).not.toBeNull();
+  expect(openButton).not.toBeNull();
+  await user.hover(componentTrigger!);
+  expect((await screen.findByRole('tooltip')).textContent).toContain('Accepts checkout requests.');
+  await user.click(openButton!);
+
+  await waitFor(() => expect(window.location.pathname).toBe('/products/GCPAY/components/101'));
+  expect(await screen.findByRole('heading', { name: 'Checkout API' })).toBeTruthy();
+});
+
+it('resets a personal architecture layout from the map toolbar', async () => {
+  window.localStorage.setItem('alpa:architecture-layout-v1:12', JSON.stringify({ '101': { x: 260, y: 180 } }));
+  window.history.replaceState({}, '', '/products/GCPAY/architecture');
+  const user = userEvent.setup();
+  render(<AtlasApp />);
+
+  const reset = await screen.findByRole('button', { name: 'Reset layout' });
+  await user.click(reset);
+
+  expect(window.localStorage.getItem('alpa:architecture-layout-v1:12')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Reset layout' })).toBeNull();
+});
+
+it('saves a keyboard card move to the personal architecture layout', async () => {
+  window.history.replaceState({}, '', '/products/GCPAY/architecture');
+  const user = userEvent.setup();
+  render(<AtlasApp />);
+
+  const move = (await screen.findByTestId('architecture-node-101')).querySelector<HTMLButtonElement>('.architecture-node-drag-handle');
+  expect(move).not.toBeNull();
+  move!.focus();
+  await user.keyboard('{ArrowRight}{Enter}');
+
+  const saved = JSON.parse(window.localStorage.getItem('alpa:architecture-layout-v1:12') ?? '{}') as Record<string, { x: number; y: number }>;
+  expect(saved['component-101'].x).toBeGreaterThan(354);
+});
+
+it('keeps architecture cards view-only on touch devices', async () => {
+  vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
+  window.history.replaceState({}, '', '/products/GCPAY/architecture');
+  render(<AtlasApp />);
+
+  const node = await screen.findByTestId('architecture-node-101');
+  expect(screen.getByText('View-only on touch devices')).toBeTruthy();
+  expect(node.querySelector('.architecture-node-drag-handle')).toBeNull();
+  expect(node.querySelector('.architecture-node-open')).not.toBeNull();
 });
 
 it('switches to the architecture map from the product tabs and reuses loaded components', async () => {

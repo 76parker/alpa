@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Component } from './contracts';
-import { buildArchitectureGraph, consumerHandleID, providerHandleID } from './architecture-graph';
+import { architectureNodeHeight, buildArchitectureGraph, consumerHandleID, providerHandleID } from './architecture-graph';
 
 const components: Component[] = [
   {
@@ -41,6 +41,10 @@ const components: Component[] = [
 ];
 
 describe('buildArchitectureGraph', () => {
+  it('reserves a spacious base height for a component card', () => {
+    expect(architectureNodeHeight(components[0])).toBe(116);
+  });
+
   it('creates one stable node per component with provider API type badges', () => {
     const { nodes } = buildArchitectureGraph(components);
 
@@ -48,6 +52,7 @@ describe('buildArchitectureGraph', () => {
     expect(nodes[0].position.x).toBeLessThan(nodes[1].position.x);
     expect(nodes[2].position.x).toBeLessThan(nodes[1].position.x);
     expect(nodes[0].position.y).not.toBe(nodes[2].position.y);
+    expect(nodes[0].dragHandle).toBe('.architecture-node-drag-handle');
     expect(nodes[1].data.providerAPIs.map((api) => api.api_type)).toEqual(['REST', 'Event']);
     expect(nodes[0].data.component).toBe(components[0]);
   });
@@ -102,5 +107,40 @@ describe('buildArchitectureGraph', () => {
 
     expect(edges.filter((edge) => edge.target === 'component-20')).toHaveLength(3);
     expect(edges.find((edge) => edge.id === 'edge-40-302')).toEqual(expect.objectContaining({ source: 'component-40', target: 'component-20' }));
+  });
+
+  it('uses a compact title width budget and separates dependency layers', () => {
+    const longName = 'Internationalized payment authorization reconciliation coordinator';
+    const { nodes } = buildArchitectureGraph([
+      ...components,
+      {
+        ...components[0],
+        id: 40,
+        name: longName,
+        apis: [{ id: 301, name: 'Checkout API', api_type: 'REST', network_exposure: 'internal', role: 'consumer' }],
+      },
+    ]);
+
+    const longTitleNode = nodes.find((node) => node.id === 'component-40')!;
+    const providerNode = nodes.find((node) => node.id === 'component-20')!;
+    const longTitleWidth = Number(longTitleNode.style?.width);
+
+    expect(longTitleWidth).toBe(558);
+    expect(providerNode.position.x).toBe(longTitleNode.position.x + longTitleWidth + 36);
+  });
+
+  it('expands a node for a long component type even when its name is short', () => {
+    const longType = 'Background Worker';
+    const { nodes } = buildArchitectureGraph([{
+      id: 40,
+      product_id: 1,
+      name: 'API',
+      type: longType,
+      description: '',
+      details: { language: 'Go', language_version: '1.25', framework: '', broker: 'Kafka' },
+      apis: [],
+    }]);
+
+    expect(Number(nodes[0].style?.width)).toBeGreaterThanOrEqual(96 + Array.from(longType).length * 7);
   });
 });
