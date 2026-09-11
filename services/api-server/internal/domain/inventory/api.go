@@ -23,6 +23,8 @@ const (
 	APITypeSSE            APIType = "sse"
 	APITypeEventStream    APIType = "event"
 	APITypeTopic          APIType = "topic"
+	APITypeExchange       APIType = "exchange"
+	APITypeQueue          APIType = "queue"
 	APITypeNativeProtocol APIType = "native-protocol"
 
 	APIRoleProvider APIRole = "provider"
@@ -86,6 +88,8 @@ func isValidAPIType(apiType APIType) bool {
 		APITypeSSE,
 		APITypeEventStream,
 		APITypeTopic,
+		APITypeExchange,
+		APITypeQueue,
 		APITypeNativeProtocol:
 		return true
 	default:

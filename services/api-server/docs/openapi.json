@@ -1060,6 +1060,8 @@
           "sse",
           "event",
           "topic",
+          "exchange",
+          "queue",
           "native-protocol"
         ],
         "example": "rest",

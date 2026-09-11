@@ -350,7 +350,7 @@ components:
     APIType:
       type: string
       maxLength: 50
-      enum: [rest, graphql, grpc, json-rpc, soap, websocket, odata, sse, event, topic, native-protocol]
+      enum: [rest, graphql, grpc, json-rpc, soap, websocket, odata, sse, event, topic, exchange, queue, native-protocol]
       example: rest
     NetworkExposure: {type: string, maxLength: 50, enum: [internal, internet], example: internet}
     ComponentAPI:
