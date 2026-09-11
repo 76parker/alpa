@@ -3,7 +3,7 @@
   "info": {
     "title": "ALPA Inventory API",
     "version": "1.0.0",
-    "description": "API for maintaining workspaces, products, and components."
+    "description": "API for maintaining workspaces, products, and components. Input strings are trimmed without changing case. Business validation returns domain error codes; JSON, length, and character validation returns invalid_request."
   },
   "servers": [
     {
@@ -582,11 +582,12 @@
         "properties": {
           "message": {
             "type": "string",
-            "example": "name is required"
+            "example": "name contains unsupported characters"
           },
           "code": {
             "type": "string",
-            "example": "invalid_request"
+            "example": "invalid_request",
+            "description": "Business errors include unknown_system_type, too_many_network_addresses, and invalid_product_code. Transport errors use invalid_request."
           },
           "status": {
             "type": "integer",
@@ -661,7 +662,8 @@
           "business-operational",
           "office-productivity"
         ],
-        "example": "business-critical"
+        "example": "business-critical",
+        "maxLength": 50
       },
       "Product": {
         "type": "object",
@@ -801,7 +803,8 @@
           "infrastructure",
           "background-worker"
         ],
-        "example": "backend-service"
+        "example": "backend-service",
+        "maxLength": 50
       },
       "ServiceDetails": {
         "type": "object",
@@ -861,7 +864,8 @@
                   "activemq",
                   "ibm-mq"
                 ],
-                "example": "kafka"
+                "example": "kafka",
+                "maxLength": 50
               }
             }
           }
@@ -870,7 +874,10 @@
       "InfrastructureDetails": {
         "type": "object",
         "required": [
-          "system"
+          "system",
+          "system_type",
+          "version",
+          "network_address"
         ],
         "properties": {
           "system": {
@@ -882,20 +889,24 @@
             "example": "PostgreSQL"
           },
           "version": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Name"
-              }
-            ],
+            "type": "string",
+            "maxLength": 50,
             "example": "17.2"
           },
           "network_address": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Name"
-              }
+            "example": [
+              "postgres-primary.internal:5432",
+              "postgres-replica.internal:5432"
             ],
-            "example": "postgres.internal:5432"
+            "description": "Optional on input. Missing, null, or empty input is returned and stored as []. Order and duplicates are preserved.",
+            "items": {
+              "$ref": "#/components/schemas/Name"
+            },
+            "maxItems": 10,
+            "type": "array"
+          },
+          "system_type": {
+            "$ref": "#/components/schemas/SystemType"
           }
         }
       },
@@ -1007,7 +1018,7 @@
             "example": "Serves checkout requests for the web and mobile apps."
           },
           "details": {
-            "$ref": "#/components/schemas/ComponentDetails"
+            "$ref": "#/components/schemas/ComponentDetailsRequest"
           },
           "apis": {
             "type": "array",
@@ -1050,7 +1061,8 @@
           "event",
           "native-protocol"
         ],
-        "example": "rest"
+        "example": "rest",
+        "maxLength": 50
       },
       "NetworkExposure": {
         "type": "string",
@@ -1058,7 +1070,8 @@
           "internal",
           "internet"
         ],
-        "example": "internet"
+        "example": "internet",
+        "maxLength": 50
       },
       "APIRole": {
         "type": "string",
@@ -1066,7 +1079,8 @@
           "provider",
           "consumer"
         ],
-        "example": "provider"
+        "example": "provider",
+        "maxLength": 50
       },
       "ComponentAPI": {
         "type": "object",
@@ -1128,6 +1142,71 @@
             "$ref": "#/components/schemas/NetworkExposure"
           }
         }
+      },
+      "ComponentDetailsRequest": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ServiceDetails"
+          },
+          {
+            "$ref": "#/components/schemas/BackgroundWorkerDetails"
+          },
+          {
+            "$ref": "#/components/schemas/InfrastructureDetailsRequest"
+          }
+        ]
+      },
+      "InfrastructureDetailsRequest": {
+        "properties": {
+          "network_address": {
+            "description": "Optional on input. Missing, null, or empty input is returned and stored as []. Order and duplicates are preserved.",
+            "example": [
+              "postgres-primary.internal:5432",
+              "postgres-replica.internal:5432"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Name"
+            },
+            "maxItems": 10,
+            "nullable": true,
+            "type": "array"
+          },
+          "system": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Name"
+              }
+            ],
+            "example": "PostgreSQL"
+          },
+          "system_type": {
+            "$ref": "#/components/schemas/SystemType"
+          },
+          "version": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Name"
+              }
+            ],
+            "example": "17.2"
+          }
+        },
+        "required": [
+          "system",
+          "system_type"
+        ],
+        "type": "object"
+      },
+      "SystemType": {
+        "enum": [
+          "queue/stream",
+          "sql-database",
+          "nosql-database",
+          "workflow-engine"
+        ],
+        "example": "sql-database",
+        "maxLength": 50,
+        "type": "string"
       }
     }
   }

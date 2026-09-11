@@ -2,12 +2,6 @@
 
 package component
 
-import "encoding/json"
-import "fmt"
-import "reflect"
-import "regexp"
-import "unicode/utf8"
-
 // Version 1 details for a backend service component.
 type BackendServiceDetailsV1 struct {
 	// CoreLanguage corresponds to the JSON schema field "core_language".
@@ -21,64 +15,6 @@ type BackendServiceDetailsV1 struct {
 
 	// SchemaVersion corresponds to the JSON schema field "schema_version".
 	SchemaVersion int `json:"schema_version"`
-}
-
-// UnmarshalJSON implements json.Unmarshaler.
-func (j *BackendServiceDetailsV1) UnmarshalJSON(value []byte) error {
-	var raw map[string]interface{}
-	if err := json.Unmarshal(value, &raw); err != nil {
-		return err
-	}
-	if _, ok := raw["core_language"]; raw != nil && !ok {
-		return fmt.Errorf("field core_language in BackendServiceDetailsV1: required")
-	}
-	if _, ok := raw["schema_version"]; raw != nil && !ok {
-		return fmt.Errorf("field schema_version in BackendServiceDetailsV1: required")
-	}
-	type Plain BackendServiceDetailsV1
-	var plain Plain
-	if err := json.Unmarshal(value, &plain); err != nil {
-		return err
-	}
-	if matched, _ := regexp.MatchString(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`, string(plain.CoreLanguage)); !matched {
-		return fmt.Errorf("field %s pattern match: must match %s", "CoreLanguage", `^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`)
-	}
-	if utf8.RuneCountInString(string(plain.CoreLanguage)) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "core_language", 1)
-	}
-	if utf8.RuneCountInString(string(plain.CoreLanguage)) > 50 {
-		return fmt.Errorf("field %s length: must be <= %d", "core_language", 50)
-	}
-	if plain.LanguageVersion != nil {
-		if matched, _ := regexp.MatchString(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`, string(*plain.LanguageVersion)); !matched {
-			return fmt.Errorf("field %s pattern match: must match %s", "LanguageVersion", `^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`)
-		}
-	}
-	if plain.LanguageVersion != nil && utf8.RuneCountInString(string(*plain.LanguageVersion)) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "language_version", 1)
-	}
-	if plain.LanguageVersion != nil && utf8.RuneCountInString(string(*plain.LanguageVersion)) > 50 {
-		return fmt.Errorf("field %s length: must be <= %d", "language_version", 50)
-	}
-	if plain.MainFramework != nil {
-		if matched, _ := regexp.MatchString(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`, string(*plain.MainFramework)); !matched {
-			return fmt.Errorf("field %s pattern match: must match %s", "MainFramework", `^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`)
-		}
-	}
-	if plain.MainFramework != nil && utf8.RuneCountInString(string(*plain.MainFramework)) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "main_framework", 1)
-	}
-	if plain.MainFramework != nil && utf8.RuneCountInString(string(*plain.MainFramework)) > 50 {
-		return fmt.Errorf("field %s length: must be <= %d", "main_framework", 50)
-	}
-	if 1 < plain.SchemaVersion {
-		return fmt.Errorf("field %s: must be <= %v", "schema_version", 1)
-	}
-	if 1 > plain.SchemaVersion {
-		return fmt.Errorf("field %s: must be >= %v", "schema_version", 1)
-	}
-	*j = BackendServiceDetailsV1(plain)
-	return nil
 }
 
 // Version 1 details for a background worker component.
@@ -101,112 +37,17 @@ type BackgroundWorkerDetailsV1 struct {
 
 type BackgroundWorkerDetailsV1Broker string
 
-const BackgroundWorkerDetailsV1BrokerAWSSQS BackgroundWorkerDetailsV1Broker = "aws-sqs"
-const BackgroundWorkerDetailsV1BrokerActiveMQ BackgroundWorkerDetailsV1Broker = "activemq"
+const BackgroundWorkerDetailsV1BrokerActivemq BackgroundWorkerDetailsV1Broker = "activemq"
 const BackgroundWorkerDetailsV1BrokerApachePulsar BackgroundWorkerDetailsV1Broker = "apache-pulsar"
+const BackgroundWorkerDetailsV1BrokerAwsSqs BackgroundWorkerDetailsV1Broker = "aws-sqs"
 const BackgroundWorkerDetailsV1BrokerAzureServiceBus BackgroundWorkerDetailsV1Broker = "azure-service-bus"
 const BackgroundWorkerDetailsV1BrokerGoogleCloudPubSub BackgroundWorkerDetailsV1Broker = "google-cloud-pub-sub"
-const BackgroundWorkerDetailsV1BrokerIBMMQ BackgroundWorkerDetailsV1Broker = "ibm-mq"
+const BackgroundWorkerDetailsV1BrokerIbmMq BackgroundWorkerDetailsV1Broker = "ibm-mq"
 const BackgroundWorkerDetailsV1BrokerKafka BackgroundWorkerDetailsV1Broker = "kafka"
-const BackgroundWorkerDetailsV1BrokerNATSJetStream BackgroundWorkerDetailsV1Broker = "nats-jetstream"
-const BackgroundWorkerDetailsV1BrokerRabbitMQ BackgroundWorkerDetailsV1Broker = "rabbitmq"
+const BackgroundWorkerDetailsV1BrokerNatsJetstream BackgroundWorkerDetailsV1Broker = "nats-jetstream"
+const BackgroundWorkerDetailsV1BrokerRabbitmq BackgroundWorkerDetailsV1Broker = "rabbitmq"
 const BackgroundWorkerDetailsV1BrokerRedisStreams BackgroundWorkerDetailsV1Broker = "redis-streams"
 const BackgroundWorkerDetailsV1BrokerRedpanda BackgroundWorkerDetailsV1Broker = "redpanda"
-
-var enumValues_BackgroundWorkerDetailsV1Broker = []interface{}{
-	"rabbitmq",
-	"kafka",
-	"redpanda",
-	"nats-jetstream",
-	"apache-pulsar",
-	"aws-sqs",
-	"google-cloud-pub-sub",
-	"azure-service-bus",
-	"redis-streams",
-	"activemq",
-	"ibm-mq",
-}
-
-// UnmarshalJSON implements json.Unmarshaler.
-func (j *BackgroundWorkerDetailsV1Broker) UnmarshalJSON(value []byte) error {
-	var v string
-	if err := json.Unmarshal(value, &v); err != nil {
-		return err
-	}
-	var ok bool
-	for _, expected := range enumValues_BackgroundWorkerDetailsV1Broker {
-		if reflect.DeepEqual(v, expected) {
-			ok = true
-			break
-		}
-	}
-	if !ok {
-		return fmt.Errorf("invalid value (expected one of %#v): %#v", enumValues_BackgroundWorkerDetailsV1Broker, v)
-	}
-	*j = BackgroundWorkerDetailsV1Broker(v)
-	return nil
-}
-
-// UnmarshalJSON implements json.Unmarshaler.
-func (j *BackgroundWorkerDetailsV1) UnmarshalJSON(value []byte) error {
-	var raw map[string]interface{}
-	if err := json.Unmarshal(value, &raw); err != nil {
-		return err
-	}
-	if _, ok := raw["broker"]; raw != nil && !ok {
-		return fmt.Errorf("field broker in BackgroundWorkerDetailsV1: required")
-	}
-	if _, ok := raw["core_language"]; raw != nil && !ok {
-		return fmt.Errorf("field core_language in BackgroundWorkerDetailsV1: required")
-	}
-	if _, ok := raw["schema_version"]; raw != nil && !ok {
-		return fmt.Errorf("field schema_version in BackgroundWorkerDetailsV1: required")
-	}
-	type Plain BackgroundWorkerDetailsV1
-	var plain Plain
-	if err := json.Unmarshal(value, &plain); err != nil {
-		return err
-	}
-	if matched, _ := regexp.MatchString(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`, string(plain.CoreLanguage)); !matched {
-		return fmt.Errorf("field %s pattern match: must match %s", "CoreLanguage", `^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`)
-	}
-	if utf8.RuneCountInString(string(plain.CoreLanguage)) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "core_language", 1)
-	}
-	if utf8.RuneCountInString(string(plain.CoreLanguage)) > 50 {
-		return fmt.Errorf("field %s length: must be <= %d", "core_language", 50)
-	}
-	if plain.LanguageVersion != nil {
-		if matched, _ := regexp.MatchString(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`, string(*plain.LanguageVersion)); !matched {
-			return fmt.Errorf("field %s pattern match: must match %s", "LanguageVersion", `^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`)
-		}
-	}
-	if plain.LanguageVersion != nil && utf8.RuneCountInString(string(*plain.LanguageVersion)) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "language_version", 1)
-	}
-	if plain.LanguageVersion != nil && utf8.RuneCountInString(string(*plain.LanguageVersion)) > 50 {
-		return fmt.Errorf("field %s length: must be <= %d", "language_version", 50)
-	}
-	if plain.MainFramework != nil {
-		if matched, _ := regexp.MatchString(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`, string(*plain.MainFramework)); !matched {
-			return fmt.Errorf("field %s pattern match: must match %s", "MainFramework", `^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`)
-		}
-	}
-	if plain.MainFramework != nil && utf8.RuneCountInString(string(*plain.MainFramework)) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "main_framework", 1)
-	}
-	if plain.MainFramework != nil && utf8.RuneCountInString(string(*plain.MainFramework)) > 50 {
-		return fmt.Errorf("field %s length: must be <= %d", "main_framework", 50)
-	}
-	if 1 < plain.SchemaVersion {
-		return fmt.Errorf("field %s: must be <= %v", "schema_version", 1)
-	}
-	if 1 > plain.SchemaVersion {
-		return fmt.Errorf("field %s: must be >= %v", "schema_version", 1)
-	}
-	*j = BackgroundWorkerDetailsV1(plain)
-	return nil
-}
 
 // Version 1 details for a frontend service component.
 type FrontendServiceDetailsV1 struct {
@@ -223,68 +64,10 @@ type FrontendServiceDetailsV1 struct {
 	SchemaVersion int `json:"schema_version"`
 }
 
-// UnmarshalJSON implements json.Unmarshaler.
-func (j *FrontendServiceDetailsV1) UnmarshalJSON(value []byte) error {
-	var raw map[string]interface{}
-	if err := json.Unmarshal(value, &raw); err != nil {
-		return err
-	}
-	if _, ok := raw["core_language"]; raw != nil && !ok {
-		return fmt.Errorf("field core_language in FrontendServiceDetailsV1: required")
-	}
-	if _, ok := raw["schema_version"]; raw != nil && !ok {
-		return fmt.Errorf("field schema_version in FrontendServiceDetailsV1: required")
-	}
-	type Plain FrontendServiceDetailsV1
-	var plain Plain
-	if err := json.Unmarshal(value, &plain); err != nil {
-		return err
-	}
-	if matched, _ := regexp.MatchString(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`, string(plain.CoreLanguage)); !matched {
-		return fmt.Errorf("field %s pattern match: must match %s", "CoreLanguage", `^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`)
-	}
-	if utf8.RuneCountInString(string(plain.CoreLanguage)) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "core_language", 1)
-	}
-	if utf8.RuneCountInString(string(plain.CoreLanguage)) > 50 {
-		return fmt.Errorf("field %s length: must be <= %d", "core_language", 50)
-	}
-	if plain.LanguageVersion != nil {
-		if matched, _ := regexp.MatchString(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`, string(*plain.LanguageVersion)); !matched {
-			return fmt.Errorf("field %s pattern match: must match %s", "LanguageVersion", `^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`)
-		}
-	}
-	if plain.LanguageVersion != nil && utf8.RuneCountInString(string(*plain.LanguageVersion)) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "language_version", 1)
-	}
-	if plain.LanguageVersion != nil && utf8.RuneCountInString(string(*plain.LanguageVersion)) > 50 {
-		return fmt.Errorf("field %s length: must be <= %d", "language_version", 50)
-	}
-	if plain.MainFramework != nil {
-		if matched, _ := regexp.MatchString(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`, string(*plain.MainFramework)); !matched {
-			return fmt.Errorf("field %s pattern match: must match %s", "MainFramework", `^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`)
-		}
-	}
-	if plain.MainFramework != nil && utf8.RuneCountInString(string(*plain.MainFramework)) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "main_framework", 1)
-	}
-	if plain.MainFramework != nil && utf8.RuneCountInString(string(*plain.MainFramework)) > 50 {
-		return fmt.Errorf("field %s length: must be <= %d", "main_framework", 50)
-	}
-	if 1 < plain.SchemaVersion {
-		return fmt.Errorf("field %s: must be <= %v", "schema_version", 1)
-	}
-	if 1 > plain.SchemaVersion {
-		return fmt.Errorf("field %s: must be >= %v", "schema_version", 1)
-	}
-	*j = FrontendServiceDetailsV1(plain)
-	return nil
-}
-
 // Version 1 details for an infrastructure component.
 type InfrastructureDetailsV1 struct {
 	// NetworkAddress corresponds to the JSON schema field "network_address".
-	NetworkAddress *string `json:"network_address,omitempty,omitzero"`
+	NetworkAddress []string `json:"network_address"`
 
 	// SchemaVersion corresponds to the JSON schema field "schema_version".
 	SchemaVersion int `json:"schema_version"`
@@ -292,64 +75,16 @@ type InfrastructureDetailsV1 struct {
 	// System corresponds to the JSON schema field "system".
 	System string `json:"system"`
 
+	// SystemType corresponds to the JSON schema field "system_type".
+	SystemType InfrastructureDetailsV1SystemType `json:"system_type"`
+
 	// Version corresponds to the JSON schema field "version".
 	Version *string `json:"version,omitempty,omitzero"`
 }
 
-// UnmarshalJSON implements json.Unmarshaler.
-func (j *InfrastructureDetailsV1) UnmarshalJSON(value []byte) error {
-	var raw map[string]interface{}
-	if err := json.Unmarshal(value, &raw); err != nil {
-		return err
-	}
-	if _, ok := raw["schema_version"]; raw != nil && !ok {
-		return fmt.Errorf("field schema_version in InfrastructureDetailsV1: required")
-	}
-	if _, ok := raw["system"]; raw != nil && !ok {
-		return fmt.Errorf("field system in InfrastructureDetailsV1: required")
-	}
-	type Plain InfrastructureDetailsV1
-	var plain Plain
-	if err := json.Unmarshal(value, &plain); err != nil {
-		return err
-	}
-	if plain.NetworkAddress != nil {
-		if matched, _ := regexp.MatchString(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`, string(*plain.NetworkAddress)); !matched {
-			return fmt.Errorf("field %s pattern match: must match %s", "NetworkAddress", `^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`)
-		}
-	}
-	if plain.NetworkAddress != nil && utf8.RuneCountInString(string(*plain.NetworkAddress)) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "network_address", 1)
-	}
-	if plain.NetworkAddress != nil && utf8.RuneCountInString(string(*plain.NetworkAddress)) > 50 {
-		return fmt.Errorf("field %s length: must be <= %d", "network_address", 50)
-	}
-	if 1 < plain.SchemaVersion {
-		return fmt.Errorf("field %s: must be <= %v", "schema_version", 1)
-	}
-	if 1 > plain.SchemaVersion {
-		return fmt.Errorf("field %s: must be >= %v", "schema_version", 1)
-	}
-	if matched, _ := regexp.MatchString(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`, string(plain.System)); !matched {
-		return fmt.Errorf("field %s pattern match: must match %s", "System", `^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`)
-	}
-	if utf8.RuneCountInString(string(plain.System)) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "system", 1)
-	}
-	if utf8.RuneCountInString(string(plain.System)) > 50 {
-		return fmt.Errorf("field %s length: must be <= %d", "system", 50)
-	}
-	if plain.Version != nil {
-		if matched, _ := regexp.MatchString(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`, string(*plain.Version)); !matched {
-			return fmt.Errorf("field %s pattern match: must match %s", "Version", `^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`)
-		}
-	}
-	if plain.Version != nil && utf8.RuneCountInString(string(*plain.Version)) < 1 {
-		return fmt.Errorf("field %s length: must be >= %d", "version", 1)
-	}
-	if plain.Version != nil && utf8.RuneCountInString(string(*plain.Version)) > 50 {
-		return fmt.Errorf("field %s length: must be <= %d", "version", 50)
-	}
-	*j = InfrastructureDetailsV1(plain)
-	return nil
-}
+type InfrastructureDetailsV1SystemType string
+
+const InfrastructureDetailsV1SystemTypeNosqlDatabase InfrastructureDetailsV1SystemType = "nosql-database"
+const InfrastructureDetailsV1SystemTypeQueueStream InfrastructureDetailsV1SystemType = "queue/stream"
+const InfrastructureDetailsV1SystemTypeSqlDatabase InfrastructureDetailsV1SystemType = "sql-database"
+const InfrastructureDetailsV1SystemTypeWorkflowEngine InfrastructureDetailsV1SystemType = "workflow-engine"

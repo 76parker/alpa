@@ -7,14 +7,14 @@
     "id": { "type": "integer", "minimum": 1 },
     "product_id": { "type": "integer", "minimum": 1 },
     "name": { "type": "string" },
-    "type": { "enum": ["backend-service", "frontend-service", "infrastructure", "background-worker"] },
+    "type": { "type": "string", "maxLength": 50, "enum": ["backend-service", "frontend-service", "infrastructure", "background-worker"] },
     "description": { "type": "string" },
     "details": { "type": "object" },
     "apis": { "type": "array", "items": { "$ref": "#/$defs/api" } }
   },
   "allOf": [
     {
-      "if": { "properties": { "type": { "enum": ["backend-service", "frontend-service"] } }, "required": ["type"] },
+      "if": { "properties": { "type": { "type": "string", "maxLength": 50, "enum": ["backend-service", "frontend-service"] } }, "required": ["type"] },
       "then": { "properties": { "details": { "$ref": "#/$defs/service" } } }
     },
     {
@@ -34,9 +34,9 @@
       "properties": {
         "id": { "type": "integer", "minimum": 1 },
         "name": { "type": "string" },
-        "api_type": { "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event", "native-protocol"] },
-        "network_exposure": { "enum": ["internal", "internet"] },
-        "role": { "enum": ["provider", "consumer"] }
+        "api_type": { "type": "string", "maxLength": 50, "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event", "native-protocol"] },
+        "network_exposure": { "type": "string", "maxLength": 50, "enum": ["internal", "internet"] },
+        "role": { "type": "string", "maxLength": 50, "enum": ["provider", "consumer"] }
       }
     },
     "service": {
@@ -52,11 +52,12 @@
     "infrastructure": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["system", "version", "network_address"],
+      "required": ["system", "system_type", "version", "network_address"],
       "properties": {
         "system": { "type": "string" },
+        "system_type": {"type": "string", "maxLength": 50, "enum": ["queue/stream", "sql-database", "nosql-database", "workflow-engine"]},
         "version": { "type": "string" },
-        "network_address": { "type": "string" }
+        "network_address": {"type": "array", "maxItems": 10, "items": {"type": "string", "minLength": 1, "maxLength": 50, "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"}}
       }
     },
     "background_worker": {
@@ -68,6 +69,8 @@
         "language_version": { "type": "string" },
         "framework": { "type": "string" },
         "broker": {
+          "type": "string",
+          "maxLength": 50,
           "enum": ["rabbitmq", "kafka", "redpanda", "nats-jetstream", "apache-pulsar", "aws-sqs", "google-cloud-pub-sub", "azure-service-bus", "redis-streams", "activemq", "ibm-mq"]
         }
       }

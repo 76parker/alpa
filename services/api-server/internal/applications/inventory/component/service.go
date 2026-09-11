@@ -60,6 +60,9 @@ func (s *service) create(ctx context.Context, command CreateInput) (inventory.Co
 }
 
 func (s *service) get(ctx context.Context, id int64) (inventory.Component, error) {
+	if id <= 0 {
+		return inventory.Component{}, inventory.ErrNegativeID
+	}
 	component, err := s.store.GetByID(ctx, id)
 	if err != nil {
 		return inventory.Component{}, fmt.Errorf("getting component: %w", err)
@@ -74,6 +77,9 @@ func (s *service) listByProduct(
 	limit int,
 	offset int,
 ) ([]inventory.Component, error) {
+	if productID <= 0 {
+		return nil, inventory.ErrNegativeID
+	}
 	components, err := s.store.ListByProduct(
 		ctx,
 		productID,
@@ -88,6 +94,9 @@ func (s *service) listByProduct(
 }
 
 func (s *service) delete(ctx context.Context, id int64) error {
+	if id <= 0 {
+		return inventory.ErrNegativeID
+	}
 	if err := s.store.Delete(ctx, id); err != nil {
 		return fmt.Errorf("deleting component: %w", err)
 	}
@@ -153,6 +162,7 @@ func newDomainDetails(input Details) (inventory.ComponentDetails, error) {
 	case InfrastructureDetails:
 		return inventory.NewInfrastructureComponentDetails(
 			details.System,
+			details.SystemType,
 			details.Version,
 			details.NetworkAddress,
 		)

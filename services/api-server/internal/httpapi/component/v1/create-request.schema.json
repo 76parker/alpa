@@ -6,7 +6,7 @@
   "properties": {
     "product_id": { "type": "integer", "minimum": 1 },
     "name": { "$ref": "#/$defs/string" },
-    "type": { "enum": ["backend-service", "frontend-service", "infrastructure", "background-worker"] },
+    "type": { "type": "string", "maxLength": 50, "enum": ["backend-service", "frontend-service", "infrastructure", "background-worker"] },
     "description": { "$ref": "#/$defs/description" },
     "details": { "type": "object" },
     "apis": {
@@ -29,12 +29,12 @@
       "required": ["name", "api_type", "network_exposure"],
       "properties": {
         "name": { "$ref": "#/$defs/string" },
-        "api_type": { "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event", "native-protocol"] },
-        "network_exposure": { "enum": ["internal", "internet"] }
+        "api_type": { "type": "string", "maxLength": 50, "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event", "native-protocol"] },
+        "network_exposure": { "type": "string", "maxLength": 50, "enum": ["internal", "internet"] }
       }
     },
     "service": { "type": "object", "additionalProperties": false, "required": ["language"], "properties": { "language": { "$ref": "#/$defs/string" }, "language_version": { "$ref": "#/$defs/string" }, "framework": { "$ref": "#/$defs/string" } } },
-    "backgroundWorker": { "type": "object", "additionalProperties": false, "required": ["language", "broker"], "properties": { "language": { "$ref": "#/$defs/string" }, "language_version": { "$ref": "#/$defs/string" }, "framework": { "$ref": "#/$defs/string" }, "broker": { "enum": ["rabbitmq", "kafka", "redpanda", "nats-jetstream", "apache-pulsar", "aws-sqs", "google-cloud-pub-sub", "azure-service-bus", "redis-streams", "activemq", "ibm-mq"] } } },
-    "infrastructure": { "type": "object", "additionalProperties": false, "required": ["system"], "properties": { "system": { "$ref": "#/$defs/string" }, "version": { "$ref": "#/$defs/string" }, "network_address": { "$ref": "#/$defs/string" } } }
+    "backgroundWorker": { "type": "object", "additionalProperties": false, "required": ["language", "broker"], "properties": { "language": { "$ref": "#/$defs/string" }, "language_version": { "$ref": "#/$defs/string" }, "framework": { "$ref": "#/$defs/string" }, "broker": { "type": "string", "maxLength": 50, "enum": ["rabbitmq", "kafka", "redpanda", "nats-jetstream", "apache-pulsar", "aws-sqs", "google-cloud-pub-sub", "azure-service-bus", "redis-streams", "activemq", "ibm-mq"] } } },
+    "infrastructure": { "type": "object", "additionalProperties": false, "required": ["system", "system_type"], "properties": { "system": { "$ref": "#/$defs/string" }, "system_type": {"type": "string", "maxLength": 50, "enum": ["queue/stream", "sql-database", "nosql-database", "workflow-engine"]}, "version": { "$ref": "#/$defs/string" }, "network_address": {"type": ["array", "null"], "maxItems": 10, "items": {"type": "string", "minLength": 1, "maxLength": 50, "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"}} } }
   }
 }

@@ -74,19 +74,24 @@ func (d BackgroundWorkerComponentDetails) validate() error {
 
 type InfrastructureComponentDetails struct {
 	System         string
+	SystemType     SystemType
 	Version        string
-	NetworkAddress string
+	NetworkAddress []string
 }
 
 func NewInfrastructureComponentDetails(
-	system,
-	version,
-	networkAddress string,
+	system string,
+	systemType SystemType,
+	version string,
+	networkAddress []string,
 ) (InfrastructureComponentDetails, error) {
+	addresses := make([]string, len(networkAddress))
+	copy(addresses, networkAddress)
 	details := InfrastructureComponentDetails{
 		System:         system,
+		SystemType:     systemType,
 		Version:        version,
-		NetworkAddress: networkAddress,
+		NetworkAddress: addresses,
 	}
 	if err := details.validate(); err != nil {
 		return InfrastructureComponentDetails{}, err
@@ -99,8 +104,14 @@ func (InfrastructureComponentDetails) componentType() ComponentType {
 }
 
 func (d InfrastructureComponentDetails) validate() error {
+	if !isValidSystemType(d.SystemType) {
+		return ErrUnknownSystemType
+	}
 	if d.System == "" {
 		return ErrInvalidDetails
+	}
+	if len(d.NetworkAddress) > 10 {
+		return ErrTooManyNetworkAddresses
 	}
 	return nil
 }
@@ -155,4 +166,13 @@ func isValidBroker(broker EventBrokerType) bool {
 	}
 
 	return false
+}
+
+func isValidSystemType(systemType SystemType) bool {
+	switch systemType {
+	case SystemTypeQueueStream, SystemTypeSQLDatabase, SystemTypeNoSQLDatabase, SystemTypeWorkflowEngine:
+		return true
+	default:
+		return false
+	}
 }

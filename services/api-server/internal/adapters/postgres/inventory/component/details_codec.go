@@ -50,7 +50,8 @@ func Encode(details inventory.ComponentDetails) (json.RawMessage, error) {
 			SchemaVersion:  schemaVersion,
 			System:         typed.System,
 			Version:        stringPointer(typed.Version),
-			NetworkAddress: stringPointer(typed.NetworkAddress),
+			SystemType:     InfrastructureDetailsV1SystemType(typed.SystemType),
+			NetworkAddress: append([]string{}, typed.NetworkAddress...),
 		}
 	default:
 		return nil, fmt.Errorf("%w: unsupported type %T", errInvalidDetails, details)
@@ -135,8 +136,9 @@ func Decode(
 		}
 		details, err := inventory.NewInfrastructureComponentDetails(
 			payload.System,
+			inventory.SystemType(payload.SystemType),
 			stringValue(payload.Version),
-			stringValue(payload.NetworkAddress),
+			payload.NetworkAddress,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("%w: restore infrastructure v1: %w", errInvalidDetails, err)

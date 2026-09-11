@@ -38,9 +38,10 @@ type BackgroundWorkerDetailsResponseV1 struct {
 }
 
 type InfrastructureDetailsResponseV1 struct {
-	System         string `json:"system"`
-	Version        string `json:"version"`
-	NetworkAddress string `json:"network_address"`
+	System         string               `json:"system"`
+	Version        string               `json:"version"`
+	SystemType     inventory.SystemType `json:"system_type"`
+	NetworkAddress []string             `json:"network_address"`
 }
 
 func NewResponseV1(component inventory.Component) (ResponseV1, error) {
@@ -81,8 +82,9 @@ func newDetailsResponseV1(details inventory.ComponentDetails) (any, error) {
 	case inventory.InfrastructureComponentDetails:
 		return InfrastructureDetailsResponseV1{
 			System:         details.System,
+			SystemType:     details.SystemType,
 			Version:        details.Version,
-			NetworkAddress: details.NetworkAddress,
+			NetworkAddress: append([]string{}, details.NetworkAddress...),
 		}, nil
 	default:
 		return nil, fmt.Errorf("%w: unsupported details type %T", inventory.ErrInvalidDetails, details)

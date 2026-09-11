@@ -6,7 +6,9 @@
   "additionalProperties": false,
   "required": [
     "schema_version",
-    "system"
+    "system",
+    "system_type",
+    "network_address"
   ],
   "properties": {
     "schema_version": {
@@ -27,10 +29,24 @@
       "maxLength": 50
     },
     "network_address": {
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 50,
+        "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"
+      }
+    },
+    "system_type": {
       "type": "string",
-      "minLength": 1,
-      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$",
-      "maxLength": 50
+      "maxLength": 50,
+      "enum": [
+        "queue/stream",
+        "sql-database",
+        "nosql-database",
+        "workflow-engine"
+      ]
     }
   }
 }

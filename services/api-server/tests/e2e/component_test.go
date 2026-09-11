@@ -9,6 +9,7 @@ import (
 
 	"github.com/76parker/alpa/internal/domain/inventory"
 	"github.com/76parker/alpa/internal/httpapi/component"
+	"github.com/76parker/alpa/internal/httpapi/errmap"
 	"github.com/76parker/alpa/internal/httpapi/product"
 	"github.com/ozontech/testo"
 	allure "github.com/ozontech/testo-allure"
@@ -119,6 +120,114 @@ func TestComponentE2E(t *testing.T) {
 		allure.Step(t, "verify rejection for invalid component details", func(t T) {
 			t.Require().Equal(http.StatusBadRequest, statusCode, "component creation with invalid details returns 400 Bad Request")
 		})
+	}, allure.WithOutputDir("../../test-results/allure")))
+
+	// Infrastructure details must survive HTTP normalization and JSONB storage without losing addresses.
+	t.Run("InfrastructureSystemTypesAndAddresses", testo.Test(func(t T) {
+		t.Epic("Inventory")
+		t.Feature("Component")
+		t.Story("Create infrastructure component")
+		t.Severity(allure.SeverityCritical)
+		t.Tags("e2e")
+		t.Title("Validate system types and round-trip infrastructure addresses")
+		resetDatabase(t)
+		createdProduct := createTestProductForComponent(t, client)
+
+		addresses := []string{
+			" Primary.internal:5432 ", "replica.internal:5432", "replica.internal:5432",
+			"host4:5432", "host5:5432", "host6:5432", "host7:5432", "host8:5432", "host9:5432", "host10:5432",
+		}
+		encodedAddresses, err := json.Marshal(addresses)
+		t.Require().NoError(err)
+		tooMany, err := json.Marshal(append(append([]string{}, addresses...), "host11:5432"))
+		t.Require().NoError(err)
+		expectedAddresses := append([]string{}, addresses...)
+		expectedAddresses[0] = "Primary.internal:5432"
+		cases := []struct {
+			name           string
+			systemType     string
+			addressJSON    string
+			wantSystemType string
+			wantAddresses  []string
+			wantCode       errmap.Code
+		}{
+			{name: "queue with ten addresses", systemType: `" queue/stream "`, addressJSON: string(encodedAddresses), wantSystemType: "queue/stream", wantAddresses: expectedAddresses},
+			{name: "sql with null addresses", systemType: `"sql-database"`, addressJSON: "null", wantSystemType: "sql-database", wantAddresses: []string{}},
+			{name: "nosql without addresses", systemType: `"nosql-database"`, wantSystemType: "nosql-database", wantAddresses: []string{}},
+			{name: "workflow with empty addresses", systemType: `"workflow-engine"`, addressJSON: "[]", wantSystemType: "workflow-engine", wantAddresses: []string{}},
+			{name: "unknown system type", systemType: `"SQL-DATABASE"`, wantCode: "unknown_system_type"},
+			{name: "empty system type", systemType: `"  "`, wantCode: "unknown_system_type"},
+			{name: "missing system type", wantCode: "unknown_system_type"},
+			{name: "eleven addresses", systemType: `"sql-database"`, addressJSON: string(tooMany), wantCode: "too_many_network_addresses"},
+			{name: "legacy address string", systemType: `"sql-database"`, addressJSON: `"host:5432"`, wantCode: "invalid_request"},
+		}
+		persisted := 0
+		for _, tc := range cases {
+			allure.Step(t, tc.name, func(t T) {
+				detailsJSON := `{"system":" PostgreSQL ","version":" 17 "`
+				if tc.systemType != "" {
+					detailsJSON += `,"system_type":` + tc.systemType
+				}
+				if tc.addressJSON != "" {
+					detailsJSON += `,"network_address":` + tc.addressJSON
+				}
+				detailsJSON += "}"
+				input := component.CreateRequestV1{
+					ProductID: createdProduct.ID,
+					Name:      " " + tc.name + " ",
+					Type:      "infrastructure",
+					Details:   json.RawMessage(detailsJSON),
+				}
+				body, _ := marshalRequestBody(t, input)
+				request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, environment.server.URL+"/v1/components", body)
+				t.Require().NoError(err)
+				request.Header.Set("Content-Type", "application/json")
+				response, err := client.Do(request)
+				t.Require().NoError(err)
+				defer response.Body.Close()
+				if tc.wantCode != "" {
+					t.Require().Equal(http.StatusBadRequest, response.StatusCode)
+					failure, _ := unmarshalResponseBody[errmap.Error](t, response)
+					t.Assert().Equal(tc.wantCode, failure.Code)
+				} else {
+					t.Require().Equal(http.StatusCreated, response.StatusCode)
+					created, _ := unmarshalResponseBody[component.ResponseV1](t, response)
+					t.Assert().Equal(tc.name, created.Name)
+					t.Assert().Equal("infrastructure", created.Type)
+					returned, status := getTestComponent(t, client, created.ID)
+					t.Require().Equal(http.StatusOK, status)
+					t.Assert().Equal(created, returned)
+					var storedJSON []byte
+					err = environment.postgres.pool.QueryRow(t.Context(), "SELECT details FROM inventory.components WHERE id = $1", created.ID).Scan(&storedJSON)
+					t.Require().NoError(err)
+					var stored struct {
+						SchemaVersion  int      `json:"schema_version"`
+						System         string   `json:"system"`
+						SystemType     string   `json:"system_type"`
+						Version        string   `json:"version"`
+						NetworkAddress []string `json:"network_address"`
+					}
+					t.Require().NoError(json.Unmarshal(storedJSON, &stored))
+					t.Assert().Equal(1, stored.SchemaVersion)
+					t.Assert().Equal("PostgreSQL", stored.System)
+					t.Assert().Equal("17", stored.Version)
+					t.Assert().Equal(tc.wantSystemType, stored.SystemType)
+					t.Assert().Equal(tc.wantAddresses, stored.NetworkAddress)
+					wantDetails, err := json.Marshal(map[string]any{
+						"system": "PostgreSQL", "system_type": tc.wantSystemType, "version": "17", "network_address": tc.wantAddresses,
+					})
+					t.Require().NoError(err)
+					gotDetails, err := json.Marshal(returned.Details)
+					t.Require().NoError(err)
+					t.Assert().JSONEq(string(wantDetails), string(gotDetails))
+					persisted++
+				}
+				var count int
+				err = environment.postgres.pool.QueryRow(t.Context(), "SELECT count(*) FROM inventory.components").Scan(&count)
+				t.Require().NoError(err)
+				t.Assert().Equal(persisted, count, "rejected requests must not persist components")
+			})
+		}
 	}, allure.WithOutputDir("../../test-results/allure")))
 
 	// A confirmed relationship must be visible as provider and consumer roles on the respective components.

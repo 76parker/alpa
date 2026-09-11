@@ -34,7 +34,8 @@ func (BackgroundWorkerDetails) isComponentDetails() {}
 type InfrastructureDetails struct {
 	System         string
 	Version        string
-	NetworkAddress string
+	SystemType     inventory.SystemType
+	NetworkAddress []string
 }
 
 func (InfrastructureDetails) isComponentDetails() {}

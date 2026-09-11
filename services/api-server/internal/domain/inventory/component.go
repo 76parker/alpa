@@ -6,6 +6,8 @@ import (
 )
 
 var (
+	ErrUnknownSystemType            = errors.New("unknown system type")
+	ErrTooManyNetworkAddresses      = errors.New("too many network addresses")
 	ErrInvalidComponentName         = errors.New("invalid component name")
 	ErrUnknownComponentType         = errors.New("unknown component type")
 	ErrUnknownBroker                = errors.New("invalid broker")
@@ -19,12 +21,19 @@ type ComponentType string
 
 type EventBrokerType string
 
+type SystemType string
+
 type ComponentDetails interface {
 	componentType() ComponentType
 	validate() error
 }
 
 const (
+	SystemTypeQueueStream    SystemType = "queue/stream"
+	SystemTypeSQLDatabase    SystemType = "sql-database"
+	SystemTypeNoSQLDatabase  SystemType = "nosql-database"
+	SystemTypeWorkflowEngine SystemType = "workflow-engine"
+
 	ComponentTypeFrontend         ComponentType = "frontend-service"
 	ComponentTypeBackend          ComponentType = "backend-service"
 	ComponentTypeInfrastructure   ComponentType = "infrastructure"

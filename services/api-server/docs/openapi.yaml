@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: ALPA Inventory API
   version: 1.0.0
-  description: API for maintaining workspaces, products, and components.
+  description: API for maintaining workspaces, products, and components. Input strings are trimmed without changing case. Business validation returns domain error codes; JSON, length, and character validation returns invalid_request.
 servers:
   - url: /
 tags:
@@ -202,8 +202,8 @@ components:
       type: object
       required: [message, code, status]
       properties:
-        message: {type: string, example: "name is required"}
-        code: {type: string, example: invalid_request}
+        message: {type: string, example: "name contains unsupported characters"}
+        code: {type: string, description: "Business errors include unknown_system_type, too_many_network_addresses, and invalid_product_code. Transport errors use invalid_request.", example: invalid_request}
         status: {type: integer, example: 400}
     Workspace:
       type: object
@@ -224,6 +224,7 @@ components:
         pagination: {$ref: '#/components/schemas/Pagination'}
     Criticality:
       type: string
+      maxLength: 50
       enum: [mission-critical, business-critical, business-operational, office-productivity]
       example: business-critical
     Product:
@@ -254,6 +255,7 @@ components:
         pagination: {$ref: '#/components/schemas/Pagination'}
     ComponentType:
       type: string
+      maxLength: 50
       enum: [backend-service, frontend-service, infrastructure, background-worker]
       example: backend-service
     ServiceDetails:
@@ -269,19 +271,49 @@ components:
         - type: object
           required: [broker]
           properties:
-            broker: {type: string, enum: [rabbitmq, kafka, redpanda, nats-jetstream, apache-pulsar, aws-sqs, google-cloud-pub-sub, azure-service-bus, redis-streams, activemq, ibm-mq], example: kafka}
+            broker: {type: string, maxLength: 50, enum: [rabbitmq, kafka, redpanda, nats-jetstream, apache-pulsar, aws-sqs, google-cloud-pub-sub, azure-service-bus, redis-streams, activemq, ibm-mq], example: kafka}
+    SystemType:
+      type: string
+      maxLength: 50
+      enum: [queue/stream, sql-database, nosql-database, workflow-engine]
+      example: sql-database
     InfrastructureDetails:
       type: object
-      required: [system]
+      required: [system, system_type, version, network_address]
+      properties:
+        system: {allOf: [{$ref: '#/components/schemas/Name'}], example: PostgreSQL}
+        version: {type: string, maxLength: 50, example: "17.2"}
+        system_type: {$ref: '#/components/schemas/SystemType'}
+        network_address:
+          type: array
+          maxItems: 10
+          description: Optional on input. Missing, null, or empty input is returned and stored as []. Order and duplicates are preserved.
+          items: {$ref: '#/components/schemas/Name'}
+          example: ["postgres-primary.internal:5432", "postgres-replica.internal:5432"]
+    InfrastructureDetailsRequest:
+      type: object
+      required: [system, system_type]
       properties:
         system: {allOf: [{$ref: '#/components/schemas/Name'}], example: PostgreSQL}
         version: {allOf: [{$ref: '#/components/schemas/Name'}], example: "17.2"}
-        network_address: {allOf: [{$ref: '#/components/schemas/Name'}], example: "postgres.internal:5432"}
+        system_type: {$ref: '#/components/schemas/SystemType'}
+        network_address:
+          type: array
+          nullable: true
+          maxItems: 10
+          description: Optional on input. Missing, null, or empty input is returned and stored as []. Order and duplicates are preserved.
+          items: {$ref: '#/components/schemas/Name'}
+          example: ["postgres-primary.internal:5432", "postgres-replica.internal:5432"]
     ComponentDetails:
       oneOf:
         - {$ref: '#/components/schemas/ServiceDetails'}
         - {$ref: '#/components/schemas/BackgroundWorkerDetails'}
         - {$ref: '#/components/schemas/InfrastructureDetails'}
+    ComponentDetailsRequest:
+      oneOf:
+        - {$ref: '#/components/schemas/ServiceDetails'}
+        - {$ref: '#/components/schemas/BackgroundWorkerDetails'}
+        - {$ref: '#/components/schemas/InfrastructureDetailsRequest'}
     Component:
       type: object
       required: [id, product_id, name, type, description, details, apis]
@@ -301,7 +333,7 @@ components:
         name: {allOf: [{$ref: '#/components/schemas/Name'}], example: Checkout API}
         type: {$ref: '#/components/schemas/ComponentType'}
         description: {allOf: [{$ref: '#/components/schemas/Description'}], example: Serves checkout requests for the web and mobile apps.}
-        details: {$ref: '#/components/schemas/ComponentDetails'}
+        details: {$ref: '#/components/schemas/ComponentDetailsRequest'}
         apis: {type: array, items: {$ref: '#/components/schemas/CreateComponentAPI'}}
     ConsumerAPIRequest:
       type: object
@@ -317,9 +349,10 @@ components:
         pagination: {$ref: '#/components/schemas/Pagination'}
     APIType:
       type: string
+      maxLength: 50
       enum: [rest, graphql, grpc, json-rpc, soap, websocket, odata, sse, event, native-protocol]
       example: rest
-    NetworkExposure: {type: string, enum: [internal, internet], example: internet}
+    NetworkExposure: {type: string, maxLength: 50, enum: [internal, internet], example: internet}
     ComponentAPI:
       type: object
       required: [id, name, api_type, network_exposure, role]
@@ -336,4 +369,4 @@ components:
         name: {allOf: [{$ref: '#/components/schemas/Name'}], example: Checkout Public API}
         api_type: {$ref: '#/components/schemas/APIType'}
         network_exposure: {$ref: '#/components/schemas/NetworkExposure'}
-    APIRole: {type: string, enum: [provider, consumer], example: provider}
+    APIRole: {type: string, maxLength: 50, enum: [provider, consumer], example: provider}
