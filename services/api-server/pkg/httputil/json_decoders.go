@@ -18,8 +18,7 @@ var (
 	ErrInvalidJSONBody  = errors.New("invalid JSON body")
 	ErrJSONBodyTooLarge = errors.New("JSON body too large")
 
-	allowedTextPattern = regexp.MustCompile(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]+$`)
-	productCodePattern = regexp.MustCompile(`^[A-Z]+$`)
+	allowedTextPattern = regexp.MustCompile(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]*$`)
 )
 
 func NewValidator() (*validator.Validate, error) {
@@ -35,11 +34,6 @@ func NewValidator() (*validator.Validate, error) {
 		return allowedTextPattern.MatchString(field.Field().String())
 	}); err != nil {
 		return nil, fmt.Errorf("register allowed_text validation: %w", err)
-	}
-	if err := validate.RegisterValidation("product_code", func(field validator.FieldLevel) bool {
-		return productCodePattern.MatchString(field.Field().String())
-	}); err != nil {
-		return nil, fmt.Errorf("register product_code validation: %w", err)
 	}
 	return validate, nil
 }
@@ -61,6 +55,9 @@ func DecodeAndValidateJSONBytes[T any](body []byte, validate *validator.Validate
 	var result T
 	if err := json.Unmarshal(body, &result, json.RejectUnknownMembers(true)); err != nil {
 		return result, fmt.Errorf("%w: decode JSON body: %w", ErrInvalidJSONBody, err)
+	}
+	if normalizable, ok := any(&result).(interface{ Normalize() }); ok {
+		normalizable.Normalize()
 	}
 	if err := validate.Struct(result); err != nil {
 		return result, err

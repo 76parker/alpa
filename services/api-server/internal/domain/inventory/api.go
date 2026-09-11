@@ -43,7 +43,7 @@ func NewAPI(
 	apiType APIType,
 	exposure NetworkExposure,
 ) (API, error) {
-	if !isValidField(name, maxDefaultFieldLength, false) {
+	if name == "" {
 		return API{}, ErrInvalidAPIName
 	}
 	if !isValidAPIType(apiType) {

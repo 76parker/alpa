@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
-	"unicode"
 
 	postgres "github.com/76parker/alpa/internal/adapters/postgres"
 	"github.com/76parker/alpa/internal/domain/inventory"
@@ -16,6 +14,9 @@ import (
 type Code string
 
 const (
+	CodeUnknownSystemType            Code = "unknown_system_type"
+	CodeTooManyNetworkAddresses      Code = "too_many_network_addresses"
+	CodeInvalidProductCode           Code = "invalid_product_code"
 	CodeInvalidID                    Code = "invalid_id"
 	CodeInvalidWorkspaceName         Code = "invalid_workspace_name"
 	CodeInvalidProductName           Code = "invalid_product_name"
@@ -59,7 +60,13 @@ func Resolve(err error) (Error, bool) {
 	var validationErrors validator.ValidationErrors
 
 	switch {
-	case errors.Is(err, inventory.ErrNegativeID), errors.Is(err, httputil.ErrInvalidID):
+	case errors.Is(err, inventory.ErrUnknownSystemType):
+		return newBadRequest(CodeUnknownSystemType, "unknown system type"), true
+	case errors.Is(err, inventory.ErrTooManyNetworkAddresses):
+		return newBadRequest(CodeTooManyNetworkAddresses, "at most 10 network addresses are allowed"), true
+	case errors.Is(err, inventory.ErrInvalidProductCode):
+		return newBadRequest(CodeInvalidProductCode, "product code must contain only uppercase Latin letters"), true
+	case errors.Is(err, inventory.ErrNegativeID):
 		return newBadRequest(CodeInvalidID, "id must be positive"), true
 	case errors.Is(err, inventory.ErrInvalidWorkspaceName):
 		return newBadRequest(CodeInvalidWorkspaceName, "invalid workspace name"), true
@@ -96,7 +103,8 @@ func Resolve(err error) (Error, bool) {
 	case errors.Is(err, postgres.ErrUniqueViolation):
 		return newError("resource with this name/code already exists", CodeAlreadyExists, http.StatusConflict), true
 	case errors.Is(err, ErrInvalidRequest),
-		errors.Is(err, httputil.ErrInvalidJSONBody):
+		errors.Is(err, httputil.ErrInvalidJSONBody),
+		errors.Is(err, httputil.ErrInvalidID):
 		return newBadRequest(CodeInvalidRequest, "invalid request"), true
 	case errors.Is(err, httputil.ErrJSONBodyTooLarge):
 		return newBadRequest(CodeInvalidRequest, "request body too large"), true
@@ -118,26 +126,9 @@ func resolveValidationError(validationErrors validator.ValidationErrors) Error {
 
 	fieldError := validationErrors[0]
 	return newBadRequest(
-		validationErrorCode(fieldError),
+		CodeInvalidRequest,
 		validationErrorMessage(fieldError),
 	)
-}
-
-func validationErrorCode(fieldError validator.FieldError) Code {
-	switch fieldError.Field() {
-	case "criticality":
-		return CodeInvalidCriticality
-	case "type":
-		return CodeUnknownComponentType
-	case "broker":
-		return CodeUnknownBroker
-	case "api_type":
-		return CodeUnknownAPIType
-	case "network_exposure":
-		return CodeInvalidNetworkExposure
-	default:
-		return CodeInvalidRequest
-	}
 }
 
 func validationErrorMessage(fieldError validator.FieldError) string {
@@ -147,8 +138,6 @@ func validationErrorMessage(fieldError validator.FieldError) string {
 	}
 
 	switch fieldError.Tag() {
-	case "required":
-		return fmt.Sprintf("%s is required", field)
 	case "min":
 		return fmt.Sprintf(
 			"%s must be at least %s %s long",
@@ -163,18 +152,8 @@ func validationErrorMessage(fieldError validator.FieldError) string {
 			fieldError.Param(),
 			characterUnit(fieldError.Param()),
 		)
-	case "gt":
-		return fmt.Sprintf("%s must be greater than %s", field, fieldError.Param())
-	case "oneof":
-		return fmt.Sprintf(
-			"%s must be one of: %s",
-			field,
-			strings.Join(splitValidationOptions(fieldError.Param()), ", "),
-		)
 	case "allowed_text":
 		return fmt.Sprintf("%s contains unsupported characters", field)
-	case "product_code":
-		return fmt.Sprintf("%s must contain only uppercase Latin letters", field)
 	default:
 		return fmt.Sprintf("%s is invalid", field)
 	}
@@ -185,34 +164,6 @@ func characterUnit(limit string) string {
 		return "character"
 	}
 	return "characters"
-}
-
-func splitValidationOptions(param string) []string {
-	options := make([]string, 0)
-	var current strings.Builder
-	quoted := false
-
-	appendOption := func() {
-		if current.Len() == 0 {
-			return
-		}
-		options = append(options, current.String())
-		current.Reset()
-	}
-
-	for _, r := range param {
-		switch {
-		case r == '\'':
-			quoted = !quoted
-		case unicode.IsSpace(r) && !quoted:
-			appendOption()
-		default:
-			current.WriteRune(r)
-		}
-	}
-	appendOption()
-
-	return options
 }
 
 func newError(message string, code Code, status int) Error {

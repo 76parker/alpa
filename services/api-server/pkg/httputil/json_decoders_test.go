@@ -12,8 +12,8 @@ import (
 )
 
 type validationRequest struct {
-	Name        string  `json:"name" validate:"required,max=50,allowed_text"`
-	ProductCode string  `json:"product_code" validate:"required,max=10,product_code"`
+	Name        string  `json:"name" validate:"max=50,allowed_text"`
+	ProductCode string  `json:"product_code" validate:"max=10,allowed_text"`
 	Description *string `json:"description,omitempty" validate:"omitempty,min=1,max=1000,allowed_text"`
 }
 
@@ -41,9 +41,9 @@ func TestDecodeAndValidateJSONBytes(t *testing.T) {
 		{name: "malformed", body: `{`, wantJSONError: true},
 		{name: "unknown top-level field", body: `{"name":"Checkout API","product_code":"PAY","unknown":true}`, wantJSONError: true},
 		{name: "trailing JSON value", body: `{"name":"Checkout API","product_code":"PAY"} {}`, wantJSONError: true},
-		{name: "missing required field", body: `{"product_code":"PAY"}`, wantField: "name", wantTag: "required"},
+		{name: "missing field passes to domain", body: `{"product_code":"PAY"}`, want: validationRequest{ProductCode: "PAY"}},
 		{name: "invalid allowed text", body: `{"name":"Продукт","product_code":"PAY"}`, wantField: "name", wantTag: "allowed_text"},
-		{name: "invalid product code", body: `{"name":"Checkout API","product_code":"pay"}`, wantField: "product_code", wantTag: "product_code"},
+		{name: "product code format passes to domain", body: `{"name":"Checkout API","product_code":"pay"}`, want: validationRequest{Name: "Checkout API", ProductCode: "pay"}},
 		{name: "empty optional description", body: `{"name":"Checkout API","product_code":"PAY","description":""}`, wantField: "description", wantTag: "min"},
 	}
 

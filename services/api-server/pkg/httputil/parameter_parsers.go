@@ -7,11 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var ErrInvalidID = errors.New("invalid id: id cannot be zero or negative")
+var ErrInvalidID = errors.New("invalid id: expected an int64")
 
 func ParseID(c *gin.Context, parameter string) (int64, error) {
 	id, err := strconv.ParseInt(c.Param(parameter), 10, 64)
-	if err != nil || id <= 0 {
+	if err != nil {
 		return 0, ErrInvalidID
 	}
 

@@ -8,6 +8,8 @@
     "product_code": { "$ref": "#/$defs/product_code" },
     "name": { "$ref": "#/$defs/string" },
     "criticality": {
+      "type": "string",
+      "maxLength": 50,
       "enum": [
         "mission-critical",
         "business-critical",

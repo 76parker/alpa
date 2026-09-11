@@ -10,6 +10,7 @@ type ProductCriticality string
 var (
 	ErrInvalidCriticality = errors.New("invalid criticality")
 	ErrInvalidProductName = errors.New("invalid product name")
+	ErrInvalidProductCode = errors.New("invalid product code")
 )
 
 const (
@@ -56,6 +57,9 @@ func NewProduct(
 		if *owningTeamID <= 0 {
 			return nil, ErrNegativeID
 		}
+	}
+	if !isValidProductCode(productCode) {
+		return nil, ErrInvalidProductCode
 	}
 	if name == "" {
 		return nil, ErrInvalidProductName
