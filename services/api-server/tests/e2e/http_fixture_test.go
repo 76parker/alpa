@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"context"
 	"net/http/httptest"
 	"time"
 
@@ -51,6 +52,7 @@ func newTestHTTPServer(pool *pgxpool.Pool) (*httptest.Server, error) {
 		Product:   productHandler,
 		Component: componentHandler,
 	}
-	server := httpapi.NewServer(testCfg, logger.NewMockLogger(), handlers)
+
+	server := httpapi.NewServer(context.Background(), testCfg, logger.NewMockLogger(), handlers)
 	return httptest.NewServer(server.Handler()), nil
 }

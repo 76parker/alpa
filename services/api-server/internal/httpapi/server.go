@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"time"
 
@@ -22,6 +23,7 @@ type ServerConfig struct {
 }
 
 func NewServer(
+	ctx context.Context,
 	cfg ServerConfig,
 	log logger.Logger,
 	handlers Handlers,
@@ -32,9 +34,12 @@ func NewServer(
 			Handler:           newRouter(log, handlers),
 			ReadHeaderTimeout: cfg.ReadHeaderTimeout,
 			ReadTimeout:       cfg.ReadTimeout,
-			WriteTimeout:      cfg.WriteTimeout,
-			IdleTimeout:       cfg.IdleTimeout,
-			MaxHeaderBytes:    cfg.MaxHeaderBytes,
+			BaseContext: func(l net.Listener) context.Context {
+				return ctx
+			},
+			WriteTimeout:   cfg.WriteTimeout,
+			IdleTimeout:    cfg.IdleTimeout,
+			MaxHeaderBytes: cfg.MaxHeaderBytes,
 		},
 	}
 }

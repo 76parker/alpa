@@ -58,7 +58,7 @@ func Run(ctx context.Context, cfg config.Config, migrationsDir string) (returnEr
 		return fmt.Errorf("create handlers: %w", err)
 	}
 	handlers.UI = ui
-	server := httpapi.NewServer(newServerConfig(*cfg.HTTP), log, handlers)
+	server := httpapi.NewServer(ctx, newServerConfig(*cfg.HTTP), log, handlers)
 
 	logSwaggerDocumentation(log, cfg.HTTP.Address)
 	log.Info("Starting HTTP server", "address", cfg.HTTP.Address)
