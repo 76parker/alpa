@@ -1,0 +1,64 @@
+version: "2"
+
+linters:
+  exclusions:
+    paths:
+        - ^tests/e2e/
+        - ^internal/webui/
+  default: standard
+  enable:
+    # Architecture
+    - depguard
+    - containedctx
+
+    # Correctness
+    - errorlint
+    - nilerr
+    - nilnesserr
+    - exhaustive
+
+    # Resources
+    - bodyclose
+    - rowserrcheck
+    - sqlclosecheck
+
+    # General
+    - gocritic
+  settings:
+    depguard:
+      rules:
+        application-layer:
+          files:
+            - internal/applications/**
+          list-mode: lax
+          deny:
+            - pkg: github.com/76parker/alpa/internal/httpapi
+              desc: application layer must not import HTTP package
+            - pkg: github.com/76parker/alpa/internal/adapters
+              desc: application layer must not import repository adapters - only interface
+            - pkg: github.com/76parker/alpa/pkg/httputil
+              desc: application layer must not import utils for HTTP package
+            - pkg: github.com/76parker/alpa/internal/bootstrap
+              desc: application layer must not import bootstrap package
+        domain:
+          files:
+            - internal/domain/**
+          list-mode: lax
+          deny:
+            - pkg: github.com/76parker/alpa/internal/httpapi
+              desc: domain must not import HTTP package
+            - pkg: github.com/76parker/alpa/internal/adapters
+              desc: domain must not import repository adapters - only interface
+            - pkg: github.com/76parker/alpa/pkg/httputil
+              desc: domain must not import utils for HTTP package
+            - pkg: github.com/76parker/alpa/internal/bootstrap
+              desc: domain must not import bootstrap package
+            - pkg: github.com/76parker/alpa/applications
+              desc: domain must not import application packages
+        http-layer:
+          files:
+            - internal/httpapi/**
+          list-mode: lax
+          deny:
+            - pkg: github.com/76parker/alpa/internal/adapters
+              desc: http layer must not import repository adapters - only application layer

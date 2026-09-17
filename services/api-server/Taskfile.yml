@@ -1,0 +1,64 @@
+version: '3'
+
+vars:
+    E2E_DIR: ./tests/e2e
+    COVERPROFILE: ./tests/e2e/coverage.out
+    TEST_REPORT: ./tests/e2e/results/report.html
+    ALLURE_ARTIFACTS: ./tests/e2e/results
+
+    IMAGE: alpa-server
+    DOCKERFILE: ./Dockerfile
+    CONTEXT: .
+
+tasks:
+    e2e-test:
+        desc: Run E2E tests with Testcontainers
+        cmds:
+            - rm -rf {{.ALLURE_ARTIFACTS}}
+            - mkdir -p {{.ALLURE_ARTIFACTS}}
+            - defer: rm -rf {{.ALLURE_ARTIFACTS}}
+            - >-
+                go test {{.E2E_DIR}}
+                -count=1
+                -covermode=atomic
+                -coverpkg=./internal/...,./pkg/...
+                -coverprofile={{.COVERPROFILE}}
+            - go tool cover -func={{.COVERPROFILE}}
+            - go tool cover -html={{.COVERPROFILE}} -o {{.TEST_REPORT}}
+
+            - >-
+                go tool cover -func={{.COVERPROFILE}}
+                | awk '/^total:/ {print "total_coverage: " $3}' >> {{.ALLURE_ARTIFACTS}}/environment.properties
+            - allure serve {{.ALLURE_ARTIFACTS}}
+
+    docker:build-arch:
+        internal: true
+        requires:
+            vars: [ARCH]
+        cmds:
+            - >-
+                docker buildx build
+                --platform linux/{{.ARCH}}
+                --file {{.DOCKERFILE}}
+                --tag {{.IMAGE}}:{{.ARCH}}
+                --load
+                {{.CONTEXT}}
+
+    docker:build-amd64:
+        desc: Build Docker image for Linux AMD64
+        cmds:
+            - task: docker:build-arch
+              vars:
+                  ARCH: amd64
+
+    docker:build-arm64:
+        desc: Build Docker image for Linux ARM64
+        cmds:
+            - task: docker:build-arch
+              vars:
+                  ARCH: arm64
+
+    check-lint:
+        desc: Run a `golangci-lint` with rules in `.golangci.yml`
+        cmds:
+            - golangci-lint run
