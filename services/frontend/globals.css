@@ -586,6 +586,10 @@ body {
   width: calc(100% - 4px);
   margin-left: 4px;
 }
+.component-create-page .pf-v6-c-form-control > :focus-visible,
+.component-create-page .pf-v6-c-menu-toggle:focus-visible {
+  outline-offset: -2px;
+}
 .component-create-preview {
   position: sticky;
   top: 24px;

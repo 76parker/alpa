@@ -24,6 +24,9 @@ describe("component creation layout", () => {
     expect(styles).toContain(
       ".component-create-left-field .pf-v6-c-form-control { width: calc(100% - 4px); margin-left: 4px; }",
     );
+    expect(styles).toContain(
+      ".component-create-page .pf-v6-c-form-control > :focus-visible,.component-create-page .pf-v6-c-menu-toggle:focus-visible { outline-offset: -2px; }",
+    );
   });
 
   it("scrolls only the long desktop form and restores page scrolling on mobile", () => {
