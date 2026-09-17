@@ -5,6 +5,7 @@ vendor
 node_modules
 .zed
 .idea
+.worktrees/
 
 # Generated frontend, embedded UI and local build output
 services/frontend/dist/
