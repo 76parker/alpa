@@ -88,6 +88,51 @@ afterEach(() => {
 });
 
 describe("component creation", () => {
+  it("labels component form placeholders as examples", async () => {
+    const user = userEvent.setup();
+    render(
+      <ComponentCreatePage
+        product={product}
+        onClose={vi.fn()}
+        onCreate={vi.fn(async () => undefined)}
+      />,
+    );
+
+    expect(
+      screen.getByRole("textbox", { name: "Component name" }).getAttribute(
+        "placeholder",
+      ),
+    ).toBe("Example: api-server, auth-server");
+    expect(
+      screen.getByRole("textbox", { name: "Language" }).getAttribute(
+        "placeholder",
+      ),
+    ).toBe("Example: Go, Java, C#");
+    expect(
+      screen.getByRole("textbox", { name: "Language version" }).getAttribute(
+        "placeholder",
+      ),
+    ).toBe("Example: v1.27, 23.02");
+    expect(
+      screen.getByRole("textbox", { name: "Framework" }).getAttribute(
+        "placeholder",
+      ),
+    ).toBe("Example: Gin, Spring, ASP.NET Core");
+    expect(
+      screen.getByRole("textbox", { name: "Description" }).getAttribute(
+        "placeholder",
+      ),
+    ).toBe("Example: Description and purpose of your component");
+
+    const clients = screen.getByRole("region", { name: "Component clients" });
+    await user.click(within(clients).getByRole("button", { name: "Add client" }));
+    expect(
+      within(clients)
+        .getByRole("textbox", { name: "Description" })
+        .getAttribute("placeholder"),
+    ).toBe("Example: Describe what the client is used for");
+  });
+
   it("lets users add and remove infrastructure network addresses", async () => {
     const onCreate = vi.fn(async () => undefined);
     const user = userEvent.setup();

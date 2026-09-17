@@ -769,6 +769,9 @@ body {
   padding: 16px 0;
   border-top: 1px solid var(--app-border);
 }
+.api-editor-card > .client-description-field {
+  margin-top: 8px;
+}
 .api-editor-fields {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;

@@ -30,6 +30,9 @@ describe("component creation layout", () => {
     expect(styles).toContain(
       ".inventory-app .architecture-node-client-model .architecture-client-rail { border: 1px solid var(--app-border); border-radius: 0 4px 4px 0; background: var(--app-subtle); }",
     );
+    expect(styles).toContain(
+      ".api-editor-card > .client-description-field { margin-top: 8px; }",
+    );
   });
 
   it("scrolls only the long desktop form and restores page scrolling on mobile", () => {

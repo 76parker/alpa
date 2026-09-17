@@ -583,6 +583,7 @@ export function ComponentCreatePage({
               autoFocus
               value={name}
               maxLength={50}
+              placeholder="Example: api-server, auth-server"
               onChange={(event) => {
                 setName(event.target.value);
                 clear("name");
@@ -695,6 +696,7 @@ export function ComponentCreatePage({
                 <TextInput
                   value={language}
                   maxLength={50}
+                  placeholder="Example: Go, Java, C#"
                   onChange={(event) => {
                     setLanguage(event.target.value);
                     clear("language");
@@ -705,6 +707,7 @@ export function ComponentCreatePage({
                 <TextInput
                   value={languageVersion}
                   maxLength={50}
+                  placeholder="Example: v1.27, 23.02"
                   onChange={(event) => setLanguageVersion(event.target.value)}
                 />
               </Field>
@@ -712,6 +715,7 @@ export function ComponentCreatePage({
                 <TextInput
                   value={framework}
                   maxLength={50}
+                  placeholder="Example: Gin, Spring, ASP.NET Core"
                   onChange={(event) => setFramework(event.target.value)}
                 />
               </Field>
@@ -721,6 +725,7 @@ export function ComponentCreatePage({
             <TextArea
               value={description}
               maxLength={1000}
+              placeholder="Example: Description and purpose of your component"
               onChange={(event) => setDescription(event.target.value)}
             />
           </Field>
@@ -943,9 +948,10 @@ function ChildClientEditor({
                 </Select>
               </Field>
             </div>
-            <Field label="Description">
+            <Field className="client-description-field" label="Description">
               <TextArea
                 value={client.description ?? ""}
+                placeholder="Example: Describe what the client is used for"
                 onChange={(event) =>
                   onChange(index, { description: event.target.value })
                 }
