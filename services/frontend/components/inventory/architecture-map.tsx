@@ -5,6 +5,7 @@ import {
   Position,
   ReactFlow,
   applyNodeChanges,
+  useReactFlow,
   type NodeProps,
   type OnNodeDrag,
   type OnNodesChange,
@@ -63,6 +64,11 @@ import { Button } from "../../src/ui";
 const nodeTypes = { architecture: ArchitectureNodeCard };
 const storagePrefix = "alpa:architecture-layout-v1:";
 const keyboardNudge = 24;
+const architectureFitViewOptions = {
+  padding: 0.24,
+  minZoom: 0.45,
+  maxZoom: 1.1,
+} as const;
 
 type SavedPosition = { x: number; y: number };
 type KeyboardMove = { nodeID: string; origin: SavedPosition };
@@ -294,6 +300,7 @@ export function ArchitecturePreview({
         nodes={graph.nodes}
         edges={graph.edges}
         ariaLabel={label}
+        autoFit
       />
     </section>
   );
@@ -317,6 +324,7 @@ export function ArchitectureDraftPreview({
         nodes={graph.nodes}
         edges={graph.edges}
         ariaLabel={label}
+        autoFit
       />
     </section>
   );
@@ -327,6 +335,7 @@ export function ArchitectureCanvas({
   edges,
   ariaLabel,
   interactive = false,
+  autoFit = false,
   onNodesChange,
   onNodeDragStop,
   onOpenComponentID,
@@ -340,6 +349,7 @@ export function ArchitectureCanvas({
   edges: ArchitectureGraph["edges"];
   ariaLabel: string;
   interactive?: boolean;
+  autoFit?: boolean;
   onNodesChange?: OnNodesChange<ArchitectureNode>;
   onNodeDragStop?: OnNodeDrag<ArchitectureNode>;
   onOpenComponentID?: (id: number) => void;
@@ -380,15 +390,53 @@ export function ArchitectureCanvas({
           zoomOnPinch
           zoomOnDoubleClick={false}
           fitView
-          fitViewOptions={{ padding: 0.24, minZoom: 0.45, maxZoom: 1.1 }}
+          fitViewOptions={architectureFitViewOptions}
           aria-label={ariaLabel}
         >
           <Background color="#d2d7df" gap={24} size={1} />
           <Controls showInteractive={false} />
+          {autoFit ? <ArchitectureAutoFit nodes={nodes} /> : null}
         </ReactFlow>
       </div>
     </ArchitectureNodeActionContext.Provider>
   );
+}
+
+function ArchitectureAutoFit({ nodes }: { nodes: ArchitectureNode[] }) {
+  const { fitView } = useReactFlow<ArchitectureNode>();
+  const fitSignature = nodes
+    .map((node) => {
+      const data = node.data as ArchitectureNodeData;
+      return [
+        node.id,
+        data.component.name,
+        data.component.type,
+        data.apis.length,
+        data.clients.length,
+        node.style?.width ?? "",
+      ].join(":");
+    })
+    .join("|");
+  const previousSignature = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!fitSignature) return;
+    if (previousSignature.current === fitSignature) return;
+    previousSignature.current = fitSignature;
+
+    let fitFrame = 0;
+    const frame = window.requestAnimationFrame(() => {
+      fitFrame = window.requestAnimationFrame(() => {
+        void fitView({ ...architectureFitViewOptions, duration: 0 });
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (fitFrame) window.cancelAnimationFrame(fitFrame);
+    };
+  }, [fitSignature, fitView]);
+
+  return null;
 }
 
 function ArchitectureNodeCard({ data }: NodeProps<ArchitectureNode>) {

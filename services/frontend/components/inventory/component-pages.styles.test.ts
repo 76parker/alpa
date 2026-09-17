@@ -27,6 +27,9 @@ describe("component creation layout", () => {
     expect(styles).toContain(
       ".component-create-page .pf-v6-c-form-control > :focus-visible,.component-create-page .pf-v6-c-menu-toggle:focus-visible { outline-offset: -2px; }",
     );
+    expect(styles).toContain(
+      ".inventory-app .architecture-node-client-model .architecture-client-rail { border: 1px solid var(--app-border); border-radius: 0 4px 4px 0; background: var(--app-subtle); }",
+    );
   });
 
   it("scrolls only the long desktop form and restores page scrolling on mobile", () => {

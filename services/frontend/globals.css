@@ -1363,8 +1363,8 @@ body {
   border-radius: 4px;
 }
 .inventory-app .architecture-node-client-model .architecture-client-rail {
-  border-left: 1px solid var(--app-border);
-  border-radius: 4px;
+  border: 1px solid var(--app-border);
+  border-radius: 0 4px 4px 0;
   background: var(--app-subtle);
 }
 .inventory-app .architecture-api-row,
