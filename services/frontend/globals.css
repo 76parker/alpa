@@ -557,7 +557,8 @@ body {
 }
 .product-create-page,
 .component-create-page {
-  max-width: 960px;
+  width: 100%;
+  max-width: 1280px;
 }
 .product-create-form,
 .inventory-component-form {
@@ -565,21 +566,27 @@ body {
 }
 .component-create-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(460px, 0.9fr);
+  gap: 24px;
   align-items: start;
+  min-width: 0;
 }
 .component-create-layout .inventory-component-form {
   max-width: none;
+  min-width: 0;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  padding-right: 12px;
+  scrollbar-gutter: stable;
 }
 .component-create-preview {
   position: sticky;
-  top: 16px;
+  top: 24px;
   min-width: 0;
 }
 .architecture-preview .architecture-canvas {
-  height: 480px;
-  min-height: 480px;
+  height: 560px;
+  min-height: 560px;
 }
 .product-form-section > header {
   margin-bottom: 24px;
@@ -1495,6 +1502,12 @@ body {
   .component-create-layout {
     grid-template-columns: minmax(0, 1fr);
   }
+  .component-create-layout .inventory-component-form {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+    scrollbar-gutter: auto;
+  }
   .component-create-preview {
     position: static;
   }
@@ -1586,8 +1599,9 @@ body {
   .topology-toolbar {
     align-items: flex-start;
   }
-  .architecture-canvas {
+  .architecture-preview .architecture-canvas {
     height: 480px;
+    min-height: 480px;
   }
   .development-notice {
     margin-top: 24px;

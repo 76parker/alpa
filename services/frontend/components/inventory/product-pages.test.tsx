@@ -43,7 +43,7 @@ it('sorts the full collection before pagination and opens the chosen product', a
   expect(products[0].name).toBe('Service 01');
 });
 
-it('keeps product metadata under the description and uses the three product sections', () => {
+it('places product metadata above the description and uses the three product sections', () => {
   render(<ProductPage
     product={{ id: 41, workspace_id: 7, name: 'Trading Platform', product_code: 'TRADE', criticality: 'mission-critical', description: 'Product for high-frequency trading' }}
     navigate={vi.fn()}
@@ -52,6 +52,11 @@ it('keeps product metadata under the description and uses the three product sect
   expect(screen.getByText('Product for high-frequency trading')).toBeTruthy();
   const metadata = screen.getByRole('group', { name: 'Product metadata' });
   expect(Array.from(metadata.children).map((item) => item.textContent)).toEqual(['TRADE', 'MISSION CRITICAL']);
+  expect(
+    metadata.compareDocumentPosition(
+      screen.getByText('Product for high-frequency trading'),
+    ) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
   expect(within(metadata).queryByText('Mission critical')).toBeNull();
   expect(screen.getByRole('tab', { name: 'Overview' })).toBeTruthy();
   expect(screen.getByRole('tab', { name: 'Components' })).toBeTruthy();

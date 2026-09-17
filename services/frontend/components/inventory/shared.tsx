@@ -43,10 +43,10 @@ export function PageHeader({
               <code className="page-identifier">{eyebrow}</code>
             ) : null)}
         </div>
-        {description ? <p>{description}</p> : null}
         {descriptionMeta ? (
           <div className="page-description-meta">{descriptionMeta}</div>
         ) : null}
+        {description ? <p>{description}</p> : null}
       </div>
       {actions ? <div className="page-actions">{actions}</div> : null}
     </header>
