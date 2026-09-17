@@ -59,6 +59,7 @@ export function Field({
   required,
   error,
   full,
+  className,
   children,
 }: {
   label: string;
@@ -66,6 +67,7 @@ export function Field({
   required?: boolean;
   error?: string;
   full?: boolean;
+  className?: string;
   children: ReactElement<{
     id?: string;
     "aria-describedby"?: string;
@@ -85,7 +87,7 @@ export function Field({
     .join(" ");
   return (
     <FormGroup
-      className={full ? "full" : ""}
+      className={[full ? "full" : "", className].filter(Boolean).join(" ")}
       label={label}
       isRequired={required}
       fieldId={id}

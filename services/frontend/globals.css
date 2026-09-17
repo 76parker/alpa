@@ -582,6 +582,10 @@ body {
   padding-right: 12px;
   scrollbar-gutter: stable;
 }
+.component-create-left-field .pf-v6-c-form-control {
+  width: calc(100% - 4px);
+  margin-left: 4px;
+}
 .component-create-preview {
   position: sticky;
   top: 24px;

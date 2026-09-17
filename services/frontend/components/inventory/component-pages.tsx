@@ -573,7 +573,12 @@ export function ComponentCreatePage({
           onSubmit={submit}
           noValidate
         >
-          <Field error={validation.name} label="Component name" required>
+          <Field
+            className="component-create-left-field"
+            error={validation.name}
+            label="Component name"
+            required
+          >
             <TextInput
               autoFocus
               value={name}
@@ -681,7 +686,12 @@ export function ComponentCreatePage({
             </>
           ) : (
             <>
-              <Field error={validation.language} label="Language" required>
+              <Field
+                className="component-create-left-field"
+                error={validation.language}
+                label="Language"
+                required
+              >
                 <TextInput
                   value={language}
                   maxLength={50}
@@ -698,7 +708,7 @@ export function ComponentCreatePage({
                   onChange={(event) => setLanguageVersion(event.target.value)}
                 />
               </Field>
-              <Field label="Framework">
+              <Field className="component-create-left-field" label="Framework">
                 <TextInput
                   value={framework}
                   maxLength={50}
@@ -707,7 +717,7 @@ export function ComponentCreatePage({
               </Field>
             </>
           )}
-          <Field label="Description" full>
+          <Field className="component-create-left-field" label="Description" full>
             <TextArea
               value={description}
               maxLength={1000}
