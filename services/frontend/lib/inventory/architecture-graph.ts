@@ -1,5 +1,9 @@
 import { MarkerType, type Edge, type Node } from "@xyflow/react";
-import { componentClientNameLabels, componentTypeLabels } from "./contracts";
+import {
+  componentClientNameLabels,
+  componentTypeLabels,
+  type InfrastructureDetails,
+} from "./contracts";
 import type { GraphAPI, GraphClient, GraphComponent } from "./graph-model";
 
 export type ArchitectureNodeData = {
@@ -17,6 +21,16 @@ const origin = 80;
 const contentMinWidth = 238;
 const apiRailWidth = 88;
 const clientRailWidth = 130;
+const queueStreamMinWidth = 320;
+const queueStreamMaxWidth = 440;
+const queueStreamHeaderHeight = 76;
+const queueStreamAPIRowHeight = 60;
+const queueStreamBottomPadding = 6;
+const queueStreamClientListBorder = 1;
+const queueStreamClientListTopPadding = 6;
+const queueStreamClientListBottomPadding = 12;
+const queueStreamClientRowHeight = 60;
+const queueStreamClientRowGap = 6;
 const componentTypeOrder: GraphComponent["type"][] = [
   "backend-service",
   "infrastructure",
@@ -38,6 +52,7 @@ export function buildArchitectureGraph(
       id: componentNodeID(component.id),
       type: "architecture",
       position: positions.get(component.id) ?? { x: origin, y: origin },
+      dragHandle: ".architecture-node-drag-handle",
       style: { width: architectureNodeWidth(component) },
       data: { component, apis: component.apis, clients: component.clients },
     })),
@@ -80,6 +95,21 @@ function groupedPositions(components: GraphComponent[]) {
 }
 
 export function architectureNodeHeight(component: GraphComponent) {
+  if (isQueueStreamInfrastructure(component)) {
+    if (!component.apis.length && !component.clients.length) return 116;
+    const apiSectionHeight = component.apis.length
+      ? component.apis.length * queueStreamAPIRowHeight +
+        queueStreamBottomPadding
+      : 0;
+    const clientSectionHeight = component.clients.length
+      ? queueStreamClientListBorder +
+        queueStreamClientListTopPadding +
+        queueStreamClientListBottomPadding +
+        component.clients.length * queueStreamClientRowHeight +
+        Math.max(0, component.clients.length - 1) * queueStreamClientRowGap
+      : 0;
+    return 2 + queueStreamHeaderHeight + apiSectionHeight + clientSectionHeight;
+  }
   return Math.max(
     132,
     76 + Math.max(component.apis.length, component.clients.length) * 32,
@@ -87,6 +117,20 @@ export function architectureNodeHeight(component: GraphComponent) {
 }
 
 export function architectureNodeWidth(component: GraphComponent) {
+  if (isQueueStreamInfrastructure(component)) {
+    const longestLabel = Math.max(
+      Array.from(component.name).length,
+      ...component.apis.map((api) => Array.from(api.name).length),
+      ...component.clients.map(
+        (client) =>
+          Array.from(componentClientNameLabels[client.clientName]).length,
+      ),
+    );
+    return Math.min(
+      queueStreamMaxWidth,
+      Math.max(queueStreamMinWidth, 48 + longestLabel * 7),
+    );
+  }
   const titleWidth = Math.max(
     contentMinWidth,
     96 +
@@ -104,14 +148,34 @@ export function architectureNodeWidth(component: GraphComponent) {
 }
 
 export function architectureProviderHandleTop(
-  _component: GraphComponent,
+  component: GraphComponent,
   index: number,
   count: number,
 ) {
+  if (isQueueStreamInfrastructure(component))
+    return `${1 + queueStreamHeaderHeight + (index + 0.5) * queueStreamAPIRowHeight}px`;
   return `${((index + 0.5) / Math.max(count, 1)) * 100}%`;
 }
 
-export function architectureClientHandleTop(index: number, count: number) {
+export function architectureClientHandleTop(
+  component: GraphComponent,
+  index: number,
+  count: number,
+) {
+  if (isQueueStreamInfrastructure(component)) {
+    const apiSectionHeight = component.apis.length
+      ? component.apis.length * queueStreamAPIRowHeight +
+        queueStreamBottomPadding
+      : 0;
+    const firstClientCenter =
+      1 +
+      queueStreamHeaderHeight +
+      apiSectionHeight +
+      queueStreamClientListBorder +
+      queueStreamClientListTopPadding +
+      queueStreamClientRowHeight / 2;
+    return `${firstClientCenter + index * (queueStreamClientRowHeight + queueStreamClientRowGap)}px`;
+  }
   return `${((index + 0.5) / Math.max(count, 1)) * 100}%`;
 }
 
@@ -123,4 +187,13 @@ export function apiHandleID(apiID: string) {
 }
 export function clientHandleID(clientID: string) {
   return clientID;
+}
+
+export function isQueueStreamInfrastructure(
+  component: GraphComponent,
+): boolean {
+  return (
+    component.type === "infrastructure" &&
+    (component.details as InfrastructureDetails).system_type === "queue/stream"
+  );
 }

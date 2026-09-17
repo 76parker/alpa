@@ -851,6 +851,10 @@ body {
   font: 12px var(--font-mono);
   color: var(--app-muted);
 }
+.client-list-description {
+  color: var(--app-muted);
+  font-size: 13px;
+}
 .inventory-loading {
   display: flex;
   align-items: center;
@@ -1125,6 +1129,11 @@ body {
   height: 76px;
   border-bottom: 1px solid var(--app-border);
 }
+.inventory-app
+  .queue-stream-infrastructure.has-clients:not(.has-provider-apis)
+  .architecture-stream-header {
+  height: 76px;
+}
 .inventory-app .architecture-stream-header .architecture-node-heading {
   display: grid;
   width: 100%;
@@ -1168,6 +1177,35 @@ body {
   display: grid;
   pointer-events: none;
   padding-bottom: 6px;
+}
+.inventory-app .architecture-stream-client-list {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 6px;
+  grid-auto-rows: 60px;
+  pointer-events: none;
+  padding: 6px 12px 12px;
+  border-top: 1px solid var(--app-border);
+}
+.inventory-app .architecture-stream-client-list .architecture-client-badge {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  width: 100%;
+  min-height: 24px;
+  cursor: help;
+  pointer-events: auto;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 5px;
+  border: 1px solid var(--app-border);
+  border-radius: 4px;
+  color: var(--app-accent);
+  background: var(--app-subtle);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
 }
 .inventory-app .architecture-stream-api-row {
   display: flex;
