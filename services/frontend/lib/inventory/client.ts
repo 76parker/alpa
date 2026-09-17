@@ -1,13 +1,17 @@
 import type {
   ApiError,
+  BindClientInput,
   Component,
+  ComponentAPI,
   ComponentClient,
+  CreateAPIInput,
+  CreateClientInput,
   CreateComponentInput,
   CreateProductInput,
   ListResponse,
   Product,
   Workspace,
-} from './contracts';
+} from "./contracts";
 
 const PAGE_SIZE = 100;
 
@@ -17,7 +21,7 @@ export class InventoryRequestError extends Error {
 
   constructor(error: ApiError) {
     super(error.message);
-    this.name = 'InventoryRequestError';
+    this.name = "InventoryRequestError";
     this.code = error.code;
     this.status = error.status;
   }
@@ -26,16 +30,17 @@ export class InventoryRequestError extends Error {
 export class InventoryClient {
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const headers = new Headers(init.headers);
-    headers.set('accept', 'application/json');
-    if (init.body !== undefined) headers.set('content-type', 'application/json');
+    headers.set("accept", "application/json");
+    if (init.body !== undefined)
+      headers.set("content-type", "application/json");
 
     let response: Response;
     try {
       response = await fetch(`/v1/${path}`, { ...init, headers });
     } catch {
       throw new InventoryRequestError({
-        code: 'api_unavailable',
-        message: 'Inventory API is unavailable',
+        code: "api_unavailable",
+        message: "Inventory API is unavailable",
         status: 502,
       });
     }
@@ -51,8 +56,9 @@ export class InventoryClient {
     if (!response.ok) {
       const candidate = payload as Partial<ApiError> | undefined;
       throw new InventoryRequestError({
-        code: candidate?.code ?? 'unexpected_error',
-        message: candidate?.message ?? 'The inventory request could not be completed',
+        code: candidate?.code ?? "unexpected_error",
+        message:
+          candidate?.message ?? "The inventory request could not be completed",
         status: candidate?.status ?? response.status,
       });
     }
@@ -63,7 +69,10 @@ export class InventoryClient {
     const items: T[] = [];
     let offset = 0;
     while (true) {
-      const page = await this.request<ListResponse<T>>(`${path}?limit=${PAGE_SIZE}&offset=${offset}`, { signal });
+      const page = await this.request<ListResponse<T>>(
+        `${path}?limit=${PAGE_SIZE}&offset=${offset}`,
+        { signal },
+      );
       items.push(...page.data);
       if (page.data.length < PAGE_SIZE) return items;
       offset += page.data.length;
@@ -71,12 +80,12 @@ export class InventoryClient {
   }
 
   listAllWorkspaces(signal?: AbortSignal) {
-    return this.listAll<Workspace>('workspaces', signal);
+    return this.listAll<Workspace>("workspaces", signal);
   }
 
   createWorkspace(name: string, signal?: AbortSignal) {
-    return this.request<Workspace>('workspaces', {
-      method: 'POST',
+    return this.request<Workspace>("workspaces", {
+      method: "POST",
       body: JSON.stringify({ name }),
       signal,
     });
@@ -86,9 +95,13 @@ export class InventoryClient {
     return this.listAll<Product>(`workspaces/${workspaceID}/products`, signal);
   }
 
-  createProduct(workspaceID: number, input: CreateProductInput, signal?: AbortSignal) {
+  createProduct(
+    workspaceID: number,
+    input: CreateProductInput,
+    signal?: AbortSignal,
+  ) {
     return this.request<Product>(`workspaces/${workspaceID}/products`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(input),
       signal,
     });
@@ -99,8 +112,8 @@ export class InventoryClient {
   }
 
   createComponent(input: CreateComponentInput, signal?: AbortSignal) {
-    return this.request<Component>('components', {
-      method: 'POST',
+    return this.request<Component>("components", {
+      method: "POST",
       body: JSON.stringify(input),
       signal,
     });
@@ -110,20 +123,44 @@ export class InventoryClient {
     return this.request<Component>(`components/${componentID}`, { signal });
   }
 
-  addConsumerAPI(componentID: number, apiID: number, signal?: AbortSignal) {
-    return this.request<void>(`components/${componentID}/consumer-apis`, {
-      method: 'POST',
-      body: JSON.stringify({ api_id: apiID }),
+  createComponentAPI(
+    componentID: number,
+    input: CreateAPIInput,
+    signal?: AbortSignal,
+  ) {
+    return this.request<ComponentAPI>(`components/${componentID}/apis`, {
+      method: "POST",
+      body: JSON.stringify(input),
       signal,
     });
   }
 
-  createComponentClient(componentID: number, input: { client_type: ComponentClient['client_type']; description?: string }, signal?: AbortSignal) {
+  createComponentClient(
+    componentID: number,
+    input: CreateClientInput,
+    signal?: AbortSignal,
+  ) {
     return this.request<ComponentClient>(`components/${componentID}/clients`, {
-      method: 'POST',
+      method: "POST",
       body: JSON.stringify(input),
       signal,
     });
+  }
+
+  bindComponentClient(
+    componentID: number,
+    clientID: number,
+    input: BindClientInput,
+    signal?: AbortSignal,
+  ) {
+    return this.request<ComponentClient>(
+      `components/${componentID}/clients/${clientID}/bindings`,
+      {
+        method: "POST",
+        body: JSON.stringify(input),
+        signal,
+      },
+    );
   }
 }
 
