@@ -16,8 +16,9 @@ describe("component creation layout", () => {
         /\.architecture-preview \.architecture-canvas \{([^}]*)\}/,
       )?.[1] ?? "";
 
-    expect(page).toContain("max-width: 1280px");
-    expect(layout).toContain("minmax(460px,0.9fr)");
+    expect(page).toContain("max-width: none");
+    expect(layout).toContain("minmax(0,1fr)");
+    expect(layout).toContain("minmax(460px,565px)");
     expect(layout).toContain("gap: 24px");
     expect(preview).toContain("height: 560px");
   });

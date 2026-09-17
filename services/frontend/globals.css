@@ -555,10 +555,13 @@ body {
   justify-items: center;
   color: var(--app-muted);
 }
-.product-create-page,
-.component-create-page {
+.product-create-page {
   width: 100%;
   max-width: 1280px;
+}
+.component-create-page {
+  width: 100%;
+  max-width: none;
 }
 .product-create-form,
 .inventory-component-form {
@@ -566,7 +569,7 @@ body {
 }
 .component-create-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(460px, 0.9fr);
+  grid-template-columns: minmax(0, 1fr) minmax(460px, 565px);
   gap: 24px;
   align-items: start;
   min-width: 0;
