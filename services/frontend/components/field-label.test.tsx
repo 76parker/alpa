@@ -10,7 +10,7 @@ afterEach(cleanup);
 it('keeps create-form labels on one alignment row', () => {
   const styles = readFileSync(resolve(process.cwd(), 'globals.css'), 'utf8');
 
-  expect(styles).toContain('.field-label { display: inline-flex; align-items: center;');
+  expect(styles).toMatch(/\.field-label\s*\{[^}]*display:\s*inline-flex;[^}]*align-items:\s*center;/);
   expect(styles).toContain('.field-help-control.pf-v6-c-button');
 });
 
