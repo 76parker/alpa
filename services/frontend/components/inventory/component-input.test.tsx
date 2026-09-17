@@ -30,4 +30,29 @@ describe("component aggregate drafts", () => {
       communicationTypes: ["stream"],
     });
   });
+
+  it("keeps non-empty infrastructure network addresses in the aggregate request", () => {
+    const draft = createComponentDraft({
+      name: " Cache ",
+      type: "infrastructure",
+      details: {
+        system: " Redis ",
+        systemType: "nosql-database",
+        version: " 7 ",
+        networkAddresses: [" redis://cache:6379 ", "   "],
+      },
+    });
+
+    expect(buildComponentInput(9, draft)).toEqual({
+      product_id: 9,
+      name: "Cache",
+      type: "infrastructure",
+      details: {
+        system: "Redis",
+        system_type: "nosql-database",
+        version: "7",
+        network_address: ["redis://cache:6379"],
+      },
+    });
+  });
 });

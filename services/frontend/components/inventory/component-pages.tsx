@@ -21,6 +21,8 @@ import {
   componentClientNameLabels,
   componentClientNames,
   componentTypeLabels,
+  clientRoleLabels,
+  communicationTypeLabels,
   systemTypes,
   systemTypeLabels,
   type APIType,
@@ -83,8 +85,7 @@ import { toDraftGraphComponent } from "../../lib/inventory/graph-model";
 export const COMPONENT_GROUP_PREVIEW_SIZE = 5;
 export type ComponentInventoryCategory = "services" | "infrastructure";
 export type ComponentInventoryView =
-  | ComponentInventoryCategory
-  | "architecture";
+  ComponentInventoryCategory | "architecture";
 export const componentInventoryCategories = [
   { value: "services", label: "Services" },
   { value: "infrastructure", label: "Infrastructure" },
@@ -452,7 +453,7 @@ export function ComponentCreatePage({
   const [system, setSystem] = useState("");
   const [systemType, setSystemType] = useState<SystemType>("sql-database");
   const [version, setVersion] = useState("");
-  const [networkAddresses] = useState<string[]>([]);
+  const [networkAddresses, setNetworkAddresses] = useState<string[]>([]);
   const [apis, setAPIs] = useState<DraftAPI[]>([]);
   const [clients, setClients] = useState<DraftClient[]>([]);
   const [validation, setValidation] = useState<Record<string, string>>({});
@@ -516,6 +517,18 @@ export function ComponentCreatePage({
         communication_type: "request-response",
       },
     ]);
+  const addNetworkAddress = () =>
+    setNetworkAddresses((current) =>
+      current.length < 10 ? [...current, ""] : current,
+    );
+  const updateNetworkAddress = (index: number, value: string) =>
+    setNetworkAddresses((current) =>
+      current.map((address, item) => (item === index ? value : address)),
+    );
+  const removeNetworkAddress = (index: number) =>
+    setNetworkAddresses((current) =>
+      current.filter((_, item) => item !== index),
+    );
   const updateAPI = (index: number, patch: Partial<CreateAPIInput>) =>
     setAPIs((current) =>
       current.map((api, item) => (item === index ? { ...api, ...patch } : api)),
@@ -612,6 +625,59 @@ export function ComponentCreatePage({
                   onChange={(event) => setVersion(event.target.value)}
                 />
               </Field>
+              <section
+                className="api-editor network-address-editor full"
+                aria-labelledby="network-addresses-heading"
+              >
+                <header className="api-editor-heading">
+                  <div>
+                    <h2 id="network-addresses-heading">Network addresses</h2>
+                    <p>Add the endpoints used to reach this system.</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={addNetworkAddress}
+                    disabled={networkAddresses.length >= 10}
+                    icon={<Plus width={14} height={14} />}
+                  >
+                    Add address
+                  </Button>
+                </header>
+                {networkAddresses.length ? (
+                  networkAddresses.map((address, index) => (
+                    <section className="api-editor-card" key={index}>
+                      <header>
+                        <h3>Address {index + 1}</h3>
+                        <Button
+                          type="button"
+                          variant="plain"
+                          aria-label={`Remove network address ${index + 1}`}
+                          onClick={() => removeNetworkAddress(index)}
+                        >
+                          <Trash2 width={16} height={16} />
+                        </Button>
+                      </header>
+                      <div className="network-address-fields">
+                        <Field label={`Network address ${index + 1}`}>
+                          <TextInput
+                            value={address}
+                            maxLength={200}
+                            onChange={(event) =>
+                              updateNetworkAddress(index, event.target.value)
+                            }
+                          />
+                        </Field>
+                      </div>
+                    </section>
+                  ))
+                ) : (
+                  <p className="api-empty">No network addresses added.</p>
+                )}
+                <small className="network-address-count">
+                  {networkAddresses.length}/10 addresses
+                </small>
+              </section>
             </>
           ) : (
             <>
@@ -1108,7 +1174,15 @@ function ClientList({
             <article key={client.id}>
               <div>
                 <strong>{componentClientNameLabels[client.client_name]}</strong>
-                <small>#{client.id}</small>
+                <small>
+                  #{client.id} · {clientRoleLabels[client.role]} ·{" "}
+                  {communicationTypeLabels[client.communication_type]}
+                </small>
+                {client.description ? (
+                  <span className="client-list-description">
+                    {client.description}
+                  </span>
+                ) : null}
               </div>
               <span>
                 {client.api_id ? (

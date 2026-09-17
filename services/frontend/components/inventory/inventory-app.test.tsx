@@ -17,6 +17,7 @@ import type {
 } from "../../lib/inventory/contracts";
 import { InventoryProvider } from "./inventory-context";
 import { InventoryApp } from "./inventory-app";
+import { ComponentCreatePage } from "./component-pages";
 
 const workspace: Workspace = { id: 7, name: "Platform" };
 const product: Product = {
@@ -87,6 +88,53 @@ afterEach(() => {
 });
 
 describe("component creation", () => {
+  it("lets users add and remove infrastructure network addresses", async () => {
+    const onCreate = vi.fn(async () => undefined);
+    const user = userEvent.setup();
+    render(
+      <ComponentCreatePage
+        product={product}
+        onClose={vi.fn()}
+        onCreate={onCreate}
+      />,
+    );
+
+    await user.type(
+      screen.getByRole("textbox", { name: "Component name" }),
+      "Cache",
+    );
+    await user.click(screen.getByRole("button", { name: "Component type" }));
+    await user.click(
+      within(
+        screen.getByRole("listbox", { name: "Component type options" }),
+      ).getByRole("option", { name: /Infrastructure/ }),
+    );
+    await user.type(screen.getByRole("textbox", { name: "System" }), "Redis");
+    await user.click(screen.getByRole("button", { name: "Add address" }));
+    await user.type(
+      screen.getByRole("textbox", { name: "Network address 1" }),
+      "redis://cache:6379",
+    );
+    await user.click(screen.getByRole("button", { name: "Create component" }));
+
+    await waitFor(() =>
+      expect(onCreate).toHaveBeenCalledWith({
+        product_id: 9,
+        name: "Cache",
+        type: "infrastructure",
+        details: {
+          system: "Redis",
+          system_type: "sql-database",
+          network_address: ["redis://cache:6379"],
+        },
+      }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Remove network address 1" }),
+    );
+    expect(screen.getByText("No network addresses added.")).toBeTruthy();
+  });
+
   it("submits the aggregate backend contract and updates the live graph preview", async () => {
     const requests: Array<{ url: string; init?: RequestInit }> = [];
     vi.stubGlobal(
@@ -296,6 +344,8 @@ describe("component detail mutations", () => {
 
     await screen.findByRole("heading", { name: "Checkout API" });
     expect(await screen.findByTestId("architecture-preview")).toBeTruthy();
+    expect(screen.getByText(/Caller/)).toBeTruthy();
+    expect(screen.getByText(/Request-response/)).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Create API" }));
     const apiDialog = screen.getByRole("dialog");
     await user.type(
