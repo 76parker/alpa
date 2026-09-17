@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Alpa</title>
+    <link rel="icon" type="image/png" href="/alpa-logo.png" />
     <meta name="description" content="Alpa is an application-centric security inventory for products, components, architecture, and threat models." />
     <meta property="og:title" content="Alpa" />
     <meta property="og:description" content="Alpa is an application-centric security inventory for products, components, architecture, and threat models." />
@@ -15,6 +16,13 @@
     <meta name="twitter:title" content="Alpa" />
     <meta name="twitter:description" content="Alpa is an application-centric security inventory for products, components, architecture, and threat models." />
     <meta name="twitter:image" content="/alpa-logo.png" />
+    <script>
+      try {
+        const theme = localStorage.getItem('alpa:theme') === 'one-dark-pro' ? 'one-dark-pro' : 'light';
+        document.documentElement.dataset.alpaTheme = theme;
+        document.documentElement.classList.toggle('pf-v6-theme-dark', theme === 'one-dark-pro');
+      } catch { document.documentElement.dataset.alpaTheme = 'light'; }
+    </script>
   </head>
   <body>
     <div id="root"></div>

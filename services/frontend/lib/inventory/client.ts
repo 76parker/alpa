@@ -1,6 +1,7 @@
 import type {
   ApiError,
   Component,
+  ComponentClient,
   CreateComponentInput,
   CreateProductInput,
   ListResponse,
@@ -113,6 +114,14 @@ export class InventoryClient {
     return this.request<void>(`components/${componentID}/consumer-apis`, {
       method: 'POST',
       body: JSON.stringify({ api_id: apiID }),
+      signal,
+    });
+  }
+
+  createComponentClient(componentID: number, input: { client_type: ComponentClient['client_type']; description?: string }, signal?: AbortSignal) {
+    return this.request<ComponentClient>(`components/${componentID}/clients`, {
+      method: 'POST',
+      body: JSON.stringify(input),
       signal,
     });
   }

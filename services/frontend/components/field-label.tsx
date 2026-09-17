@@ -1,4 +1,4 @@
-import { CircleHelp } from 'lucide-react';
+import { CircleHelp } from '../src/ui/icons';
 import { type ReactNode } from 'react';
 import { TooltipTrigger } from './tooltip-trigger';
 
@@ -21,7 +21,7 @@ export function FieldLabel({ children, label, help, required = false, htmlFor, h
     {htmlFor ? <label className="field-label-text" htmlFor={htmlFor}>{labelContent}</label> : <span className="field-label-text">{labelContent}</span>}
     <span className="field-help">
       <TooltipTrigger ariaLabel={`About ${accessibleLabel}`} buttonClassName="field-help-control" content={help} descriptionID={helpID}>
-        <CircleHelp size={13} strokeWidth={1.9} aria-hidden="true" focusable="false" />
+        <CircleHelp width={13} height={13} aria-hidden="true" />
       </TooltipTrigger>
     </span>
   </span>;

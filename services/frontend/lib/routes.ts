@@ -3,7 +3,8 @@ export type AtlasRoute =
   | { kind: 'workspaces' }
   | { kind: 'products' }
   | { kind: 'product-create' }
-  | { kind: 'product'; productKey: string; tab?: 'architecture' | 'threat-model' }
+  | { kind: 'component-create'; productKey: string }
+  | { kind: 'product'; productKey: string; tab?: 'components' | 'architecture' | 'threat-model' }
   | { kind: 'component'; productKey: string; componentId: string; tab?: 'security' }
   | { kind: 'component-check'; productKey: string; componentId: string; checkType: string }
   | { kind: 'templates' }
@@ -28,8 +29,9 @@ export function parseRoute(pathname: string): AtlasRoute {
     const [, productKey, third, componentId, fifth, checkType] = segments;
     if (!productKey) return { kind: 'products' };
     if (segments.length === 2) return { kind: 'product', productKey };
-    if (segments.length === 3 && (third === 'architecture' || third === 'threat-model')) return { kind: 'product', productKey, tab: third };
+    if (segments.length === 3 && (third === 'components' || third === 'architecture' || third === 'threat-model')) return { kind: 'product', productKey, tab: third };
     if (third === 'components' && componentId) {
+      if (segments.length === 4 && componentId === 'new') return { kind: 'component-create', productKey };
       if (segments.length === 4) return { kind: 'component', productKey, componentId };
       if (segments.length === 5 && fifth === 'security') return { kind: 'component', productKey, componentId, tab: 'security' };
       if (segments.length === 6 && fifth === 'security' && checkType) return { kind: 'component-check', productKey, componentId, checkType };
@@ -48,6 +50,7 @@ export function serializeRoute(route: AtlasRoute): string {
     case 'workspaces': return '/workspaces';
     case 'products': return '/products';
     case 'product-create': return '/products/new';
+    case 'component-create': return `/products/${encode(route.productKey)}/components/new`;
     case 'product': return `/products/${encode(route.productKey)}${route.tab ? `/${route.tab}` : ''}`;
     case 'component': return `/products/${encode(route.productKey)}/components/${encode(route.componentId)}${route.tab ? '/security' : ''}`;
     case 'component-check': return `/products/${encode(route.productKey)}/components/${encode(route.componentId)}/security/${encode(route.checkType)}`;

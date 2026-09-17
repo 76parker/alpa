@@ -10,6 +10,7 @@ import {
 import { inventoryClient, InventoryRequestError } from '../../lib/inventory/client';
 import type {
   Component,
+  ComponentClient,
   CreateComponentInput,
   CreateProductInput,
   Product,
@@ -178,6 +179,7 @@ type InventoryContextValue = InventoryState & {
   createComponent: (input: CreateComponentInput) => Promise<Component>;
   refreshComponent: (componentID: number) => Promise<Component>;
   addConsumerAPI: (componentID: number, apiID: number) => Promise<Component>;
+  createComponentClient: (componentID: number, input: { client_type: ComponentClient['client_type']; description?: string }) => Promise<Component>;
 };
 
 const InventoryContext = createContext<InventoryContextValue | null>(null);
@@ -279,6 +281,11 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     return refreshComponent(componentID);
   }, [refreshComponent]);
 
+  const createComponentClient = useCallback(async (componentID: number, input: { client_type: ComponentClient['client_type']; description?: string }) => {
+    await inventoryClient.createComponentClient(componentID, input);
+    return refreshComponent(componentID);
+  }, [refreshComponent]);
+
   const value = useMemo<InventoryContextValue>(() => ({
     ...state,
     activeWorkspace: state.workspaces.find((item) => item.id === state.activeWorkspaceID),
@@ -291,6 +298,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     createComponent,
     refreshComponent,
     addConsumerAPI,
+    createComponentClient,
   }), [
     state,
     selectWorkspace,
@@ -302,6 +310,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     createComponent,
     refreshComponent,
     addConsumerAPI,
+    createComponentClient,
   ]);
 
   return <InventoryContext.Provider value={value}>{children}</InventoryContext.Provider>;

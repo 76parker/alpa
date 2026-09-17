@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { Component, ListResponse, Product, Workspace } from '../lib/inventory/contracts';
@@ -19,6 +19,15 @@ const components: Component[] = [{
     { id: 202, name: 'Checkout GraphQL API', api_type: 'graphql', network_exposure: 'internal', role: 'provider' },
   ],
 }, {
+  id: 103, product_id: 12, name: 'Kafka', type: 'infrastructure',
+  description: 'Carries checkout lifecycle events.',
+  details: { system: 'Apache Kafka', system_type: 'queue/stream', version: '4.1', network_address: ['kafka.internal:9092'] },
+  apis: [
+    { id: 203, name: 'orders.cancellation', api_type: 'topic', network_exposure: 'internal', role: 'provider' },
+    { id: 204, name: 'orders.events', api_type: 'exchange', network_exposure: 'internal', role: 'provider' },
+    { id: 205, name: 'orders.completion', api_type: 'queue', network_exposure: 'internal', role: 'provider' },
+  ],
+}, {
   id: 102, product_id: 12, name: 'Checkout UI', type: 'frontend-service',
   description: 'Collects customer checkout input.',
   details: { language: 'TypeScript', language_version: '5', framework: 'React' },
@@ -29,6 +38,8 @@ let requests: string[];
 let products: Product[];
 
 beforeEach(() => {
+  document.documentElement.classList.remove('pf-v6-theme-dark');
+  delete document.documentElement.dataset.alpaTheme;
   requests = [];
   products = [...baseProducts];
   const storage = new Map<string, string>();
@@ -95,7 +106,8 @@ it('creates a remote product without storing server entities in localStorage', a
 
   await user.type(await screen.findByRole('textbox', { name: 'Product code' }), 'FRAUD');
   await user.type(screen.getByRole('textbox', { name: 'Product name' }), 'Fraud Rules');
-  await user.selectOptions(screen.getByRole('combobox', { name: 'Criticality' }), 'business-critical');
+  await user.click(screen.getByRole('button', { name: 'Criticality' }));
+  await user.click(within(screen.getByRole('listbox', { name: 'Criticality options' })).getByRole('option', { name: /Business critical/ }));
   await user.click(screen.getByRole('button', { name: 'Create product' }));
 
   await waitFor(() => expect(window.location.pathname).toBe('/products'));
@@ -172,6 +184,36 @@ it('opens the architecture map from a direct route and loads components', async 
   expect(screen.getByText('GraphQL')).toBeTruthy();
   expect(screen.getByTestId('architecture-provider-api-201')).toBeTruthy();
   expect(screen.getByTestId('architecture-provider-api-202')).toBeTruthy();
+  const queueStreamNode = screen.getByTestId('architecture-node-103');
+  const queueStreamHeader = queueStreamNode.querySelector<HTMLElement>('.architecture-stream-header');
+  expect(queueStreamNode.classList.contains('queue-stream-infrastructure')).toBe(true);
+  expect(queueStreamHeader).not.toBeNull();
+  expect(within(queueStreamHeader!).getByText('Kafka')).toBeTruthy();
+  expect(within(queueStreamHeader!).getByText('Infrastructure')).toBeTruthy();
+  expect(within(queueStreamHeader!).getByText('Queue / Stream')).toBeTruthy();
+  const queueStreamTitleLine = queueStreamHeader?.querySelector<HTMLElement>('.architecture-stream-title-line');
+  const queueStreamActions = queueStreamNode.querySelector<HTMLElement>('.architecture-node-actions');
+  expect(queueStreamTitleLine).not.toBeNull();
+  expect(within(queueStreamTitleLine!).getByText('Kafka')).toBeTruthy();
+  expect(within(queueStreamTitleLine!).getByText('Queue / Stream')).toBeTruthy();
+  expect(queueStreamHeader?.querySelector('.architecture-node-actions')).toBeNull();
+  expect(queueStreamActions).not.toBeNull();
+  expect(queueStreamActions?.parentElement).toBe(queueStreamNode);
+  const topicAPI = within(screen.getByTestId('architecture-provider-api-203'));
+  const exchangeAPI = within(screen.getByTestId('architecture-provider-api-204'));
+  const queueAPI = within(screen.getByTestId('architecture-provider-api-205'));
+  expect(topicAPI.getByText('Topic').classList.contains('architecture-stream-api-type')).toBe(true);
+  expect(exchangeAPI.getByText('Exchange').classList.contains('architecture-stream-api-type')).toBe(true);
+  expect(queueAPI.getByText('Queue').classList.contains('architecture-stream-api-type')).toBe(true);
+  expect(topicAPI.getByText('orders.cancellation').classList.contains('architecture-stream-api-name')).toBe(true);
+  expect(exchangeAPI.getByText('orders.events')).toBeTruthy();
+  expect(queueAPI.getByText('orders.completion')).toBeTruthy();
+  expect(Array.from(queueStreamNode.querySelectorAll<HTMLElement>('.architecture-provider-handle')).map((handle) => handle.style.top)).toEqual(['107px', '167px', '227px']);
+  expect(within(screen.getByTestId('architecture-node-101')).getByText('Checkout API')).toBeTruthy();
+  expect(within(screen.getByTestId('architecture-node-101')).getByText('Backend Service')).toBeTruthy();
+  expect(screen.queryByText('Partitioned')).toBeNull();
+  expect(screen.getByTestId('architecture-provider-api-201').querySelector('.architecture-stream-api-name')).toBeNull();
+  expect(screen.getByTestId('architecture-provider-api-202').querySelector('.architecture-stream-api-name')).toBeNull();
   expect(requests.filter((url) => url.includes('/products/12/components')).length).toBe(1);
   expect(document.title).toBe('Architecture map · Alpa');
   expect(screen.getByText('Drag cards to arrange')).toBeTruthy();
@@ -186,9 +228,11 @@ it('opens the architecture map from a direct route and loads components', async 
   expect(apiTrigger?.title).toContain('Checkout REST API');
   expect(apiTrigger?.title).toContain('Network exposure: internet');
   await user.hover(componentTrigger!);
-  expect((await screen.findByRole('tooltip')).textContent).toContain('Description');
-  expect((await screen.findByRole('tooltip')).textContent).toContain('Language');
-  expect((await screen.findByRole('tooltip')).textContent).toContain('Framework');
+  const componentTooltip = await screen.findByRole('tooltip');
+  expect(within(componentTooltip).getByRole('heading', { name: 'Checkout API' })).toBeTruthy();
+  expect(componentTooltip.textContent).toContain('Description');
+  expect(componentTooltip.textContent).toContain('Language');
+  expect(componentTooltip.textContent).toContain('Framework');
   await user.unhover(componentTrigger!);
   await user.hover(apiTrigger!);
   expect((await screen.findByRole('tooltip')).textContent).toContain('Checkout REST API');
@@ -196,6 +240,48 @@ it('opens the architecture map from a direct route and loads components', async 
   expect((await screen.findByRole('tooltip')).textContent).toContain('Role');
   await user.click(apiTrigger!);
   expect(window.location.pathname).toBe('/products/GCPAY/architecture');
+});
+
+it('shows the client type as the client popup title', async () => {
+  window.history.replaceState({}, '', '/products/GCPAY/architecture');
+  const clientComponent: Component = {
+    ...components[0],
+    apis: [],
+    clients: [{ id: 301, client_type: 'rest-client', description: 'Fraud scoring client', api_id: null }],
+  };
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes('/workspaces?')) return response<ListResponse<Workspace>>({ data: [workspace], pagination: { limit: 100, offset: 0 } });
+    if (url.includes('/workspaces/7/products')) return response<ListResponse<Product>>({ data: baseProducts, pagination: { limit: 100, offset: 0 } });
+    if (url.includes('/products/12/components')) return response<ListResponse<Component>>({ data: [clientComponent], pagination: { limit: 100, offset: 0 } });
+    throw new Error(`Unexpected request: ${url}`);
+  }));
+  const user = userEvent.setup();
+  render(<AtlasApp />);
+
+  const clientTrigger = (await screen.findByTestId('architecture-client-301')).querySelector<HTMLButtonElement>('.architecture-client-badge');
+  expect(clientTrigger).not.toBeNull();
+  await user.hover(clientTrigger!);
+  expect(within(await screen.findByRole('tooltip')).getByRole('heading', { name: 'REST client' })).toBeTruthy();
+});
+
+it('persists the One Dark Pro preference and restores the light theme', async () => {
+  window.history.replaceState({}, '', '/products');
+  const user = userEvent.setup();
+  render(<AtlasApp />);
+
+  const themeSwitch = await screen.findByRole('switch', { name: 'Use One Dark Pro theme' });
+  expect((themeSwitch as HTMLInputElement).checked).toBe(false);
+
+  await user.click(themeSwitch);
+  expect(document.documentElement.classList.contains('pf-v6-theme-dark')).toBe(true);
+  expect(document.documentElement.dataset.alpaTheme).toBe('one-dark-pro');
+  expect(window.localStorage.getItem('alpa:theme')).toBe('one-dark-pro');
+
+  await user.click(themeSwitch);
+  expect(document.documentElement.classList.contains('pf-v6-theme-dark')).toBe(false);
+  expect(document.documentElement.dataset.alpaTheme).toBe('light');
+  expect(window.localStorage.getItem('alpa:theme')).toBe('light');
 });
 
 it('opens a component from its dedicated architecture-card action', async () => {
@@ -254,12 +340,13 @@ it('keeps architecture cards view-only on touch devices', async () => {
   expect(node.querySelector('.architecture-node-open')).not.toBeNull();
 });
 
-it('switches to the architecture map from the product tabs and reuses loaded components', async () => {
+it('switches to the architecture map from the component views and reuses loaded components', async () => {
   window.history.replaceState({}, '', '/products/GCPAY');
   const user = userEvent.setup();
   render(<AtlasApp />);
 
-  await user.click(await screen.findByRole('button', { name: 'Architecture map' }));
+  await user.click(await screen.findByRole('tab', { name: 'Components' }));
+  await user.click(await screen.findByRole('button', { name: /Architecture/ }));
   await waitFor(() => expect(window.location.pathname).toBe('/products/GCPAY/architecture'));
   expect(await screen.findByTestId('architecture-node-102')).toBeTruthy();
   expect(requests.filter((url) => url.includes('/products/12/components')).length).toBe(1);
@@ -272,12 +359,12 @@ it('returns from the architecture map to the product overview', async () => {
   render(<AtlasApp />);
 
   await screen.findByTestId('architecture-node-101');
-  await user.click(screen.getByRole('button', { name: 'Overview' }));
+  await user.click(screen.getByRole('tab', { name: 'Overview' }));
   await waitFor(() => expect(window.location.pathname).toBe('/products/GCPAY'));
   expect(await screen.findByRole('heading', { name: 'Global Checkout and Payment Orchestration Platform' })).toBeTruthy();
 });
 
-it('shows the component loading error on the architecture route', async () => {
+it.each(['/products/GCPAY/architecture', '/products/GCPAY/components/101'])('shows component loading errors at %s', async (path) => {
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.includes('/workspaces?')) return response<ListResponse<Workspace>>({ data: [workspace], pagination: { limit: 100, offset: 0 } });
@@ -285,7 +372,7 @@ it('shows the component loading error on the architecture route', async () => {
     if (url.includes('/products/12/components')) return response({ message: 'Components unavailable', code: 'components_unavailable', status: 503 }, 503);
     throw new Error(`Unexpected request: ${url}`);
   }));
-  window.history.replaceState({}, '', '/products/GCPAY/architecture');
+  window.history.replaceState({}, '', path);
   render(<AtlasApp />);
 
   expect((await screen.findByRole('alert')).textContent).toContain('Components unavailable');

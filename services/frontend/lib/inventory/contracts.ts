@@ -27,7 +27,6 @@ export type Product = {
 export const componentTypes = [
   { value: 'backend-service', label: 'Backend Service' },
   { value: 'frontend-service', label: 'Frontend Service' },
-  { value: 'background-worker', label: 'Background Worker' },
   { value: 'infrastructure', label: 'Infrastructure' },
 ] as const;
 
@@ -38,10 +37,6 @@ export type ServiceDetails = {
   language: string;
   language_version: string;
   framework: string;
-};
-
-export type BackgroundWorkerDetails = ServiceDetails & {
-  broker: EventBroker;
 };
 
 export type InfrastructureDetails = {
@@ -70,7 +65,11 @@ export const apiTypes = [
   { value: 'websocket', label: 'WebSocket' },
   { value: 'odata', label: 'OData' },
   { value: 'sse', label: 'SSE' },
+  { value: 'event-consumer', label: 'Event consumer' },
   { value: 'event', label: 'Event' },
+  { value: 'topic', label: 'Topic' },
+  { value: 'exchange', label: 'Exchange' },
+  { value: 'queue', label: 'Queue' },
   { value: 'native-protocol', label: 'Native Protocol' },
 ] as const;
 
@@ -79,29 +78,46 @@ export const apiTypeLabels: Record<APIType, string> = Object.fromEntries(apiType
 export type NetworkExposure = 'internal' | 'internet';
 export type APIRole = 'provider' | 'consumer';
 
-export const eventBrokers = [
-  { value: 'rabbitmq', label: 'RabbitMQ' },
-  { value: 'kafka', label: 'Kafka' },
-  { value: 'redpanda', label: 'Redpanda' },
-  { value: 'nats-jetstream', label: 'NATS/JetStream' },
-  { value: 'apache-pulsar', label: 'Apache Pulsar' },
-  { value: 'aws-sqs', label: 'AWS SQS' },
-  { value: 'google-cloud-pub-sub', label: 'Google Cloud Pub/Sub' },
-  { value: 'azure-service-bus', label: 'Azure Service Bus' },
-  { value: 'redis-streams', label: 'Redis Streams' },
-  { value: 'activemq', label: 'ActiveMQ' },
-  { value: 'ibm-mq', label: 'IBM MQ' },
+export const componentClientTypes = [
+  { value: 'rest-client', label: 'REST client' },
+  { value: 'graphql-client', label: 'GraphQL client' },
+  { value: 'grpc-client', label: 'gRPC client' },
+  { value: 'json-rpc-client', label: 'JSON-RPC client' },
+  { value: 'soap-client', label: 'SOAP client' },
+  { value: 'websocket-client', label: 'WebSocket client' },
+  { value: 'odata-client', label: 'OData client' },
+  { value: 'sse-client', label: 'SSE client' },
+  { value: 'kafka-client', label: 'Kafka client' },
+  { value: 'rabbitmq-client', label: 'RabbitMQ client' },
+  { value: 'amqp-client', label: 'AMQP client' },
+  { value: 'redpanda-client', label: 'Redpanda client' },
+  { value: 'nats-client', label: 'NATS client' },
+  { value: 'pulsar-client', label: 'Pulsar client' },
+  { value: 'sqs-client', label: 'SQS client' },
+  { value: 'gcp-pub-sub-client', label: 'Google Pub/Sub client' },
+  { value: 'azure-service-bus-client', label: 'Azure Service Bus client' },
+  { value: 'redis-streams-client', label: 'Redis Streams client' },
+  { value: 'activemq-client', label: 'ActiveMQ client' },
+  { value: 'ibm-mq-client', label: 'IBM MQ client' },
+  { value: 'native-protocol-client', label: 'Native Protocol client' },
 ] as const;
 
-export type EventBroker = typeof eventBrokers[number]['value'];
-export const eventBrokerLabels: Record<EventBroker, string> = Object.fromEntries(eventBrokers.map((option) => [option.value, option.label])) as Record<EventBroker, string>;
+export type ComponentClientType = typeof componentClientTypes[number]['value'];
+export const componentClientTypeLabels: Record<ComponentClientType, string> = Object.fromEntries(componentClientTypes.map((option) => [option.value, option.label])) as Record<ComponentClientType, string>;
 
 export type ComponentAPI = {
   id: number;
   name: string;
   api_type: APIType;
   network_exposure: NetworkExposure;
-  role: APIRole;
+  role?: APIRole;
+};
+
+export type ComponentClient = {
+  id: number;
+  client_type: ComponentClientType;
+  description: string;
+  api_id?: number | null;
 };
 
 type ComponentBase = {
@@ -110,11 +126,11 @@ type ComponentBase = {
   name: string;
   description: string;
   apis: ComponentAPI[];
+  clients?: ComponentClient[];
 };
 
 export type Component = ComponentBase & (
   | { type: 'backend-service' | 'frontend-service'; details: ServiceDetails }
-  | { type: 'background-worker'; details: BackgroundWorkerDetails }
   | { type: 'infrastructure'; details: InfrastructureDetails }
 );
 
@@ -149,10 +165,6 @@ export type ServiceDetailsInput = {
   framework?: string;
 };
 
-export type BackgroundWorkerDetailsInput = ServiceDetailsInput & {
-  broker: EventBroker;
-};
-
 export type InfrastructureDetailsInput = {
   system: string;
   system_type: SystemType;
@@ -165,6 +177,6 @@ export type CreateComponentInput = {
   name: string;
   type: ComponentType;
   description?: string;
-  details: ServiceDetailsInput | BackgroundWorkerDetailsInput | InfrastructureDetailsInput;
+  details: ServiceDetailsInput | InfrastructureDetailsInput;
   apis?: CreateComponentAPIInput[];
 };

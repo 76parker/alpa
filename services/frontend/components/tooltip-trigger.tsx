@@ -1,5 +1,5 @@
-import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useId, type ReactNode } from 'react';
+import { Button, Tooltip } from '../src/ui';
 
 type TooltipTriggerProps = {
   ariaLabel: string;
@@ -13,99 +13,13 @@ type TooltipTriggerProps = {
   title?: string;
 };
 
-export function TooltipTrigger({ ariaLabel, buttonClassName, children, content, accessibleContent, descriptionID: providedDescriptionID, tooltipClassName = 'field-help-tooltip', onClick, title }: TooltipTriggerProps) {
+export function TooltipTrigger({ ariaLabel, buttonClassName, children, content, accessibleContent, descriptionID: providedID, tooltipClassName, onClick, title }: TooltipTriggerProps) {
   const generatedID = useId();
-  const descriptionID = providedDescriptionID ?? `${generatedID}-description`;
-  const tooltipID = `${generatedID}-tooltip`;
-  const controlRef = useRef<HTMLButtonElement>(null);
-  const tooltipRef = useRef<HTMLSpanElement>(null);
-  const [open, setOpen] = useState(false);
-  const portalRoot = typeof document === 'undefined' ? null : document.body;
-  const [position, setPosition] = useState({ left: 0, top: 0, side: 'bottom' as 'top' | 'bottom' });
-
-  useLayoutEffect(() => {
-    if (!open || !portalRoot) return;
-
-    const positionTooltip = () => {
-      const control = controlRef.current;
-      const tooltip = tooltipRef.current;
-      if (!control || !tooltip) return;
-
-      const controlRect = control.getBoundingClientRect();
-      const tooltipRect = tooltip.getBoundingClientRect();
-      const viewportMargin = 10;
-      const gap = 8;
-      const width = Math.min(tooltipRect.width, Math.max(0, window.innerWidth - viewportMargin * 2));
-      const height = tooltipRect.height;
-      const spaceBelow = window.innerHeight - controlRect.bottom;
-      const side = spaceBelow >= height + gap || spaceBelow >= controlRect.top ? 'bottom' : 'top';
-      const preferredTop = side === 'bottom' ? controlRect.bottom + gap : controlRect.top - height - gap;
-      const top = Math.min(
-        Math.max(viewportMargin, preferredTop),
-        Math.max(viewportMargin, window.innerHeight - height - viewportMargin),
-      );
-      const centeredLeft = controlRect.left + controlRect.width / 2 - width / 2;
-      const left = Math.min(
-        Math.max(viewportMargin, centeredLeft),
-        Math.max(viewportMargin, window.innerWidth - width - viewportMargin),
-      );
-
-      setPosition({ left, top, side });
-    };
-
-    positionTooltip();
-    window.addEventListener('resize', positionTooltip);
-    window.addEventListener('scroll', positionTooltip, true);
-    return () => {
-      window.removeEventListener('resize', positionTooltip);
-      window.removeEventListener('scroll', positionTooltip, true);
-    };
-  }, [open, portalRoot]);
-
-  function dismissTooltip(event: KeyboardEvent<HTMLButtonElement>) {
-    if (event.key !== 'Escape') return;
-    event.preventDefault();
-    event.stopPropagation();
-    setOpen(false);
-  }
-
+  const descriptionID = providedID ?? `${generatedID}-description`;
   return <>
-    <button
-      ref={controlRef}
-      className={buttonClassName}
-      type="button"
-      title={title}
-      aria-label={ariaLabel}
-      aria-describedby={descriptionID}
-      aria-controls={tooltipID}
-      aria-expanded={open}
-      onBlur={() => setOpen(false)}
-      onClick={() => {
-        setOpen(true);
-        onClick?.();
-      }}
-      onFocus={() => setOpen(true)}
-      onKeyDown={dismissTooltip}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onPointerEnter={() => setOpen(true)}
-      onPointerLeave={() => setOpen(false)}
-    >
-      {children}
-    </button>
+    <Tooltip content={content} className={tooltipClassName} entryDelay={100} position="auto" aria="none" trigger="mouseenter focus click" isContentLeftAligned>
+      <Button className={buttonClassName} variant="plain" aria-label={ariaLabel} aria-describedby={descriptionID} onClick={onClick} title={title}>{children}</Button>
+    </Tooltip>
     <span id={descriptionID} className="sr-only">{accessibleContent ?? (typeof content === 'string' ? content : '')}</span>
-    {open && portalRoot ? createPortal(
-      <span
-        ref={tooltipRef}
-        id={tooltipID}
-        className={tooltipClassName}
-        data-side={position.side}
-        role="tooltip"
-        style={{ left: position.left, top: position.top }}
-      >
-        {content}
-      </span>,
-      portalRoot,
-    ) : null}
   </>;
 }

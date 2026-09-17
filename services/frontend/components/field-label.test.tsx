@@ -10,8 +10,8 @@ afterEach(cleanup);
 it('keeps create-form labels on one alignment row', () => {
   const styles = readFileSync(resolve(process.cwd(), 'globals.css'), 'utf8');
 
-  expect(styles).toContain('.final-app .create-fields .field-label { display: inline-flex; align-items: center; }');
-  expect(styles).toContain('.field-help-tooltip { position: fixed; z-index: var(--z-tooltip);');
+  expect(styles).toContain('.field-label { display: inline-flex; align-items: center;');
+  expect(styles).toContain('.field-help-control.pf-v6-c-button');
 });
 
 it('portals field help outside clipping form containers and dismisses it without moving focus', async () => {

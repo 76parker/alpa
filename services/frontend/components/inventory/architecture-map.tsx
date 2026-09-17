@@ -10,20 +10,26 @@ import {
   type OnNodesChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Boxes, ExternalLink, GripVertical, Network, RotateCcw, Server } from 'lucide-react';
+import { Boxes, ExternalLink, GripVertical, Network, RotateCcw, Server } from '../../src/ui/icons';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { apiTypeLabels, componentTypeLabels, eventBrokerLabels, systemTypeLabels, type Component, type ComponentAPI, type Product } from '../../lib/inventory/contracts';
+import { apiTypeLabels, componentClientTypeLabels, componentTypeLabels, systemTypeLabels, type Component, type ComponentAPI, type ComponentClient, type Product } from '../../lib/inventory/contracts';
 import {
   architectureNodeHeight,
   architectureNodeWidth,
+  architectureClientHandleTop,
+  architectureProviderHandleTop,
+  apiHandleID,
+  clientHandleID,
   buildArchitectureGraph,
   componentNodeID,
   consumerHandleID,
+  isQueueStreamInfrastructure,
   providerHandleID,
   type ArchitectureNode,
   type ArchitectureNodeData,
 } from '../../lib/inventory/architecture-graph';
 import { TooltipTrigger } from '../tooltip-trigger';
+import { Button } from '../../src/ui';
 
 const nodeTypes = { architecture: ArchitectureNodeCard };
 const layoutStoragePrefix = 'alpa:architecture-layout-v1:';
@@ -190,7 +196,7 @@ export function ArchitectureMap({ product, components, onOpenComponent }: { prod
   return <ArchitectureNodeInteractionsContext value={interactions}><section className="topology-shell architecture-map" aria-label={`${product.name} architecture map`}>
     <header className="topology-toolbar">
       <div className="topology-context"><span className="live-dot" aria-hidden="true" /><div><strong>Component relationships</strong><small>{components.length} {components.length === 1 ? 'component' : 'components'} · {graph.edges.length} {graph.edges.length === 1 ? 'connection' : 'connections'}</small></div></div>
-      <div className="topology-tools"><span className="architecture-map-hint"><Network size={13} aria-hidden="true" />{canDrag ? 'Drag cards to arrange' : 'View-only on touch devices'}</span>{layoutSaved ? <button type="button" className="architecture-reset-layout" onClick={resetLayout}><RotateCcw size={13} aria-hidden="true" />Reset layout</button> : null}</div>
+      <div className="topology-tools"><span className="architecture-map-hint"><Network width={13} height={13} aria-hidden="true" />{canDrag ? 'Drag cards to arrange' : 'View-only on touch devices'}</span>{layoutSaved ? <Button type="button" className="architecture-reset-layout" onClick={resetLayout}><RotateCcw width={13} height={13} aria-hidden="true" />Reset layout</Button> : null}</div>
     </header>
     <div className="topology-canvas architecture-canvas" data-testid="architecture-canvas">
       <ReactFlow
@@ -210,7 +216,7 @@ export function ArchitectureMap({ product, components, onOpenComponent }: { prod
         fitViewOptions={{ padding: 0.24, minZoom: 0.45, maxZoom: 1.1 }}
         aria-label={`${product.name} component relationship graph`}
       >
-        <Background color="rgba(120,199,255,.11)" gap={24} size={1} />
+        <Background color="#d2d7df" gap={24} size={1} />
         <Controls showInteractive={false} />
       </ReactFlow>
     </div>
@@ -220,30 +226,33 @@ export function ArchitectureMap({ product, components, onOpenComponent }: { prod
 
 function ArchitectureNodeCard({ data }: NodeProps<ArchitectureNode>) {
   const { component, providerAPIs } = data as ArchitectureNodeData;
-  const interactions = useArchitectureNodeInteractions();
+  if (component.clients !== undefined) return <ClientArchitectureNodeCard data={data as ArchitectureNodeData} />;
   const consumerAPIs = component.apis.filter((api) => api.role === 'consumer');
   const height = architectureNodeHeight(component);
   const width = architectureNodeWidth(component);
+  const queueStreamInfrastructure = isQueueStreamInfrastructure(component);
 
-  return <article className={`architecture-node ${providerAPIs.length ? 'has-provider-apis' : ''}`} data-testid={`architecture-node-${component.id}`} style={{ height, width }}>
+  return <article className={`architecture-node ${providerAPIs.length ? 'has-provider-apis' : 'without-provider-apis'} ${queueStreamInfrastructure ? 'queue-stream-infrastructure' : ''}`} data-testid={`architecture-node-${component.id}`} style={{ height, width }}>
     {providerAPIs.map((api, index) => <Handle
       key={providerHandleID(api.id)}
       id={providerHandleID(api.id)}
       type="target"
       position={Position.Left}
       className="architecture-provider-handle"
-      style={{ top: handlePercent(index, providerAPIs.length), left: 0 }}
+      style={{ top: architectureProviderHandleTop(component, index, providerAPIs.length), left: 0 }}
       aria-label={`Provided API connection for ${api.name}`}
     />)}
-    {consumerAPIs.map((api, index) => <Handle
-      key={consumerHandleID(api.id)}
-      id={consumerHandleID(api.id)}
-      type="source"
-      position={Position.Right}
-      className="architecture-consumer-handle"
-      style={{ top: handlePercent(index, consumerAPIs.length), right: 0 }}
-      aria-label={`Consumed API connection for ${api.name}`}
-    />)}
+    {consumerAPIs.map((api, index) => {
+      return <Handle
+        key={consumerHandleID(api.id)}
+        id={consumerHandleID(api.id)}
+        type="source"
+        position={Position.Right}
+        className="architecture-consumer-handle"
+        style={{ top: handlePercent(index, consumerAPIs.length), right: 0 }}
+        aria-label={`Consumed API connection for ${api.name}`}
+      />;
+    })}
     <TooltipTrigger
       ariaLabel={`Show details for ${component.name}`}
       buttonClassName="architecture-node-trigger nodrag nopan"
@@ -251,22 +260,147 @@ function ArchitectureNodeCard({ data }: NodeProps<ArchitectureNode>) {
       accessibleContent={componentTooltipText(component)}
       tooltipClassName="architecture-tooltip"
     ><span className="sr-only">Show details for {component.name}</span></TooltipTrigger>
-    {providerAPIs.length ? <div className="architecture-provider-rail" aria-label={`Provided APIs for ${component.name}`}>
-      {providerAPIs.map((api) => <div className="architecture-provider-row" data-testid={`architecture-provider-api-${api.id}`} key={api.id}><APIBadge api={api} /></div>)}
-    </div> : null}
-    <div className={`architecture-node-body ${providerAPIs.length ? '' : 'full'}`}>
-      <span className="architecture-node-heading" aria-hidden="true">
-        <span className={`architecture-node-icon ${component.type === 'infrastructure' ? 'infrastructure' : ''}`}>
-          {component.type === 'infrastructure' ? <Boxes size={16} /> : <Server size={16} />}
-        </span>
-        <span className="architecture-node-copy"><strong>{component.name}</strong><small>{componentTypeLabels[component.type]}</small></span>
-      </span>
-      <span className="architecture-node-actions">
-        {interactions.canDrag ? <MoveHandle component={component} /> : null}
-        <button type="button" className="architecture-node-open nodrag nopan" aria-label={`Open component ${component.name}`} onClick={() => interactions.onOpenComponent(component)}><ExternalLink size={18} aria-hidden="true" /></button>
-      </span>
+    {queueStreamInfrastructure
+      ? <>
+        <ArchitectureNodeActions component={component} />
+        <QueueStreamNodeContent component={component} providerAPIs={providerAPIs} />
+      </>
+      : <>
+        {providerAPIs.length ? <div className="architecture-provider-rail" aria-label={`Provided APIs for ${component.name}`}>
+          {providerAPIs.map((api) => <div className="architecture-provider-row" data-testid={`architecture-provider-api-${api.id}`} key={api.id}><APIBadge api={api} /></div>)}
+        </div> : null}
+        <div className={`architecture-node-body ${providerAPIs.length ? '' : 'full'}`}>
+          <ComponentHeading component={component} />
+          <ArchitectureNodeActions component={component} />
+        </div>
+      </>}
+  </article>;
+}
+
+function ClientArchitectureNodeCard({ data }: { data: ArchitectureNodeData }) {
+  const { component, apis, clients, clientHandleIDs } = data;
+  const height = architectureNodeHeight(component);
+  const width = architectureNodeWidth(component);
+  const hasAPIs = apis.length > 0;
+  const hasClients = clients.length > 0;
+
+  return <article className={`architecture-node architecture-node-client-model ${hasAPIs ? 'has-provider-apis has-apis' : 'without-provider-apis'} ${hasClients ? 'has-clients' : ''}`} data-testid={`architecture-node-${component.id}`} style={{ height, width }}>
+    {apis.map((api, index) => <Handle
+      key={apiHandleID(api.id)}
+      id={apiHandleID(api.id)}
+      type="target"
+      position={Position.Left}
+      className="architecture-api-handle architecture-provider-handle"
+      style={{ top: architectureProviderHandleTop(component, index, apis.length), left: -1 }}
+      aria-label={`API connection for ${api.name}`}
+    />)}
+    {clients.map((client, index) => {
+      const handleID = clientHandleIDs[client.id] ?? clientHandleID(client.id);
+      return <Handle
+        key={handleID}
+        id={handleID}
+        type="source"
+        position={Position.Right}
+        className="architecture-client-handle architecture-consumer-handle"
+        style={{ top: architectureClientHandleTop(index, clients.length), right: -1 }}
+        aria-label={`Client connection for ${componentClientTypeLabels[client.client_type]}`}
+      />;
+    })}
+    <TooltipTrigger
+      ariaLabel={`Show details for ${component.name}`}
+      buttonClassName="architecture-node-trigger nodrag nopan"
+      content={<ComponentTooltip component={component} />}
+      accessibleContent={componentTooltipText(component)}
+      tooltipClassName="architecture-tooltip"
+    ><span className="sr-only">Show details for {component.name}</span></TooltipTrigger>
+    <div className="architecture-node-client-grid">
+      {hasAPIs ? <div className="architecture-api-rail" aria-label={`APIs for ${component.name}`}>
+        {apis.map((api) => <div className="architecture-api-row" data-testid={`architecture-api-${api.id}`} key={api.id}><APIBadge api={api} /></div>)}
+      </div> : null}
+      <div className="architecture-node-body architecture-node-body-client">
+        <ComponentHeading component={component} />
+        {!hasClients ? <ArchitectureNodeActions component={component} /> : null}
+      </div>
+      {hasClients ? <div className="architecture-client-rail" aria-label={`Clients for ${component.name}`}>
+        <ArchitectureNodeActions component={component} />
+        {clients.map((client) => <div className="architecture-client-row" data-testid={`architecture-client-${client.id}`} key={client.id}><ClientBadge client={client} /></div>)}
+      </div> : null}
     </div>
   </article>;
+}
+
+function ClientBadge({ client }: { client: ComponentClient }) {
+  const label = componentClientTypeLabels[client.client_type];
+  return <TooltipTrigger
+    ariaLabel={`Show details for ${label}`}
+    buttonClassName="architecture-client-badge nodrag nopan"
+    content={<ClientTooltip client={client} />}
+    accessibleContent={clientTooltipText(client)}
+    tooltipClassName="architecture-tooltip"
+    title={clientTooltipText(client)}
+  >{label}</TooltipTrigger>;
+}
+
+function ClientTooltip({ client }: { client: ComponentClient }) {
+  return <TooltipRows title={componentClientTypeLabels[client.client_type]} rows={[
+    ['Type', componentClientTypeLabels[client.client_type]],
+    ['ID', String(client.id)],
+    ['Description', client.description],
+    ['API ID', client.api_id ? String(client.api_id) : '—'],
+  ]} />;
+}
+
+function QueueStreamNodeContent({ component, providerAPIs }: { component: Extract<Component, { type: 'infrastructure' }>; providerAPIs: ComponentAPI[] }) {
+  return <>
+    <header className="architecture-stream-header">
+      <span className="architecture-node-heading" aria-hidden="true">
+        <span className="architecture-node-icon infrastructure"><Boxes width={16} height={16} /></span>
+        <span className="architecture-node-copy">
+          <span className="architecture-stream-title-line">
+            <strong>{component.name}</strong>
+            <span className="architecture-stream-system-type">{systemTypeLabels[component.details.system_type]}</span>
+          </span>
+          <small>{componentTypeLabels[component.type]}</small>
+        </span>
+      </span>
+    </header>
+    {providerAPIs.length ? <div className="architecture-stream-api-list" aria-label={`Provided APIs for ${component.name}`}>
+      {providerAPIs.map((api) => <QueueStreamAPIRow api={api} key={api.id} />)}
+    </div> : null}
+  </>;
+}
+
+function QueueStreamAPIRow({ api }: { api: ComponentAPI }) {
+  return <div className="architecture-stream-api-row" data-testid={`architecture-provider-api-${api.id}`}>
+    <TooltipTrigger
+      ariaLabel={`Show details for API ${api.name}`}
+      buttonClassName="architecture-stream-api-trigger nodrag nopan"
+      content={<APITooltip api={api} />}
+      accessibleContent={apiTooltipText(api)}
+      tooltipClassName="architecture-tooltip"
+      title={apiTooltipText(api)}
+    >
+      <span className="architecture-stream-api-type">{apiTypeLabels[api.api_type]}</span>
+      <strong className="architecture-stream-api-name">{api.name}</strong>
+    </TooltipTrigger>
+  </div>;
+}
+
+function ComponentHeading({ component }: { component: Component }) {
+  return <span className="architecture-node-heading" aria-hidden="true">
+    <span className={`architecture-node-icon ${component.type === 'infrastructure' ? 'infrastructure' : ''}`}>
+      {component.type === 'infrastructure' ? <Boxes width={16} height={16} /> : <Server width={16} height={16} />}
+    </span>
+    <span className="architecture-node-copy"><strong>{component.name}</strong><small>{componentTypeLabels[component.type]}</small></span>
+  </span>;
+}
+
+function ArchitectureNodeActions({ component }: { component: Component }) {
+  const interactions = useArchitectureNodeInteractions();
+  return <span className="architecture-node-actions">
+    {interactions.canDrag ? <MoveHandle component={component} /> : null}
+    <Button type="button" className="architecture-node-open nodrag nopan" aria-label={`Open component ${component.name}`} onClick={() => interactions.onOpenComponent(component)}><ExternalLink width={18} height={18} aria-hidden="true" /></Button>
+  </span>;
 }
 
 function MoveHandle({ component }: { component: Component }) {
@@ -299,14 +433,15 @@ function MoveHandle({ component }: { component: Component }) {
     nudgeNode(componentNodeID(component.id), ...offset);
   }
 
-  return <button
+  return <Button
     type="button"
     className="architecture-node-drag-handle"
     aria-label={`Move component ${component.name}`}
     aria-pressed={moving}
+    onClick={() => { if (moving) commitKeyboardMove(); else beginKeyboardMove(componentNodeID(component.id)); }}
     onBlur={() => { if (moving) commitKeyboardMove(); }}
     onKeyDown={onKeyDown}
-  ><GripVertical size={18} aria-hidden="true" /></button>;
+  ><GripVertical width={18} height={18} aria-hidden="true" /></Button>;
 }
 
 function useArchitectureNodeInteractions() {
@@ -318,7 +453,7 @@ function useArchitectureNodeInteractions() {
 function APIBadge({ api }: { api: ComponentAPI }) {
   return <TooltipTrigger
     ariaLabel={`Show details for API ${api.name}`}
-    buttonClassName="architecture-api-badge nodrag nopan"
+    buttonClassName={`architecture-api-badge ${apiBadgeToneClass(api.api_type)} nodrag nopan`}
     content={<APITooltip api={api} />}
     accessibleContent={apiTooltipText(api)}
     tooltipClassName="architecture-tooltip"
@@ -326,14 +461,25 @@ function APIBadge({ api }: { api: ComponentAPI }) {
   >{apiTypeLabels[api.api_type]}</TooltipTrigger>;
 }
 
+function apiBadgeToneClass(apiType: ComponentAPI['api_type']) {
+  if (['rest', 'websocket', 'exchange'].includes(apiType)) return 'api-tone-cyan';
+  if (['graphql', 'odata', 'topic'].includes(apiType)) return 'api-tone-purple';
+  if (['grpc', 'sse'].includes(apiType)) return 'api-tone-green';
+  if (apiType === 'json-rpc') return 'api-tone-teal';
+  if (['soap', 'event', 'event-consumer', 'queue'].includes(apiType)) return 'api-tone-yellow';
+  return 'api-tone-muted';
+}
+
 function ComponentTooltip({ component }: { component: Component }) {
-  return <TooltipRows rows={[
+  const providerCount = component.apis.filter((api) => api.role !== 'consumer').length;
+  const clientCount = component.clients?.length ?? component.apis.filter((api) => api.role === 'consumer').length;
+  return <TooltipRows title={component.name} rows={[
     ['Description', component.description || 'No description provided.'],
     ['ID', String(component.id)],
     ['Type', componentTypeLabels[component.type]],
     ...componentFacts(component),
-    ['Provider APIs', String(component.apis.filter((api) => api.role === 'provider').length)],
-    ['Consumer APIs', String(component.apis.filter((api) => api.role === 'consumer').length)],
+    ['APIs', String(providerCount)],
+    ['Clients', String(clientCount)],
   ]} />;
 }
 
@@ -343,12 +489,12 @@ function APITooltip({ api }: { api: ComponentAPI }) {
     ['ID', String(api.id)],
     ['Type', apiTypeLabels[api.api_type]],
     ['Network exposure', api.network_exposure],
-    ['Role', api.role],
+    ...(api.role ? [['Role', api.role] as [string, string]] : []),
   ]} />;
 }
 
-function TooltipRows({ rows }: { rows: Array<[string, string]> }) {
-  return <span className="architecture-tooltip-content">{rows.map(([label, value]) => <span className="architecture-tooltip-row" key={label}><strong>{label}:</strong><span>{value || '—'}</span></span>)}</span>;
+function TooltipRows({ title, rows }: { title?: string; rows: Array<[string, string]> }) {
+  return <span className="architecture-tooltip-content">{title ? <strong className="architecture-tooltip-title" role="heading" aria-level={3}>{title}</strong> : null}{rows.map(([label, value]) => <span className="architecture-tooltip-row" key={label}><strong>{label}:</strong><span>{value || '—'}</span></span>)}</span>;
 }
 
 function componentFacts(component: Component): Array<[string, string]> {
@@ -364,18 +510,19 @@ function componentFacts(component: Component): Array<[string, string]> {
     ['Language version', component.details.language_version],
     ['Framework', component.details.framework],
   ];
-  if (component.type === 'background-worker') facts.push(['Broker', eventBrokerLabels[component.details.broker]]);
   return facts;
 }
 
 function componentTooltipText(component: Component) {
+  const providerCount = component.apis.filter((api) => api.role !== 'consumer').length;
+  const clientCount = component.clients?.length ?? component.apis.filter((api) => api.role === 'consumer').length;
   return [
     ['Description', component.description || 'No description provided.'],
     ['ID', String(component.id)],
     ['Type', componentTypeLabels[component.type]],
     ...componentFacts(component),
-    ['Provider APIs', String(component.apis.filter((api) => api.role === 'provider').length)],
-    ['Consumer APIs', String(component.apis.filter((api) => api.role === 'consumer').length)],
+    ['APIs', String(providerCount)],
+    ['Clients', String(clientCount)],
   ].map(([label, value]) => `${label}: ${value || '—'}`).join(' · ');
 }
 
@@ -385,7 +532,16 @@ function apiTooltipText(api: ComponentAPI) {
     ['ID', String(api.id)],
     ['Type', apiTypeLabels[api.api_type]],
     ['Network exposure', api.network_exposure],
-    ['Role', api.role],
+    ...(api.role ? [['Role', api.role] as [string, string]] : []),
+  ].map(([label, value]) => `${label}: ${value || '—'}`).join(' · ');
+}
+
+function clientTooltipText(client: ComponentClient) {
+  return [
+    ['Type', componentClientTypeLabels[client.client_type]],
+    ['ID', String(client.id)],
+    ['Description', client.description],
+    ['API ID', client.api_id ? String(client.api_id) : '—'],
   ].map(([label, value]) => `${label}: ${value || '—'}`).join(' · ');
 }
 
