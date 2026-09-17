@@ -2,6 +2,7 @@ package httputil
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -50,7 +51,7 @@ func ParsePagination(c *gin.Context) (Pagination, error) {
 	if limit == 0 {
 		limit = 50
 	}
-	if limit < 1 || limit > 100 || offset < 0 {
+	if limit < 1 || limit > 100 || offset < 0 || offset > math.MaxInt32 {
 		return Pagination{}, fmt.Errorf("%w: invalid pagination", ErrInvalidPaginationRange)
 	}
 

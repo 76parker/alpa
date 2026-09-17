@@ -64,11 +64,3 @@ func DecodeAndValidateJSONBytes[T any](body []byte, validate *validator.Validate
 	}
 	return result, nil
 }
-
-func DecodeJSON[T any](body []byte) (T, error) {
-	var result T
-	if err := json.Unmarshal(body, &result); err != nil {
-		return result, fmt.Errorf("%w: decode JSON: %w", ErrInvalidJSONBody, err)
-	}
-	return result, nil
-}

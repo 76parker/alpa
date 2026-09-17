@@ -1,7 +1,7 @@
 package workspace
 
 import (
-	"github.com/76parker/alpa/internal/adapters/postgres/inventory/internal/sqlc"
+	"github.com/76parker/alpa/internal/adapters/postgres/internal/sqlc"
 	"github.com/76parker/alpa/internal/domain/inventory"
 )
 

@@ -7,13 +7,14 @@ import (
 )
 
 type ResponseV1 struct {
-	ID          int64           `json:"id"`
-	ProductID   int64           `json:"product_id"`
-	Name        string          `json:"name"`
-	Type        string          `json:"type"`
-	Description string          `json:"description"`
-	Details     any             `json:"details"`
-	APIs        []APIResponseV1 `json:"apis"`
+	ID          int64              `json:"id"`
+	ProductID   int64              `json:"product_id"`
+	Name        string             `json:"name"`
+	Type        string             `json:"type"`
+	Description string             `json:"description"`
+	Details     any                `json:"details"`
+	APIs        []APIResponseV1    `json:"apis"`
+	Clients     []ClientResponseV1 `json:"clients"`
 }
 
 type APIResponseV1 struct {
@@ -21,20 +22,21 @@ type APIResponseV1 struct {
 	Name            string                    `json:"name"`
 	APIType         inventory.APIType         `json:"api_type"`
 	NetworkExposure inventory.NetworkExposure `json:"network_exposure"`
-	Role            inventory.APIRole         `json:"role"`
+}
+
+type ClientResponseV1 struct {
+	ID                int64                         `json:"id"`
+	ClientName        inventory.ComponentClientName `json:"client_name"`
+	Role              inventory.ComponentClientRole `json:"role"`
+	CommunicationType inventory.CommunicationType   `json:"communication_type"`
+	Description       string                        `json:"description"`
+	APIID             *int64                        `json:"api_id"`
 }
 
 type ServiceDetailsResponseV1 struct {
 	Language        string `json:"language"`
 	LanguageVersion string `json:"language_version"`
 	Framework       string `json:"framework"`
-}
-
-type BackgroundWorkerDetailsResponseV1 struct {
-	Language        string                    `json:"language"`
-	LanguageVersion string                    `json:"language_version"`
-	Framework       string                    `json:"framework"`
-	Broker          inventory.EventBrokerType `json:"broker"`
 }
 
 type InfrastructureDetailsResponseV1 struct {
@@ -53,12 +55,25 @@ func NewResponseV1(component inventory.Component) (ResponseV1, error) {
 	apis := make([]APIResponseV1, 0, len(componentAPIs))
 	for _, componentAPI := range componentAPIs {
 		apis = append(apis, APIResponseV1{
-			ID:              componentAPI.API.ID(),
-			Name:            componentAPI.API.Name(),
-			APIType:         componentAPI.API.APIType(),
-			NetworkExposure: componentAPI.API.Exposure(),
-			Role:            componentAPI.Role,
+			ID:              componentAPI.ID(),
+			Name:            componentAPI.Name(),
+			APIType:         componentAPI.APIType(),
+			NetworkExposure: componentAPI.Exposure(),
 		})
+	}
+	clients := make([]ClientResponseV1, 0, len(component.Clients()))
+	for _, componentClient := range component.Clients() {
+		response := ClientResponseV1{
+			ID:                componentClient.ID(),
+			ClientName:        componentClient.Type().ClientName(),
+			Role:              componentClient.Type().Role(),
+			CommunicationType: componentClient.Type().CommunicationType(),
+			Description:       componentClient.Description(),
+		}
+		if apiID := componentClient.APIID(); apiID != nil {
+			response.APIID = apiID
+		}
+		clients = append(clients, response)
 	}
 	return ResponseV1{
 		ID:          component.ID(),
@@ -68,6 +83,7 @@ func NewResponseV1(component inventory.Component) (ResponseV1, error) {
 		Description: component.Description(),
 		Details:     details,
 		APIs:        apis,
+		Clients:     clients,
 	}, nil
 }
 
@@ -77,8 +93,6 @@ func newDetailsResponseV1(details inventory.ComponentDetails) (any, error) {
 		return ServiceDetailsResponseV1{Language: details.Language, LanguageVersion: details.LanguageVersion, Framework: details.MainFramework}, nil
 	case inventory.FrontendServiceComponentDetails:
 		return ServiceDetailsResponseV1{Language: details.Language, LanguageVersion: details.LanguageVersion, Framework: details.MainFramework}, nil
-	case inventory.BackgroundWorkerComponentDetails:
-		return BackgroundWorkerDetailsResponseV1{Language: details.Language, LanguageVersion: details.LanguageVersion, Framework: details.MainFramework, Broker: details.Broker}, nil
 	case inventory.InfrastructureComponentDetails:
 		return InfrastructureDetailsResponseV1{
 			System:         details.System,

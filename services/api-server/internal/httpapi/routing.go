@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/76parker/alpa/docs"
+	"github.com/76parker/alpa/internal/httpapi/apis"
+	"github.com/76parker/alpa/internal/httpapi/clients"
 	"github.com/76parker/alpa/internal/httpapi/component"
 	"github.com/76parker/alpa/internal/httpapi/product"
 	"github.com/76parker/alpa/internal/httpapi/workspace"
@@ -18,6 +20,8 @@ type Handlers struct {
 	Workspace *workspace.Handler
 	Product   *product.Handler
 	Component *component.Handler
+	APIs      *apis.Handler
+	Clients   *clients.Handler
 }
 
 func newRouter(log logger.Logger, handlers Handlers) *gin.Engine {
@@ -31,6 +35,8 @@ func newRouter(log logger.Logger, handlers Handlers) *gin.Engine {
 	initWorkspaceRoutes(v1, &handlers)
 	initProductRoutes(v1, &handlers)
 	initComponentRoutes(v1, &handlers)
+	initAPIRoutes(v1, &handlers)
+	initClientRoutes(v1, &handlers)
 	if handlers.UI != nil {
 		router.NoRoute(func(c *gin.Context) {
 			first := strings.SplitN(strings.TrimPrefix(c.Request.URL.Path, "/"), "/", 2)[0]
@@ -70,11 +76,22 @@ func initSwaggerRoutes(router *gin.Engine) {
 
 func initComponentRoutes(group *gin.RouterGroup, handlers *Handlers) {
 	group.POST("/components", handlerName("component.create"), handlers.Component.Create)
-	group.POST("/components/:id/consumer-apis", handlerName("component.consumer_api.create"), handlers.Component.AddConsumerAPI)
-	group.DELETE("/components/:id/consumer-apis/:api_id", handlerName("component.consumer_api.delete"), handlers.Component.RemoveConsumerAPI)
 	group.GET("/components/:id", handlerName("component.get"), handlers.Component.Get)
 	group.DELETE("/components/:id", handlerName("component.delete"), handlers.Component.Delete)
 	group.GET("/products/:product_id/components", handlerName("component.list"), handlers.Component.List)
+}
+
+func initAPIRoutes(group *gin.RouterGroup, handlers *Handlers) {
+	group.POST("/components/:component_id/apis", handlerName("api.create"), handlers.APIs.Create)
+}
+
+func initClientRoutes(group *gin.RouterGroup, handlers *Handlers) {
+	group.POST("/components/:component_id/clients", handlerName("client.create"), handlers.Clients.Create)
+	group.POST(
+		"/components/:component_id/clients/:id/bindings",
+		handlerName("client_binding.create"),
+		handlers.Clients.BindAPI,
+	)
 }
 
 func initProductRoutes(group *gin.RouterGroup, handlers *Handlers) {

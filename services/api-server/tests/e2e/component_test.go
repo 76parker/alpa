@@ -1,16 +1,22 @@
 package e2e_test
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/76parker/alpa/internal/domain/inventory"
+	httpapis "github.com/76parker/alpa/internal/httpapi/apis"
+	httpclients "github.com/76parker/alpa/internal/httpapi/clients"
 	"github.com/76parker/alpa/internal/httpapi/component"
 	"github.com/76parker/alpa/internal/httpapi/errmap"
 	"github.com/76parker/alpa/internal/httpapi/product"
+	"github.com/76parker/alpa/pkg/httputil"
 	"github.com/ozontech/testo"
 	allure "github.com/ozontech/testo-allure"
 )
@@ -43,15 +49,10 @@ func TestComponentE2E(t *testing.T) {
 			t.Assert().Equal("1.25", details["language_version"], "created component has the requested language version")
 			t.Assert().Equal("Gin", details["framework"], "created component has the requested framework")
 
-			t.Require().Len(createdComponent.APIs, 1, "created component returns its provider API")
-			createdAPI := createdComponent.APIs[0]
-			t.Assert().Greater(createdAPI.ID, int64(0), "created provider API receives a positive ID")
-			t.Assert().Equal("Component API", createdAPI.Name, "created provider API has the requested name")
-			t.Assert().Equal(inventory.APITypeREST, createdAPI.APIType, "created provider API has the requested type")
-			t.Assert().Equal(inventory.NetworkExposureInternal, createdAPI.NetworkExposure, "created provider API has the requested network exposure")
-			t.Assert().Equal(inventory.APIRoleProvider, createdAPI.Role, "created API has the provider role")
+			t.Assert().Empty(createdComponent.APIs, "component creation does not create APIs")
+			t.Assert().Empty(createdComponent.Clients, "component creation does not create clients")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 
 	t.Run("CreateComponentWithInvalidType", testo.Test(func(t T) {
 		t.Epic("Inventory")
@@ -69,7 +70,7 @@ func TestComponentE2E(t *testing.T) {
 		allure.Step(t, "verify rejection for invalid component type", func(t T) {
 			t.Require().Equal(http.StatusBadRequest, statusCode, "component creation with an invalid type returns 400 Bad Request")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 
 	t.Run("CreateComponentWithNonexistentProduct", testo.Test(func(t T) {
 		t.Epic("Inventory")
@@ -85,7 +86,7 @@ func TestComponentE2E(t *testing.T) {
 		allure.Step(t, "verify rejection for missing product", func(t T) {
 			t.Require().Equal(http.StatusNotFound, statusCode, "component creation for a missing product returns 404 Not Found")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 
 	t.Run("CreateComponentWithInvalidName", testo.Test(func(t T) {
 		t.Epic("Inventory")
@@ -102,7 +103,7 @@ func TestComponentE2E(t *testing.T) {
 		allure.Step(t, "verify rejection for invalid component name", func(t T) {
 			t.Require().Equal(http.StatusBadRequest, statusCode, "component creation with an invalid name returns 400 Bad Request")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 
 	t.Run("CreateComponentWithInvalidDetails", testo.Test(func(t T) {
 		t.Epic("Inventory")
@@ -120,7 +121,7 @@ func TestComponentE2E(t *testing.T) {
 		allure.Step(t, "verify rejection for invalid component details", func(t T) {
 			t.Require().Equal(http.StatusBadRequest, statusCode, "component creation with invalid details returns 400 Bad Request")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 
 	// Infrastructure details must survive HTTP normalization and JSONB storage without losing addresses.
 	t.Run("InfrastructureSystemTypesAndAddresses", testo.Test(func(t T) {
@@ -228,86 +229,230 @@ func TestComponentE2E(t *testing.T) {
 				t.Assert().Equal(persisted, count, "rejected requests must not persist components")
 			})
 		}
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 
-	// A confirmed relationship must be visible as provider and consumer roles on the respective components.
-	t.Run("CreateConsumerAPIRelationship", testo.Test(func(t T) {
+	t.Run("CreateAPIsAndClientsThenReadComponent", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Component")
-		t.Story("Consume component API")
+		t.Story("Create component APIs and clients")
 		t.Severity(allure.SeverityCritical)
 		t.Tags("e2e", "positive")
-		t.Title("Create a consumer API relationship and return both roles")
+		t.Title("Create APIs and clients independently and return stable read projections")
 		resetDatabase(t)
 
 		createdProduct := createTestProductForComponent(t, client)
-		provider, providerStatus := createTestComponent(t, client, testBackendComponentRequest(createdProduct.ID, "Provider Component"))
-		consumerRequest := testBackendComponentRequest(createdProduct.ID, "Consumer Component")
-		consumerRequest.APIs = nil
-		consumer, consumerStatus := createTestComponent(t, client, consumerRequest)
-		t.Require().Equal(http.StatusCreated, providerStatus, "provider component is created")
-		t.Require().Equal(http.StatusCreated, consumerStatus, "consumer component is created")
-		t.Require().Len(provider.APIs, 1, "provider component exposes one API")
+		createdComponent, statusCode := createTestComponent(t, client, testBackendComponentRequest(createdProduct.ID, "Orders"))
+		t.Require().Equal(http.StatusCreated, statusCode)
 
-		statusCode := addTestConsumerAPI(t, client, consumer.ID, provider.APIs[0].ID)
-		t.Require().Equal(http.StatusNoContent, statusCode, "consumer API relationship creation returns 204 No Content")
-
-		returnedProvider, providerStatus := getTestComponent(t, client, provider.ID)
-		returnedConsumer, consumerStatus := getTestComponent(t, client, consumer.ID)
-		allure.Step(t, "verify provider and consumer roles", func(t T) {
-			t.Require().Equal(http.StatusOK, providerStatus, "provider component retrieval returns 200 OK")
-			t.Require().Equal(http.StatusOK, consumerStatus, "consumer component retrieval returns 200 OK")
-			t.Require().Len(returnedProvider.APIs, 1, "provider keeps one API")
-			t.Require().Len(returnedConsumer.APIs, 1, "consumer returns the linked API")
-			t.Assert().Equal(inventory.APIRoleProvider, returnedProvider.APIs[0].Role, "provider component returns the provider role")
-			t.Assert().Equal(inventory.APIRoleConsumer, returnedConsumer.APIs[0].Role, "consumer component returns the consumer role")
-			t.Assert().Equal(provider.APIs[0].ID, returnedConsumer.APIs[0].ID, "consumer returns the linked provider API")
+		firstAPI, statusCode := createTestAPI(t, client, createdComponent.ID, httpapis.CreateRequestV1{
+			Name:            "Orders REST",
+			APIType:         inventory.APITypeREST,
+			NetworkExposure: inventory.NetworkExposureInternal,
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+		t.Require().Equal(http.StatusCreated, statusCode)
+		secondAPI, statusCode := createTestAPI(t, client, createdComponent.ID, httpapis.CreateRequestV1{
+			Name:            "Orders events",
+			APIType:         inventory.APITypeEventConsumer,
+			NetworkExposure: inventory.NetworkExposureInternal,
+		})
+		t.Require().Equal(http.StatusCreated, statusCode)
+		firstClient, statusCode := createTestClient(t, client, createdComponent.ID, testRESTClientRequest())
+		t.Require().Equal(http.StatusCreated, statusCode)
+		description := "publishes events"
+		secondClient, statusCode := createTestClient(t, client, createdComponent.ID, httpclients.CreateRequestV1{
+			ClientName:        inventory.KafkaClient,
+			Role:              inventory.EventProducerRole,
+			CommunicationType: inventory.Events,
+			Description:       &description,
+		})
+		t.Require().Equal(http.StatusCreated, statusCode)
 
-	// A repeated relationship is a conflict and must not be silently accepted.
-	t.Run("RejectDuplicateConsumerAPIRelationship", testo.Test(func(t T) {
+		returned, statusCode := getTestComponent(t, client, createdComponent.ID)
+		t.Require().Equal(http.StatusOK, statusCode)
+		t.Require().Len(returned.APIs, 2)
+		t.Require().Len(returned.Clients, 2)
+		t.Assert().Equal([]int64{firstAPI.ID, secondAPI.ID}, []int64{returned.APIs[0].ID, returned.APIs[1].ID})
+		t.Assert().Equal([]int64{firstClient.ID, secondClient.ID}, []int64{returned.Clients[0].ID, returned.Clients[1].ID})
+		t.Assert().Empty(returned.Clients[0].Description, "omitted description is represented as an empty string")
+
+		// A second aggregate catches accidental cross-component grouping in the list projection.
+		secondComponent, statusCode := createTestComponent(t, client, testBackendComponentRequest(createdProduct.ID, "Billing"))
+		t.Require().Equal(http.StatusCreated, statusCode)
+		billingAPI, statusCode := createTestAPI(t, client, secondComponent.ID, httpapis.CreateRequestV1{
+			Name:            "Billing REST",
+			APIType:         inventory.APITypeREST,
+			NetworkExposure: inventory.NetworkExposureInternal,
+		})
+		t.Require().Equal(http.StatusCreated, statusCode)
+
+		listed, statusCode := listTestComponents(t, client, createdProduct.ID)
+		t.Require().Equal(http.StatusOK, statusCode)
+		t.Require().Len(listed.Data, 2)
+		t.Assert().Equal(returned, listed.Data[0], "list and get use the same aggregate projection")
+		t.Require().Len(listed.Data[1].APIs, 1)
+		t.Assert().Equal(billingAPI.ID, listed.Data[1].APIs[0].ID)
+		t.Assert().Empty(listed.Data[1].Clients, "children from another component must not leak into the aggregate")
+	}, allureArtifactsDir))
+
+	t.Run("RejectChildrenForUnknownComponent", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Component")
-		t.Story("Consume component API")
-		t.Severity(allure.SeverityNormal)
+		t.Story("Create component APIs and clients")
+		t.Severity(allure.SeverityCritical)
 		t.Tags("e2e", "negative")
-		t.Title("Reject a duplicate consumer API relationship")
+		t.Title("Return not found when the owning component does not exist")
 		resetDatabase(t)
 
-		createdProduct := createTestProductForComponent(t, client)
-		provider, _ := createTestComponent(t, client, testBackendComponentRequest(createdProduct.ID, "Provider Component"))
-		consumerRequest := testBackendComponentRequest(createdProduct.ID, "Consumer Component")
-		consumerRequest.APIs = nil
-		consumer, _ := createTestComponent(t, client, consumerRequest)
-
-		firstStatus := addTestConsumerAPI(t, client, consumer.ID, provider.APIs[0].ID)
-		duplicateStatus := addTestConsumerAPI(t, client, consumer.ID, provider.APIs[0].ID)
-		allure.Step(t, "verify duplicate relationship conflict", func(t T) {
-			t.Require().Equal(http.StatusNoContent, firstStatus, "first relationship is created")
-			t.Assert().Equal(http.StatusConflict, duplicateStatus, "duplicate relationship returns 409 Conflict")
+		_, apiStatus := createTestAPI(t, client, 999, httpapis.CreateRequestV1{
+			Name:            "Unknown",
+			APIType:         inventory.APITypeREST,
+			NetworkExposure: inventory.NetworkExposureInternal,
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+		_, clientStatus := createTestClient(t, client, 999, testRESTClientRequest())
+		t.Assert().Equal(http.StatusNotFound, apiStatus)
+		t.Assert().Equal(http.StatusNotFound, clientStatus)
+	}, allureArtifactsDir))
 
-	// A component cannot consume an API that it provides itself.
-	t.Run("RejectSelfConsumerAPIRelationship", testo.Test(func(t T) {
-		t.Epic("Inventory")
-		t.Feature("Component")
-		t.Story("Consume component API")
-		t.Severity(allure.SeverityNormal)
-		t.Tags("e2e", "negative")
-		t.Title("Reject a component consuming its own API")
+	// Aggregate creation must be atomic and expose the persisted child IDs immediately.
+	t.Run("CreateComponentWithAPIsAndClients", testo.Test(func(t T) {
 		resetDatabase(t)
-
 		createdProduct := createTestProductForComponent(t, client)
-		provider, statusCode := createTestComponent(t, client, testBackendComponentRequest(createdProduct.ID, "Provider Component"))
-		t.Require().Equal(http.StatusCreated, statusCode, "provider component is created")
+		request := testBackendComponentRequest(createdProduct.ID, "Checkout")
+		request.APIs = []component.CreateAPIRequestV1{
+			{Name: "Checkout REST", APIType: inventory.APITypeREST, NetworkExposure: inventory.NetworkExposureInternet},
+			{Name: "Checkout events", APIType: inventory.APITypeEventConsumer, NetworkExposure: inventory.NetworkExposureInternal},
+		}
+		request.Clients = []component.CreateClientRequestV1{
+			{ClientName: inventory.RESTClient, Role: inventory.CallerRole, CommunicationType: inventory.RequestResponse},
+			{ClientName: inventory.KafkaClient, Role: inventory.EventProducerRole, CommunicationType: inventory.Events, Description: testStringPointer("publishes events")},
+		}
 
-		statusCode = addTestConsumerAPI(t, client, provider.ID, provider.APIs[0].ID)
-		allure.Step(t, "verify self relationship rejection", func(t T) {
-			t.Assert().Equal(http.StatusBadRequest, statusCode, "self relationship returns 400 Bad Request")
-		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+		created, status := createTestComponent(t, client, request)
+		t.Require().Equal(http.StatusCreated, status)
+		t.Require().Len(created.APIs, 2)
+		t.Require().Len(created.Clients, 2)
+		for _, api := range created.APIs {
+			t.Assert().Greater(api.ID, int64(0))
+		}
+		for _, componentClient := range created.Clients {
+			t.Assert().Greater(componentClient.ID, int64(0))
+			t.Assert().Nil(componentClient.APIID)
+		}
+		t.Assert().Equal([]string{"Checkout REST", "Checkout events"}, []string{created.APIs[0].Name, created.APIs[1].Name})
+
+		loaded, status := getTestComponent(t, client, created.ID)
+		t.Require().Equal(http.StatusOK, status)
+		t.Assert().Equal(created, loaded)
+		listed, status := listTestComponents(t, client, createdProduct.ID)
+		t.Require().Equal(http.StatusOK, status)
+		t.Require().Len(listed.Data, 1)
+		t.Assert().Equal(created, listed.Data[0])
+
+		var apiCount, clientCount int
+		err := environment.postgres.pool.QueryRow(t.Context(), "SELECT count(*) FROM inventory.apis WHERE component_id = $1", created.ID).Scan(&apiCount)
+		t.Require().NoError(err)
+		err = environment.postgres.pool.QueryRow(t.Context(), "SELECT count(*) FROM inventory.component_clients WHERE component_id = $1", created.ID).Scan(&clientCount)
+		t.Require().NoError(err)
+		t.Assert().Equal(2, apiCount)
+		t.Assert().Equal(2, clientCount)
+	}, allureArtifactsDir))
+
+	// The request-size guard must reject an entire aggregate before its component is written.
+	t.Run("RejectComponentWithMoreThanFiveChildren", testo.Test(func(t T) {
+		resetDatabase(t)
+		createdProduct := createTestProductForComponent(t, client)
+		request := testBackendComponentRequest(createdProduct.ID, "Too many APIs")
+		request.APIs = make([]component.CreateAPIRequestV1, 6)
+		for i := range request.APIs {
+			request.APIs[i] = component.CreateAPIRequestV1{Name: "API " + strconv.Itoa(i), APIType: inventory.APITypeREST, NetworkExposure: inventory.NetworkExposureInternal}
+		}
+		_, status := createTestComponent(t, client, request)
+		t.Require().Equal(http.StatusBadRequest, status)
+		var componentCount int
+		err := environment.postgres.pool.QueryRow(t.Context(), "SELECT count(*) FROM inventory.components").Scan(&componentCount)
+		t.Require().NoError(err)
+		t.Assert().Zero(componentCount)
+	}, allureArtifactsDir))
+
+	// Locking the parent component serializes the count-and-insert sequence for concurrent API requests.
+	t.Run("LimitConcurrentAPICreationToFive", testo.Test(func(t T) {
+		resetDatabase(t)
+		createdProduct := createTestProductForComponent(t, client)
+		createdComponent, status := createTestComponent(t, client, testBackendComponentRequest(createdProduct.ID, "Concurrent APIs"))
+		t.Require().Equal(http.StatusCreated, status)
+
+		statuses := make(chan int, 8)
+		errs := make(chan error, 8)
+		var group sync.WaitGroup
+		for i := 0; i < cap(statuses); i++ {
+			group.Add(1)
+			go func(index int) {
+				defer group.Done()
+				status, err := createAPIStatus(t.Context(), client, createdComponent.ID, httpapis.CreateRequestV1{
+					Name:            "Concurrent API " + strconv.Itoa(index),
+					APIType:         inventory.APITypeREST,
+					NetworkExposure: inventory.NetworkExposureInternal,
+				})
+				errs <- err
+				statuses <- status
+			}(i)
+		}
+		group.Wait()
+		close(statuses)
+		close(errs)
+		for err := range errs {
+			t.Require().NoError(err)
+		}
+		createdCount := 0
+		for status := range statuses {
+			if status == http.StatusCreated {
+				createdCount++
+			}
+		}
+		t.Assert().Equal(5, createdCount)
+		var storedCount int
+		err := environment.postgres.pool.QueryRow(t.Context(), "SELECT count(*) FROM inventory.apis WHERE component_id = $1", createdComponent.ID).Scan(&storedCount)
+		t.Require().NoError(err)
+		t.Assert().Equal(5, storedCount)
+	}, allureArtifactsDir))
+
+	// Clients use the same parent-row lock so parallel writes cannot exceed their separate limit.
+	t.Run("LimitConcurrentClientCreationToFive", testo.Test(func(t T) {
+		resetDatabase(t)
+		createdProduct := createTestProductForComponent(t, client)
+		createdComponent, status := createTestComponent(t, client, testBackendComponentRequest(createdProduct.ID, "Concurrent clients"))
+		t.Require().Equal(http.StatusCreated, status)
+
+		statuses := make(chan int, 8)
+		errs := make(chan error, 8)
+		var group sync.WaitGroup
+		for i := 0; i < cap(statuses); i++ {
+			group.Add(1)
+			go func() {
+				defer group.Done()
+				status, err := createClientStatus(t.Context(), client, createdComponent.ID, testRESTClientRequest())
+				errs <- err
+				statuses <- status
+			}()
+		}
+		group.Wait()
+		close(statuses)
+		close(errs)
+		for err := range errs {
+			t.Require().NoError(err)
+		}
+		createdCount := 0
+		for status := range statuses {
+			if status == http.StatusCreated {
+				createdCount++
+			}
+		}
+		t.Assert().Equal(5, createdCount)
+		var storedCount int
+		err := environment.postgres.pool.QueryRow(t.Context(), "SELECT count(*) FROM inventory.component_clients WHERE component_id = $1", createdComponent.ID).Scan(&storedCount)
+		t.Require().NoError(err)
+		t.Assert().Equal(5, storedCount)
+	}, allureArtifactsDir))
 
 	t.Run("DeleteExistingComponent", testo.Test(func(t T) {
 		t.Epic("Inventory")
@@ -324,12 +469,27 @@ func TestComponentE2E(t *testing.T) {
 		allure.Step(t, "verify prerequisite component", func(t T) {
 			t.Require().Equal(http.StatusCreated, statusCode, "component creation returns 201 Created")
 		})
+		_, statusCode = createTestAPI(t, client, createdComponent.ID, httpapis.CreateRequestV1{
+			Name:            "Orders",
+			APIType:         inventory.APITypeREST,
+			NetworkExposure: inventory.NetworkExposureInternal,
+		})
+		t.Require().Equal(http.StatusCreated, statusCode)
+		_, statusCode = createTestClient(t, client, createdComponent.ID, testRESTClientRequest())
+		t.Require().Equal(http.StatusCreated, statusCode)
 
 		statusCode = deleteTestComponent(t, client, createdComponent.ID)
 		allure.Step(t, "verify component deletion", func(t T) {
 			t.Require().Equal(http.StatusNoContent, statusCode, "component deletion returns 204 No Content")
+			var apiCount, clientCount int
+			err := environment.postgres.pool.QueryRow(t.Context(), "SELECT count(*) FROM inventory.apis").Scan(&apiCount)
+			t.Require().NoError(err)
+			err = environment.postgres.pool.QueryRow(t.Context(), "SELECT count(*) FROM inventory.component_clients").Scan(&clientCount)
+			t.Require().NoError(err)
+			t.Assert().Zero(apiCount, "component deletion cascades to APIs")
+			t.Assert().Zero(clientCount, "component deletion cascades to clients")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 
 	// Deleting an unknown component must return a clear not-found response.
 	t.Run("DeleteNonexistentComponent", testo.Test(func(t T) {
@@ -345,7 +505,7 @@ func TestComponentE2E(t *testing.T) {
 		allure.Step(t, "verify deletion of missing component", func(t T) {
 			t.Require().Equal(http.StatusNotFound, statusCode, "deleting a missing component returns 404 Not Found")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 }
 
 func createTestProductForComponent(t T, client *http.Client) product.ResponseV1 {
@@ -380,14 +540,11 @@ func testBackendComponentRequest(productID int64, name string) component.CreateR
 			"language_version": "1.25",
 			"framework": "Gin"
 		}`),
-		APIs: []component.APIRequestV1{
-			{
-				Name:            "Component API",
-				APIType:         inventory.APITypeREST,
-				NetworkExposure: inventory.NetworkExposureInternal,
-			},
-		},
 	}
+}
+
+func testStringPointer(value string) *string {
+	return &value
 }
 
 func createTestComponent(
@@ -437,19 +594,94 @@ func deleteTestComponent(
 	return response.StatusCode
 }
 
-func addTestConsumerAPI(t T, client *http.Client, componentID, apiID int64) int {
+func createTestAPI(
+	t T,
+	client *http.Client,
+	componentID int64,
+	testRequest httpapis.CreateRequestV1,
+) (httpapis.ResponseV1, int) {
 	t.Helper()
-	route := environment.server.URL + "/v1/components/" + strconv.FormatInt(componentID, 10) + "/consumer-apis"
-	requestBody, attachment := marshalRequestBody(t, component.ConsumerAPICreateRequestV1{APIID: apiID})
+	route := environment.server.URL + "/v1/components/" + strconv.FormatInt(componentID, 10) + "/apis"
+	requestBody, attachment := marshalRequestBody(t, testRequest)
 	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, route, requestBody)
-	t.Require().NoError(err, "consumer API relationship request is built without error")
+	t.Require().NoError(err)
 	request.Header.Set("Content-Type", "application/json")
-	t.Attach("Send consumer API relationship request", allureJSONAttachment(t, attachment))
+	t.Attach("Send API creation request", allureJSONAttachment(t, attachment))
 
 	response, err := client.Do(request)
-	t.Require().NoError(err, "consumer API relationship request is sent without error")
+	t.Require().NoError(err)
 	defer response.Body.Close()
-	return response.StatusCode
+	created, _ := unmarshalResponseBody[httpapis.ResponseV1](t, response)
+	return created, response.StatusCode
+}
+
+func createAPIStatus(
+	ctx context.Context,
+	client *http.Client,
+	componentID int64,
+	requestBody httpapis.CreateRequestV1,
+) (int, error) {
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return 0, err
+	}
+	route := environment.server.URL + "/v1/components/" + strconv.FormatInt(componentID, 10) + "/apis"
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, route, bytes.NewReader(body))
+	if err != nil {
+		return 0, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := client.Do(request)
+	if err != nil {
+		return 0, err
+	}
+	defer response.Body.Close()
+	return response.StatusCode, nil
+}
+
+func createTestClient(
+	t T,
+	client *http.Client,
+	componentID int64,
+	testRequest httpclients.CreateRequestV1,
+) (httpclients.ResponseV1, int) {
+	t.Helper()
+	route := environment.server.URL + "/v1/components/" + strconv.FormatInt(componentID, 10) + "/clients"
+	requestBody, attachment := marshalRequestBody(t, testRequest)
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, route, requestBody)
+	t.Require().NoError(err)
+	request.Header.Set("Content-Type", "application/json")
+	t.Attach("Send client creation request", allureJSONAttachment(t, attachment))
+
+	response, err := client.Do(request)
+	t.Require().NoError(err)
+	defer response.Body.Close()
+	created, _ := unmarshalResponseBody[httpclients.ResponseV1](t, response)
+	return created, response.StatusCode
+}
+
+func createClientStatus(
+	ctx context.Context,
+	client *http.Client,
+	componentID int64,
+	requestBody httpclients.CreateRequestV1,
+) (int, error) {
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return 0, err
+	}
+	route := environment.server.URL + "/v1/components/" + strconv.FormatInt(componentID, 10) + "/clients"
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, route, bytes.NewReader(body))
+	if err != nil {
+		return 0, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	response, err := client.Do(request)
+	if err != nil {
+		return 0, err
+	}
+	defer response.Body.Close()
+	return response.StatusCode, nil
 }
 
 func getTestComponent(t T, client *http.Client, componentID int64) (component.ResponseV1, int) {
@@ -465,4 +697,20 @@ func getTestComponent(t T, client *http.Client, componentID int64) (component.Re
 	returnedComponent, attachment := unmarshalResponseBody[component.ResponseV1](t, response)
 	t.Attach("Received component response", allureJSONAttachment(t, attachment))
 	return returnedComponent, response.StatusCode
+}
+
+func listTestComponents(
+	t T,
+	client *http.Client,
+	productID int64,
+) (httputil.ListResponse[component.ResponseV1], int) {
+	t.Helper()
+	route := environment.server.URL + "/v1/products/" + strconv.FormatInt(productID, 10) + "/components"
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, route, nil)
+	t.Require().NoError(err)
+	response, err := client.Do(request)
+	t.Require().NoError(err)
+	defer response.Body.Close()
+	listed, _ := unmarshalResponseBody[httputil.ListResponse[component.ResponseV1]](t, response)
+	return listed, response.StatusCode
 }

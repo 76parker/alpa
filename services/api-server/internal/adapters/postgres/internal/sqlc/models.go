@@ -12,10 +12,9 @@ import (
 type InventoryComponentType string
 
 const (
-	InventoryComponentTypeBackendService   InventoryComponentType = "backend-service"
-	InventoryComponentTypeFrontendService  InventoryComponentType = "frontend-service"
-	InventoryComponentTypeInfrastructure   InventoryComponentType = "infrastructure"
-	InventoryComponentTypeBackgroundWorker InventoryComponentType = "background-worker"
+	InventoryComponentTypeBackendService  InventoryComponentType = "backend-service"
+	InventoryComponentTypeFrontendService InventoryComponentType = "frontend-service"
+	InventoryComponentTypeInfrastructure  InventoryComponentType = "infrastructure"
 )
 
 func (e *InventoryComponentType) Scan(src interface{}) error {
@@ -57,8 +56,7 @@ func (e InventoryComponentType) Valid() bool {
 	switch e {
 	case InventoryComponentTypeBackendService,
 		InventoryComponentTypeFrontendService,
-		InventoryComponentTypeInfrastructure,
-		InventoryComponentTypeBackgroundWorker:
+		InventoryComponentTypeInfrastructure:
 		return true
 	}
 	return false
@@ -171,11 +169,11 @@ func (e InventoryProductCriticality) Valid() bool {
 }
 
 type InventoryApi struct {
-	ID                  int64
-	ProviderComponentID int64
-	Name                string
-	ApiType             string
-	NetworkExposure     InventoryNetworkExposure
+	ID              int64
+	ComponentID     int64
+	Name            string
+	ApiType         string
+	NetworkExposure InventoryNetworkExposure
 }
 
 type InventoryComponent struct {
@@ -187,9 +185,14 @@ type InventoryComponent struct {
 	Details       []byte
 }
 
-type InventoryComponentApiConsumer struct {
-	ComponentID int64
-	ApiID       int64
+type InventoryComponentClient struct {
+	ID                int64
+	ComponentID       int64
+	ClientName        string
+	Role              string
+	CommunicationType string
+	Description       *string
+	ApiID             *int64
 }
 
 type InventoryProduct struct {

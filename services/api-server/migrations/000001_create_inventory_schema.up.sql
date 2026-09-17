@@ -31,8 +31,7 @@ CREATE UNIQUE INDEX inventory_unique_product_code ON inventory.products (workspa
 CREATE TYPE inventory.component_type AS ENUM (
     'backend-service',
     'frontend-service',
-    'infrastructure',
-    'background-worker'
+    'infrastructure'
 );
 
 CREATE TABLE inventory.components (
@@ -53,21 +52,24 @@ CREATE TYPE inventory.network_exposure AS ENUM (
 
 CREATE TABLE inventory.apis (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    provider_component_id BIGINT NOT NULL REFERENCES inventory.components (id) ON DELETE CASCADE,
+    component_id BIGINT NOT NULL REFERENCES inventory.components (id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     api_type TEXT NOT NULL,
     network_exposure inventory.network_exposure NOT NULL
 );
 
-CREATE INDEX apis_provider_component_id_idx ON inventory.apis (provider_component_id);
+CREATE INDEX apis_component_id_idx ON inventory.apis (component_id);
 
--- Table for consumer component/API relations
--- Provider ownership is stored directly on inventory.apis.
-
-CREATE TABLE inventory.component_api_consumers (
+-- Table for component clients
+CREATE TABLE inventory.component_clients (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     component_id BIGINT NOT NULL REFERENCES inventory.components (id) ON DELETE CASCADE,
-    api_id BIGINT NOT NULL REFERENCES inventory.apis (id) ON DELETE CASCADE,
-    PRIMARY KEY (component_id, api_id)
+    client_name TEXT NOT NULL,
+    role TEXT NOT NULL,
+    communication_type TEXT NOT NULL,
+    description TEXT,
+    api_id BIGINT REFERENCES inventory.apis (id) ON DELETE SET NULL
 );
 
-CREATE INDEX component_api_consumers_api_id_idx ON inventory.component_api_consumers (api_id);
+CREATE INDEX component_clients_component_id_idx ON inventory.component_clients (component_id);
+CREATE INDEX component_clients_api_id_idx ON inventory.component_clients (api_id);

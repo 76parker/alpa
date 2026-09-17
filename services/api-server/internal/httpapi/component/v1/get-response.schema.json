@@ -2,76 +2,275 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "product_id", "name", "type", "description", "details", "apis"],
+  "required": [
+    "id",
+    "product_id",
+    "name",
+    "type",
+    "description",
+    "details",
+    "apis",
+    "clients"
+  ],
   "properties": {
-    "id": { "type": "integer", "minimum": 1 },
-    "product_id": { "type": "integer", "minimum": 1 },
-    "name": { "type": "string" },
-    "type": { "type": "string", "maxLength": 50, "enum": ["backend-service", "frontend-service", "infrastructure", "background-worker"] },
-    "description": { "type": "string" },
-    "details": { "type": "object" },
-    "apis": { "type": "array", "items": { "$ref": "#/$defs/api" } }
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "product_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "maxLength": 50,
+      "enum": [
+        "backend-service",
+        "frontend-service",
+        "infrastructure"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "details": {
+      "type": "object"
+    },
+    "apis": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/api"
+      }
+    },
+    "clients": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/client"
+      }
+    }
   },
   "allOf": [
     {
-      "if": { "properties": { "type": { "type": "string", "maxLength": 50, "enum": ["backend-service", "frontend-service"] } }, "required": ["type"] },
-      "then": { "properties": { "details": { "$ref": "#/$defs/service" } } }
+      "if": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "maxLength": 50,
+            "enum": [
+              "backend-service",
+              "frontend-service"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "$ref": "#/$defs/service"
+          }
+        }
+      }
     },
     {
-      "if": { "properties": { "type": { "const": "infrastructure" } }, "required": ["type"] },
-      "then": { "properties": { "details": { "$ref": "#/$defs/infrastructure" } } }
-    },
-    {
-      "if": { "properties": { "type": { "const": "background-worker" } }, "required": ["type"] },
-      "then": { "properties": { "details": { "$ref": "#/$defs/background_worker" } } }
+      "if": {
+        "properties": {
+          "type": {
+            "const": "infrastructure"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "details": {
+            "$ref": "#/$defs/infrastructure"
+          }
+        }
+      }
     }
   ],
   "$defs": {
     "api": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "api_type", "network_exposure", "role"],
+      "required": [
+        "id",
+        "name",
+        "api_type",
+        "network_exposure"
+      ],
       "properties": {
-        "id": { "type": "integer", "minimum": 1 },
-        "name": { "type": "string" },
-        "api_type": { "type": "string", "maxLength": 50, "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event", "topic", "exchange", "queue", "native-protocol"] },
-        "network_exposure": { "type": "string", "maxLength": 50, "enum": ["internal", "internet"] },
-        "role": { "type": "string", "maxLength": 50, "enum": ["provider", "consumer"] }
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "api_type": {
+          "type": "string",
+          "maxLength": 50,
+          "enum": [
+            "rest",
+            "graphql",
+            "grpc",
+            "json-rpc",
+            "soap",
+            "websocket",
+            "odata",
+            "sse",
+            "event-consumer",
+            "topic",
+            "exchange",
+            "queue",
+            "native-protocol"
+          ]
+        },
+        "network_exposure": {
+          "type": "string",
+          "maxLength": 50,
+          "enum": [
+            "internal",
+            "internet"
+          ]
+        }
+      }
+    },
+    "client": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "client_name",
+        "role",
+        "communication_type",
+        "description",
+        "api_id"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "client_name": {
+          "type": "string",
+          "maxLength": 50,
+          "enum": [
+            "s3-client",
+            "rest-client",
+            "graphql-client",
+            "grpc-client",
+            "json-rpc-client",
+            "soap-client",
+            "websocket-client",
+            "odata-client",
+            "sse-client",
+            "kafka-client",
+            "rabbitmq-client",
+            "amqp-client",
+            "redpanda-client",
+            "nats-client",
+            "pulsar-client",
+            "sqs-client",
+            "gcp-pub-sub-client",
+            "azure-service-bus-client",
+            "redis-streams-client",
+            "activemq-client",
+            "ibm-mq-client",
+            "native-protocol-client"
+          ]
+        },
+        "role": {
+          "type": "string",
+          "maxLength": 50,
+          "enum": ["listener", "caller", "producer", "consumer"]
+        },
+        "communication_type": {
+          "type": "string",
+          "maxLength": 50,
+          "enum": ["request-response", "polling", "long-polling", "events", "stream"]
+        },
+        "description": {
+          "type": "string"
+        },
+        "api_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ]
+        }
       }
     },
     "service": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["language", "language_version", "framework"],
+      "required": [
+        "language",
+        "language_version",
+        "framework"
+      ],
       "properties": {
-        "language": { "type": "string" },
-        "language_version": { "type": "string" },
-        "framework": { "type": "string" }
+        "language": {
+          "type": "string"
+        },
+        "language_version": {
+          "type": "string"
+        },
+        "framework": {
+          "type": "string"
+        }
       }
     },
     "infrastructure": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["system", "system_type", "version", "network_address"],
+      "required": [
+        "system",
+        "system_type",
+        "version",
+        "network_address"
+      ],
       "properties": {
-        "system": { "type": "string" },
-        "system_type": {"type": "string", "maxLength": 50, "enum": ["queue/stream", "sql-database", "nosql-database", "workflow-engine"]},
-        "version": { "type": "string" },
-        "network_address": {"type": "array", "maxItems": 10, "items": {"type": "string", "minLength": 1, "maxLength": 50, "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"}}
-      }
-    },
-    "background_worker": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["language", "language_version", "framework", "broker"],
-      "properties": {
-        "language": { "type": "string" },
-        "language_version": { "type": "string" },
-        "framework": { "type": "string" },
-        "broker": {
+        "system": {
+          "type": "string"
+        },
+        "system_type": {
           "type": "string",
           "maxLength": 50,
-          "enum": ["rabbitmq", "kafka", "redpanda", "nats-jetstream", "apache-pulsar", "aws-sqs", "google-cloud-pub-sub", "azure-service-bus", "redis-streams", "activemq", "ibm-mq"]
+          "enum": [
+            "queue/stream",
+            "sql-database",
+            "nosql-database",
+            "workflow-engine"
+          ]
+        },
+        "version": {
+          "type": "string"
+        },
+        "network_address": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"
+          }
         }
       }
     }

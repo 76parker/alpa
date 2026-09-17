@@ -6,35 +6,23 @@
   "properties": {
     "product_id": { "type": "integer", "minimum": 1 },
     "name": { "$ref": "#/$defs/string" },
-    "type": { "type": "string", "maxLength": 50, "enum": ["backend-service", "frontend-service", "infrastructure", "background-worker"] },
+    "type": { "type": "string", "maxLength": 50, "enum": ["backend-service", "frontend-service", "infrastructure"] },
     "description": { "$ref": "#/$defs/description" },
     "details": { "type": "object" },
-    "apis": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/api" }
-    }
+    "apis": { "type": "array", "maxItems": 5, "items": { "$ref": "#/$defs/createAPI" } },
+    "clients": { "type": "array", "maxItems": 5, "items": { "$ref": "#/$defs/createClient" } }
   },
   "allOf": [
     { "if": { "properties": { "type": { "const": "backend-service" } }, "required": ["type"] }, "then": { "properties": { "details": { "$ref": "#/$defs/service" } } } },
     { "if": { "properties": { "type": { "const": "frontend-service" } }, "required": ["type"] }, "then": { "properties": { "details": { "$ref": "#/$defs/service" } } } },
-    { "if": { "properties": { "type": { "const": "infrastructure" } }, "required": ["type"] }, "then": { "properties": { "details": { "$ref": "#/$defs/infrastructure" } } } },
-    { "if": { "properties": { "type": { "const": "background-worker" } }, "required": ["type"] }, "then": { "properties": { "details": { "$ref": "#/$defs/backgroundWorker" } } } }
+    { "if": { "properties": { "type": { "const": "infrastructure" } }, "required": ["type"] }, "then": { "properties": { "details": { "$ref": "#/$defs/infrastructure" } } } }
   ],
   "$defs": {
     "string": { "type": "string", "minLength": 1, "maxLength": 50, "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$" },
     "description": { "type": "string", "minLength": 1, "maxLength": 1000, "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$" },
-    "api": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "api_type", "network_exposure"],
-      "properties": {
-        "name": { "$ref": "#/$defs/string" },
-        "api_type": { "type": "string", "maxLength": 50, "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event", "topic", "exchange", "queue", "native-protocol"] },
-        "network_exposure": { "type": "string", "maxLength": 50, "enum": ["internal", "internet"] }
-      }
-    },
     "service": { "type": "object", "additionalProperties": false, "required": ["language"], "properties": { "language": { "$ref": "#/$defs/string" }, "language_version": { "$ref": "#/$defs/string" }, "framework": { "$ref": "#/$defs/string" } } },
-    "backgroundWorker": { "type": "object", "additionalProperties": false, "required": ["language", "broker"], "properties": { "language": { "$ref": "#/$defs/string" }, "language_version": { "$ref": "#/$defs/string" }, "framework": { "$ref": "#/$defs/string" }, "broker": { "type": "string", "maxLength": 50, "enum": ["rabbitmq", "kafka", "redpanda", "nats-jetstream", "apache-pulsar", "aws-sqs", "google-cloud-pub-sub", "azure-service-bus", "redis-streams", "activemq", "ibm-mq"] } } },
-    "infrastructure": { "type": "object", "additionalProperties": false, "required": ["system", "system_type"], "properties": { "system": { "$ref": "#/$defs/string" }, "system_type": {"type": "string", "maxLength": 50, "enum": ["queue/stream", "sql-database", "nosql-database", "workflow-engine"]}, "version": { "$ref": "#/$defs/string" }, "network_address": {"type": ["array", "null"], "maxItems": 10, "items": {"type": "string", "minLength": 1, "maxLength": 50, "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"}} } }
+    "infrastructure": { "type": "object", "additionalProperties": false, "required": ["system", "system_type"], "properties": { "system": { "$ref": "#/$defs/string" }, "system_type": {"type": "string", "maxLength": 50, "enum": ["queue/stream", "sql-database", "nosql-database", "workflow-engine"]}, "version": { "$ref": "#/$defs/string" }, "network_address": {"type": ["array", "null"], "maxItems": 10, "items": {"type": "string", "minLength": 1, "maxLength": 50, "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"}} } },
+    "createAPI": { "type": "object", "additionalProperties": false, "required": ["name", "api_type", "network_exposure"], "properties": { "name": { "$ref": "#/$defs/string" }, "api_type": { "type": "string", "maxLength": 50, "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event-consumer", "topic", "exchange", "queue", "native-protocol"] }, "network_exposure": { "type": "string", "maxLength": 50, "enum": ["internal", "internet"] } } },
+    "createClient": { "type": "object", "additionalProperties": false, "required": ["client_name", "role", "communication_type"], "properties": { "client_name": { "type": "string", "maxLength": 50, "enum": ["s3-client", "rest-client", "graphql-client", "grpc-client", "json-rpc-client", "soap-client", "websocket-client", "odata-client", "sse-client", "kafka-client", "rabbitmq-client", "amqp-client", "redpanda-client", "nats-client", "pulsar-client", "sqs-client", "gcp-pub-sub-client", "azure-service-bus-client", "redis-streams-client", "activemq-client", "ibm-mq-client", "native-protocol-client"] }, "role": { "type": "string", "maxLength": 50, "enum": ["listener", "caller", "producer", "consumer"] }, "communication_type": { "type": "string", "maxLength": 50, "enum": ["request-response", "polling", "long-polling", "events", "stream"] }, "description": { "$ref": "#/$defs/description" } } }
   }
 }

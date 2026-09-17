@@ -10,7 +10,6 @@ var (
 	ErrTooManyNetworkAddresses      = errors.New("too many network addresses")
 	ErrInvalidComponentName         = errors.New("invalid component name")
 	ErrUnknownComponentType         = errors.New("unknown component type")
-	ErrUnknownBroker                = errors.New("invalid broker")
 	ErrEmptyDetails                 = errors.New("component details cannot be empty")
 	ErrInvalidDetails               = errors.New("invalid component details")
 	ErrComponentDetailsTypeMismatch = errors.New("component details type does not match component type")
@@ -18,8 +17,6 @@ var (
 )
 
 type ComponentType string
-
-type EventBrokerType string
 
 type SystemType string
 
@@ -34,22 +31,9 @@ const (
 	SystemTypeNoSQLDatabase  SystemType = "nosql-database"
 	SystemTypeWorkflowEngine SystemType = "workflow-engine"
 
-	ComponentTypeFrontend         ComponentType = "frontend-service"
-	ComponentTypeBackend          ComponentType = "backend-service"
-	ComponentTypeInfrastructure   ComponentType = "infrastructure"
-	ComponentTypeBackgroundWorker ComponentType = "background-worker"
-
-	RabbitMQBroker        EventBrokerType = "rabbitmq"
-	KafkaBroker           EventBrokerType = "kafka"
-	RedpandaBroker        EventBrokerType = "redpanda"
-	NATSBroker            EventBrokerType = "nats-jetstream"
-	PulsarBroker          EventBrokerType = "apache-pulsar"
-	SQSBroker             EventBrokerType = "aws-sqs"
-	GCPBroker             EventBrokerType = "google-cloud-pub-sub"
-	AzureServiceBusBroker EventBrokerType = "azure-service-bus"
-	RedisStreamsBroker    EventBrokerType = "redis-streams"
-	ActiveMQBroker        EventBrokerType = "activemq"
-	IBMMQBroker           EventBrokerType = "ibm-mq"
+	ComponentTypeFrontend       ComponentType = "frontend-service"
+	ComponentTypeBackend        ComponentType = "backend-service"
+	ComponentTypeInfrastructure ComponentType = "infrastructure"
 )
 
 type Component struct {
@@ -59,11 +43,7 @@ type Component struct {
 	description string
 	details     ComponentDetails
 	apis        []ComponentAPI
-}
-
-type ComponentAPI struct {
-	API  API
-	Role APIRole
+	clients     []ComponentClient
 }
 
 func NewComponent(
@@ -72,7 +52,6 @@ func NewComponent(
 	description string,
 	componentType ComponentType,
 	details ComponentDetails,
-	providerAPIs []API,
 ) (Component, error) {
 	if productID <= 0 {
 		return Component{}, ErrNegativeID
@@ -92,19 +71,14 @@ func NewComponent(
 	if err := details.validate(); err != nil {
 		return Component{}, err
 	}
-	apis := make([]ComponentAPI, len(providerAPIs))
-	for i, api := range providerAPIs {
-		apis[i] = ComponentAPI{
-			API:  api,
-			Role: APIRoleProvider,
-		}
-	}
+
 	return Component{
 		productID:   productID,
 		name:        name,
 		description: description,
 		details:     details,
-		apis:        apis,
+		apis:        make([]ComponentAPI, 0),
+		clients:     make([]ComponentClient, 0),
 	}, nil
 }
 
@@ -112,8 +86,7 @@ func isValidComponentType(componentType ComponentType) bool {
 	switch componentType {
 	case ComponentTypeBackend,
 		ComponentTypeFrontend,
-		ComponentTypeInfrastructure,
-		ComponentTypeBackgroundWorker:
+		ComponentTypeInfrastructure:
 		return true
 	default:
 		return false
@@ -139,8 +112,20 @@ func (c *Component) APIs() []ComponentAPI {
 	return slices.Clone(c.apis)
 }
 
+func (c *Component) Clients() []ComponentClient {
+	return slices.Clone(c.clients)
+}
+
 func (c *Component) Type() ComponentType {
 	return c.details.componentType()
+}
+
+func (c *Component) WithAPIs(apis []ComponentAPI) {
+	c.apis = apis
+}
+
+func (c *Component) WithClients(clients []ComponentClient) {
+	c.clients = clients
 }
 
 func RestoreComponent(
@@ -150,6 +135,7 @@ func RestoreComponent(
 	description string,
 	details ComponentDetails,
 	apis []ComponentAPI,
+	clients []ComponentClient,
 ) (Component, error) {
 	if details == nil {
 		return Component{}, ErrEmptyDetails
@@ -163,6 +149,7 @@ func RestoreComponent(
 		name:        name,
 		description: description,
 		details:     details,
-		apis:        slices.Clone(apis),
+		apis:        append(make([]ComponentAPI, 0, len(apis)), apis...),
+		clients:     append(make([]ComponentClient, 0, len(clients)), clients...),
 	}, nil
 }

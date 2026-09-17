@@ -12,13 +12,10 @@ import (
 )
 
 type application interface {
-	Create(ctx context.Context, input appcomponent.CreateInput) (inventory.Component, error)
+	Create(ctx context.Context, command appcomponent.CreateCommand) (inventory.Component, error)
 	Get(ctx context.Context, id int64) (inventory.Component, error)
 	ListByProduct(ctx context.Context, productID int64, limit int, offset int) ([]inventory.Component, error)
 	Delete(ctx context.Context, id int64) error
-	AddConsumerAPI(ctx context.Context, componentID, apiID int64) error
-	//AddProvidedAPI(ctx context.Context, componentID int64, api appcomponent.APIInput) error
-	RemoveConsumerAPI(ctx context.Context, componentID, apiID int64) error
 }
 
 type Handler struct {
@@ -28,42 +25,6 @@ type Handler struct {
 
 func NewHandler(application application, validate *validator.Validate) *Handler {
 	return &Handler{application: application, validator: validate}
-}
-
-func (h *Handler) AddConsumerAPI(c *gin.Context) {
-	componentID, err := httputil.ParseID(c, "id")
-	if err != nil {
-		httputil.FailRequest(c, err)
-		return
-	}
-	request, err := httputil.DecodeAndValidateJSON[ConsumerAPICreateRequestV1](c, h.validator)
-	if err != nil {
-		httputil.FailRequest(c, err)
-		return
-	}
-	if err := h.application.AddConsumerAPI(c.Request.Context(), componentID, request.APIID); err != nil {
-		httputil.FailRequest(c, err)
-		return
-	}
-	c.Status(http.StatusNoContent)
-}
-
-func (h *Handler) RemoveConsumerAPI(c *gin.Context) {
-	componentID, err := httputil.ParseID(c, "id")
-	if err != nil {
-		httputil.FailRequest(c, err)
-		return
-	}
-	apiID, err := httputil.ParseID(c, "api_id")
-	if err != nil {
-		httputil.FailRequest(c, err)
-		return
-	}
-	if err := h.application.RemoveConsumerAPI(c.Request.Context(), componentID, apiID); err != nil {
-		httputil.FailRequest(c, err)
-		return
-	}
-	c.Status(http.StatusNoContent)
 }
 
 func (h *Handler) Create(c *gin.Context) {
@@ -77,21 +38,29 @@ func (h *Handler) Create(c *gin.Context) {
 		httputil.FailRequest(c, err)
 		return
 	}
-	apis := make([]appcomponent.APIInput, 0, len(request.APIs))
-	for _, api := range request.APIs {
-		apis = append(apis, appcomponent.APIInput{
-			Name:     api.Name,
-			APIType:  api.APIType,
-			Exposure: api.NetworkExposure,
-		})
-	}
-	input := appcomponent.CreateInput{
+	input := appcomponent.CreateCommand{
 		ProductID:     request.ProductID,
 		Name:          request.Name,
 		Description:   stringValue(request.Description),
-		APIs:          apis,
 		ComponentType: request.Type,
 		Details:       details,
+		APIs:          make([]appcomponent.CreateAPICommand, 0, len(request.APIs)),
+		Clients:       make([]appcomponent.CreateClientCommand, 0, len(request.Clients)),
+	}
+	for _, api := range request.APIs {
+		input.APIs = append(input.APIs, appcomponent.CreateAPICommand{
+			Name:            api.Name,
+			APIType:         api.APIType,
+			NetworkExposure: api.NetworkExposure,
+		})
+	}
+	for _, client := range request.Clients {
+		input.Clients = append(input.Clients, appcomponent.CreateClientCommand{
+			ClientName:        client.ClientName,
+			Role:              client.Role,
+			CommunicationType: client.CommunicationType,
+			Description:       stringValue(client.Description),
+		})
 	}
 	component, err := h.application.Create(c.Request.Context(), input)
 	if err != nil {
@@ -136,6 +105,7 @@ func (h *Handler) List(c *gin.Context) {
 		httputil.FailRequest(c, err)
 		return
 	}
+	paginationResponse := httputil.PaginationResponse(pagination)
 	items, err := h.application.ListByProduct(c.Request.Context(), productID, pagination.Limit, pagination.Offset)
 	if err != nil {
 		httputil.FailRequest(c, err)
@@ -150,7 +120,7 @@ func (h *Handler) List(c *gin.Context) {
 		}
 		data = append(data, response)
 	}
-	response := httputil.ListResponse[ResponseV1]{Data: data, Pagination: httputil.PaginationResponse{Limit: pagination.Limit, Offset: pagination.Offset}}
+	response := httputil.ListResponse[ResponseV1]{Data: data, Pagination: paginationResponse}
 	c.JSON(http.StatusOK, response)
 }
 
@@ -166,27 +136,3 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 	c.Status(http.StatusNoContent)
 }
-
-// func (h *Handler) AddProvidedAPI(c *gin.Context) {
-// 	request, err := httputil.DecodeAndValidateJSON[APIRequestV1](c, h.validator)
-// 	if err != nil {
-// 		httputil.FailRequest(c, err)
-// 		return
-// 	}
-// 	componentID, err := httputil.ParseID(c, "id")
-// 	if err != nil {
-// 		httputil.FailRequest(c, err)
-// 		return
-// 	}
-// 	applicationInput := appcomponent.APIInput{
-// 		Name:     request.Name,
-// 		APIType:  request.APIType,
-// 		Exposure: request.NetworkExposure,
-// 	}
-// 	if err := h.application.AddProvidedAPI(c.Request.Context(), componentID, applicationInput); err != nil {
-// 		httputil.FailRequest(c, err)
-// 		return
-// 	}
-// 	c.Status(http.StatusNoContent)
-
-// }

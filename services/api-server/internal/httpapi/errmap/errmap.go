@@ -14,30 +14,38 @@ import (
 type Code string
 
 const (
-	CodeUnknownSystemType            Code = "unknown_system_type"
-	CodeTooManyNetworkAddresses      Code = "too_many_network_addresses"
-	CodeInvalidProductCode           Code = "invalid_product_code"
-	CodeInvalidID                    Code = "invalid_id"
-	CodeInvalidWorkspaceName         Code = "invalid_workspace_name"
-	CodeInvalidProductName           Code = "invalid_product_name"
-	CodeInvalidCriticality           Code = "invalid_criticality"
-	CodeInvalidComponentName         Code = "invalid_component_name"
-	CodeUnknownComponentType         Code = "unknown_component_type"
-	CodeUnknownBroker                Code = "unknown_broker"
-	CodeEmptyComponentDetails        Code = "empty_component_details"
-	CodeInvalidComponentDetails      Code = "invalid_component_details"
-	CodeComponentDetailsTypeMismatch Code = "component_details_type_mismatch"
-	CodeInvalidComponentDescription  Code = "invalid_component_description"
-	CodeInvalidAPIName               Code = "invalid_api_name"
-	CodeUnknownAPIType               Code = "unknown_api_type"
-	CodeInvalidNetworkExposure       Code = "invalid_network_exposure"
-	CodeInvalidRequest               Code = "invalid_request"
-	CodeInvalidPagination            Code = "invalid_pagination"
-	CodeInvalidConsumerAPILink       Code = "invalid_consumer_api_link"
-	CodeConsumerAPILinkAlreadyExists Code = "consumer_api_link_already_exists"
-	CodeNotFound                     Code = "not_found"
-	CodeInternal                     Code = "internal"
-	CodeAlreadyExists                Code = "resource_already_exists"
+	CodeUnknownSystemType                          Code = "unknown_system_type"
+	CodeTooManyNetworkAddresses                    Code = "too_many_network_addresses"
+	CodeInvalidProductCode                         Code = "invalid_product_code"
+	CodeInvalidID                                  Code = "invalid_id"
+	CodeInvalidWorkspaceName                       Code = "invalid_workspace_name"
+	CodeInvalidProductName                         Code = "invalid_product_name"
+	CodeInvalidCriticality                         Code = "invalid_criticality"
+	CodeInvalidComponentName                       Code = "invalid_component_name"
+	CodeUnknownComponentType                       Code = "unknown_component_type"
+	CodeEmptyComponentDetails                      Code = "empty_component_details"
+	CodeInvalidComponentDetails                    Code = "invalid_component_details"
+	CodeComponentDetailsTypeMismatch               Code = "component_details_type_mismatch"
+	CodeInvalidComponentDescription                Code = "invalid_component_description"
+	CodeInvalidAPIName                             Code = "invalid_api_name"
+	CodeUnknownAPIType                             Code = "unknown_api_type"
+	CodeInvalidNetworkExposure                     Code = "invalid_network_exposure"
+	CodeAPILimitExceeded                           Code = "api_limit_exceeded"
+	CodeInvalidClientType                          Code = "invalid_client_type"
+	CodeAsyncClientCannotBeCallerRole              Code = "async_client_cannot_be_caller_role"
+	CodeAsyncClientInvalidCommunicationType        Code = "async_client_invalid_communication_type"
+	CodeStreamingClientCanBeOnlyListener           Code = "streaming_client_can_be_only_listener"
+	CodeStreamingClientInvalidCommunicationType    Code = "streaming_client_invalid_communication_type"
+	CodeSyncClientCanBeOnlyCallerRole              Code = "sync_client_can_be_only_caller_role"
+	CodeSyncCallerCannotHaveEventCommunicationType Code = "sync_caller_cannot_have_event_communication_type"
+	CodeInvalidClientBinding                       Code = "invalid_client_binding"
+	CodeClientAlreadyBound                         Code = "client_already_bound"
+	CodeClientLimitExceeded                        Code = "client_limit_exceeded"
+	CodeInvalidRequest                             Code = "invalid_request"
+	CodeInvalidPagination                          Code = "invalid_pagination"
+	CodeNotFound                                   Code = "not_found"
+	CodeInternal                                   Code = "internal"
+	CodeAlreadyExists                              Code = "resource_already_exists"
 )
 
 var (
@@ -78,8 +86,6 @@ func Resolve(err error) (Error, bool) {
 		return newBadRequest(CodeInvalidComponentName, "invalid component name"), true
 	case errors.Is(err, inventory.ErrUnknownComponentType):
 		return newBadRequest(CodeUnknownComponentType, "unknown component type"), true
-	case errors.Is(err, inventory.ErrUnknownBroker):
-		return newBadRequest(CodeUnknownBroker, "unknown broker"), true
 	case errors.Is(err, inventory.ErrEmptyDetails):
 		return newBadRequest(CodeEmptyComponentDetails, "component details cannot be empty"), true
 	case errors.Is(err, inventory.ErrInvalidDetails):
@@ -94,10 +100,28 @@ func Resolve(err error) (Error, bool) {
 		return newBadRequest(CodeUnknownAPIType, "unknown api type"), true
 	case errors.Is(err, inventory.ErrInvalidExposure):
 		return newBadRequest(CodeInvalidNetworkExposure, "invalid network exposure"), true
-	case errors.Is(err, inventory.ErrConsumerAPIHasSameProvider):
-		return newBadRequest(CodeInvalidConsumerAPILink, "component cannot consume its own api"), true
-	case errors.Is(err, inventory.ErrConsumerAPIAlreadyExists):
-		return newError("consumer api link already exists", CodeConsumerAPILinkAlreadyExists, http.StatusConflict), true
+	case errors.Is(err, inventory.ErrAPILimitExceeded):
+		return newBadRequest(CodeAPILimitExceeded, inventory.ErrAPILimitExceeded.Error()), true
+	case errors.Is(err, inventory.ErrInvalidClientType):
+		return newBadRequest(CodeInvalidClientType, "invalid client type"), true
+	case errors.Is(err, inventory.ErrAsyncClientCannotBeCallerRole):
+		return newBadRequest(CodeAsyncClientCannotBeCallerRole, inventory.ErrAsyncClientCannotBeCallerRole.Error()), true
+	case errors.Is(err, inventory.ErrAsyncClientInvalidCommunicationType):
+		return newBadRequest(CodeAsyncClientInvalidCommunicationType, inventory.ErrAsyncClientInvalidCommunicationType.Error()), true
+	case errors.Is(err, inventory.ErrStreamingClientCanBeOnlyListener):
+		return newBadRequest(CodeStreamingClientCanBeOnlyListener, inventory.ErrStreamingClientCanBeOnlyListener.Error()), true
+	case errors.Is(err, inventory.ErrStreamingClientInvalidCommunicationType):
+		return newBadRequest(CodeStreamingClientInvalidCommunicationType, inventory.ErrStreamingClientInvalidCommunicationType.Error()), true
+	case errors.Is(err, inventory.ErrSyncClientCanBeOnlyCallerRole):
+		return newBadRequest(CodeSyncClientCanBeOnlyCallerRole, inventory.ErrSyncClientCanBeOnlyCallerRole.Error()), true
+	case errors.Is(err, inventory.ErrSyncCallerCannotHaveEventCommunicationType):
+		return newBadRequest(CodeSyncCallerCannotHaveEventCommunicationType, inventory.ErrSyncCallerCannotHaveEventCommunicationType.Error()), true
+	case errors.Is(err, inventory.ErrInvalidClientBinding):
+		return newBadRequest(CodeInvalidClientBinding, "invalid client binding"), true
+	case errors.Is(err, inventory.ErrClientAlreadyBound):
+		return newError("client is already bound", CodeClientAlreadyBound, http.StatusConflict), true
+	case errors.Is(err, inventory.ErrClientLimitExceeded):
+		return newBadRequest(CodeClientLimitExceeded, inventory.ErrClientLimitExceeded.Error()), true
 	case errors.Is(err, postgres.ErrNotFound):
 		return newError("resource not found", CodeNotFound, http.StatusNotFound), true
 	case errors.Is(err, postgres.ErrUniqueViolation):

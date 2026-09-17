@@ -47,7 +47,7 @@ func TestProductE2E(t *testing.T) {
 			t.Assert().Nil(product.OwningTeamID, "created product has no owning team")
 		})
 
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 	t.Run("CreateProductWithInvalidCriticality", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Product")
@@ -71,7 +71,7 @@ func TestProductE2E(t *testing.T) {
 		allure.Step(t, "verify rejection for invalid criticality", func(t T) {
 			t.Require().Equal(http.StatusBadRequest, statusCode, "product creation with invalid criticality returns 400 Bad Request")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 	t.Run("CreateProductWithUnexistingWorkspace", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Product")
@@ -91,7 +91,7 @@ func TestProductE2E(t *testing.T) {
 		allure.Step(t, "verify rejection for missing workspace", func(t T) {
 			t.Require().Equal(http.StatusNotFound, statusCode, "product creation in a missing workspace returns 404 Not Found")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 	t.Run("CreateProductWithInvalidName", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Product")
@@ -115,7 +115,7 @@ func TestProductE2E(t *testing.T) {
 		allure.Step(t, "verify rejection for invalid product name", func(t T) {
 			t.Require().Equal(http.StatusBadRequest, statusCode, "product creation with an invalid name returns 400 Bad Request")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 	t.Run("CreateProductWithInvalidProductCode", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Product")
@@ -139,7 +139,7 @@ func TestProductE2E(t *testing.T) {
 		allure.Step(t, "verify rejection for invalid product code", func(t T) {
 			t.Require().Equal(http.StatusBadRequest, statusCode, "product creation with an invalid code returns 400 Bad Request")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 	t.Run("DeleteProductExistingProduct", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Product")
@@ -167,7 +167,7 @@ func TestProductE2E(t *testing.T) {
 		allure.Step(t, "verify product deletion", func(t T) {
 			t.Require().Equal(http.StatusNoContent, statusCode, "product deletion returns 204 No Content")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 	t.Run("DeleteUnexistingProduct", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Product")
@@ -180,7 +180,7 @@ func TestProductE2E(t *testing.T) {
 		allure.Step(t, "verify deletion of missing product", func(t T) {
 			t.Require().Equal(http.StatusNotFound, statusCode, "deleting a missing product returns 404 Not Found")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 	t.Run("CreateTwoProductsWithSameProductCode", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Product")
@@ -208,7 +208,7 @@ func TestProductE2E(t *testing.T) {
 		allure.Step(t, "verify second product with same product code is rejected", func(t T) {
 			t.Require().Equal(http.StatusConflict, statusCode, "second product creation returns 409 Conflict")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 }
 
 func createTestProduct(t T,

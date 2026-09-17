@@ -17,3 +17,10 @@ func ParseID(c *gin.Context, parameter string) (int64, error) {
 
 	return id, nil
 }
+
+func OptionalString(str *string) string {
+	if str == nil {
+		return ""
+	}
+	return *str
+}

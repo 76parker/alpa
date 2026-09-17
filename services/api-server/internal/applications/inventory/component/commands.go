@@ -22,15 +22,6 @@ type FrontendServiceDetails struct {
 
 func (FrontendServiceDetails) isComponentDetails() {}
 
-type BackgroundWorkerDetails struct {
-	CoreLanguage    string
-	LanguageVersion string
-	MainFramework   string
-	Broker          inventory.EventBrokerType
-}
-
-func (BackgroundWorkerDetails) isComponentDetails() {}
-
 type InfrastructureDetails struct {
 	System         string
 	Version        string
@@ -40,17 +31,25 @@ type InfrastructureDetails struct {
 
 func (InfrastructureDetails) isComponentDetails() {}
 
-type CreateInput struct {
+type CreateCommand struct {
 	ProductID     int64
 	Name          string
 	Description   string
-	APIs          []APIInput
 	ComponentType inventory.ComponentType
 	Details       Details
+	APIs          []CreateAPICommand
+	Clients       []CreateClientCommand
 }
 
-type APIInput struct {
-	Name     string
-	APIType  inventory.APIType
-	Exposure inventory.NetworkExposure
+type CreateAPICommand struct {
+	Name            string
+	APIType         inventory.APIType
+	NetworkExposure inventory.NetworkExposure
+}
+
+type CreateClientCommand struct {
+	ClientName        inventory.ComponentClientName
+	Role              inventory.ComponentClientRole
+	CommunicationType inventory.CommunicationType
+	Description       string
 }

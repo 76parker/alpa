@@ -33,45 +33,6 @@ func (d BackendServiceComponentDetails) validate() error {
 	return nil
 }
 
-type BackgroundWorkerComponentDetails struct {
-	Language        string
-	LanguageVersion string
-	MainFramework   string
-	Broker          EventBrokerType
-}
-
-func NewBackgroundWorkerComponentDetails(
-	language,
-	languageVersion,
-	mainFramework string,
-	broker EventBrokerType,
-) (BackgroundWorkerComponentDetails, error) {
-	details := BackgroundWorkerComponentDetails{
-		Language:        language,
-		LanguageVersion: languageVersion,
-		MainFramework:   mainFramework,
-		Broker:          broker,
-	}
-	if err := details.validate(); err != nil {
-		return BackgroundWorkerComponentDetails{}, err
-	}
-	return details, nil
-}
-
-func (BackgroundWorkerComponentDetails) componentType() ComponentType {
-	return ComponentTypeBackgroundWorker
-}
-
-func (d BackgroundWorkerComponentDetails) validate() error {
-	if d.Language == "" {
-		return ErrInvalidDetails
-	}
-	if !isValidBroker(d.Broker) {
-		return ErrUnknownBroker
-	}
-	return nil
-}
-
 type InfrastructureComponentDetails struct {
 	System         string
 	SystemType     SystemType
@@ -147,25 +108,6 @@ func (d FrontendServiceComponentDetails) validate() error {
 		return ErrInvalidDetails
 	}
 	return nil
-}
-
-func isValidBroker(broker EventBrokerType) bool {
-	switch broker {
-	case RabbitMQBroker,
-		KafkaBroker,
-		RedpandaBroker,
-		NATSBroker,
-		PulsarBroker,
-		SQSBroker,
-		GCPBroker,
-		AzureServiceBusBroker,
-		RedisStreamsBroker,
-		ActiveMQBroker,
-		IBMMQBroker:
-		return true
-	}
-
-	return false
 }
 
 func isValidSystemType(systemType SystemType) bool {

@@ -36,7 +36,7 @@ func TestWorkspaceE2E(t *testing.T) {
 			t.Assert().Equal(http.StatusCreated, statusCode, "workspace creation returns 201 Created")
 			t.Assert().Equal(expectedName, createdWorkspace.Name, "created workspace has the requested name")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 
 	t.Run("InvalidCreateRequest", testo.Test(func(t T) {
 		t.Epic("Inventory")
@@ -51,7 +51,7 @@ func TestWorkspaceE2E(t *testing.T) {
 		allure.Step(t, "verify rejection for invalid workspace name", func(t T) {
 			t.Assert().Equal(http.StatusBadRequest, statusCode, "workspace creation with an invalid name returns 400 Bad Request")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 
 	// Listing must preserve repository order and expose the requested page metadata.
 	t.Run("ListWorkspacesWithPagination", testo.Test(func(t T) {
@@ -77,7 +77,7 @@ func TestWorkspaceE2E(t *testing.T) {
 			t.Assert().Equal(2, response.Pagination.Limit, "workspace list returns the requested limit")
 			t.Assert().Equal(1, response.Pagination.Offset, "workspace list returns the requested offset")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 
 	// Invalid pagination must be rejected before the application list operation runs.
 	t.Run("RejectInvalidListPagination", testo.Test(func(t T) {
@@ -93,7 +93,7 @@ func TestWorkspaceE2E(t *testing.T) {
 		allure.Step(t, "verify invalid pagination response", func(t T) {
 			t.Assert().Equal(http.StatusBadRequest, statusCode, "workspace list rejects limits above 100")
 		})
-	}, allure.WithOutputDir("../../test-results/allure")))
+	}, allureArtifactsDir))
 }
 
 func createTestWorkspace(t T, serverURL string, client *http.Client, workspaceName string) (workspace.ResponseV1, int) {

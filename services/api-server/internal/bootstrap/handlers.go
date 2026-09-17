@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/76parker/alpa/internal/httpapi"
+	"github.com/76parker/alpa/internal/httpapi/apis"
+	"github.com/76parker/alpa/internal/httpapi/clients"
 	"github.com/76parker/alpa/internal/httpapi/component"
 	"github.com/76parker/alpa/internal/httpapi/product"
 	"github.com/76parker/alpa/internal/httpapi/workspace"
@@ -18,6 +20,8 @@ func newHandlers(applications *applications) (httpapi.Handlers, error) {
 	return httpapi.Handlers{
 		Workspace: workspace.NewHandler(applications.workspaceApp, validate),
 		Component: component.NewHandler(applications.componentApp, validate),
+		APIs:      apis.NewHandler(applications.apiApp, validate),
+		Clients:   clients.NewHandler(applications.clientApp, validate),
 		Product:   product.NewHandler(applications.productApp, validate),
 	}, nil
 }

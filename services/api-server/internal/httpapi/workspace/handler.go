@@ -72,11 +72,9 @@ func (h *Handler) List(c *gin.Context) {
 	for _, item := range items {
 		data = append(data, NewResponseV1(item))
 	}
+	paginationResponse := httputil.PaginationResponse(pagination)
 	c.JSON(http.StatusOK, httputil.ListResponse[ResponseV1]{
-		Data: data,
-		Pagination: httputil.PaginationResponse{
-			Limit:  pagination.Limit,
-			Offset: pagination.Offset,
-		},
+		Data:       data,
+		Pagination: paginationResponse,
 	})
 }

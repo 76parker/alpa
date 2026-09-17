@@ -18,30 +18,27 @@ type CreateRequestV1 struct {
 	Type        inventory.ComponentType `json:"type" validate:"max=50,allowed_text"`
 	Description *string                 `json:"description,omitempty" validate:"omitempty,min=1,max=1000,allowed_text"`
 	Details     json.RawMessage         `json:"details"`
-	APIs        []APIRequestV1          `json:"apis,omitempty" validate:"dive"`
+	APIs        []CreateAPIRequestV1    `json:"apis" validate:"max=5,dive"`
+	Clients     []CreateClientRequestV1 `json:"clients" validate:"max=5,dive"`
 }
 
-type ConsumerAPICreateRequestV1 struct {
-	APIID int64 `json:"api_id"`
+type CreateAPIRequestV1 struct {
+	Name            string                    `json:"name" validate:"required,max=50,allowed_text"`
+	APIType         inventory.APIType         `json:"api_type" validate:"required,max=50,allowed_text"`
+	NetworkExposure inventory.NetworkExposure `json:"network_exposure" validate:"required,max=50,allowed_text"`
 }
 
-type APIRequestV1 struct {
-	Name            string                    `json:"name" validate:"max=50,allowed_text"`
-	APIType         inventory.APIType         `json:"api_type" validate:"max=50,allowed_text"`
-	NetworkExposure inventory.NetworkExposure `json:"network_exposure" validate:"max=50,allowed_text"`
+type CreateClientRequestV1 struct {
+	ClientName        inventory.ComponentClientName `json:"client_name" validate:"required,max=50,allowed_text"`
+	Role              inventory.ComponentClientRole `json:"role" validate:"required,max=50,allowed_text"`
+	CommunicationType inventory.CommunicationType   `json:"communication_type" validate:"required,max=50,allowed_text"`
+	Description       *string                       `json:"description,omitempty" validate:"omitempty,min=1,max=1000,allowed_text"`
 }
 
 type ServiceDetailsV1 struct {
 	Language        string  `json:"language" validate:"max=50,allowed_text"`
 	LanguageVersion *string `json:"language_version,omitempty" validate:"omitempty,min=1,max=50,allowed_text"`
 	Framework       *string `json:"framework,omitempty" validate:"omitempty,min=1,max=50,allowed_text"`
-}
-
-type BackgroundWorkerDetailsV1 struct {
-	Language        string                    `json:"language" validate:"max=50,allowed_text"`
-	LanguageVersion *string                   `json:"language_version,omitempty" validate:"omitempty,min=1,max=50,allowed_text"`
-	Framework       *string                   `json:"framework,omitempty" validate:"omitempty,min=1,max=50,allowed_text"`
-	Broker          inventory.EventBrokerType `json:"broker" validate:"max=50,allowed_text"`
 }
 
 type InfrastructureDetailsV1 struct {
@@ -72,12 +69,6 @@ func decodeDetails(
 			return nil, err
 		}
 		return appcomponent.FrontendServiceDetails{CoreLanguage: details.Language, LanguageVersion: stringValue(details.LanguageVersion), MainFramework: stringValue(details.Framework)}, nil
-	case inventory.ComponentTypeBackgroundWorker:
-		details, err := httputil.DecodeAndValidateJSONBytes[BackgroundWorkerDetailsV1](raw, validate)
-		if err != nil {
-			return nil, err
-		}
-		return appcomponent.BackgroundWorkerDetails{CoreLanguage: details.Language, LanguageVersion: stringValue(details.LanguageVersion), MainFramework: stringValue(details.Framework), Broker: details.Broker}, nil
 	case inventory.ComponentTypeInfrastructure:
 		details, err := httputil.DecodeAndValidateJSONBytes[InfrastructureDetailsV1](raw, validate)
 		if err != nil {
@@ -108,23 +99,26 @@ func (r *CreateRequestV1) Normalize() {
 	for i := range r.APIs {
 		r.APIs[i].Normalize()
 	}
+	for i := range r.Clients {
+		r.Clients[i].Normalize()
+	}
 }
 
-func (r *APIRequestV1) Normalize() {
+func (r *CreateAPIRequestV1) Normalize() {
 	r.Name = strings.TrimSpace(r.Name)
 	r.APIType = inventory.APIType(strings.TrimSpace(string(r.APIType)))
 	r.NetworkExposure = inventory.NetworkExposure(strings.TrimSpace(string(r.NetworkExposure)))
 }
 
-func (r *ServiceDetailsV1) Normalize() {
-	r.Language = strings.TrimSpace(r.Language)
-	trimOptional(r.LanguageVersion)
-	trimOptional(r.Framework)
+func (r *CreateClientRequestV1) Normalize() {
+	r.ClientName = inventory.ComponentClientName(strings.TrimSpace(string(r.ClientName)))
+	r.Role = inventory.ComponentClientRole(strings.TrimSpace(string(r.Role)))
+	r.CommunicationType = inventory.CommunicationType(strings.TrimSpace(string(r.CommunicationType)))
+	trimOptional(r.Description)
 }
 
-func (r *BackgroundWorkerDetailsV1) Normalize() {
+func (r *ServiceDetailsV1) Normalize() {
 	r.Language = strings.TrimSpace(r.Language)
-	r.Broker = inventory.EventBrokerType(strings.TrimSpace(string(r.Broker)))
 	trimOptional(r.LanguageVersion)
 	trimOptional(r.Framework)
 }

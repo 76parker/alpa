@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/76parker/alpa/internal/adapters/postgres"
-	"github.com/76parker/alpa/internal/adapters/postgres/inventory/internal/sqlc"
+	"github.com/76parker/alpa/internal/adapters/postgres/internal/sqlc"
 	"github.com/76parker/alpa/internal/domain/inventory"
 	"github.com/jackc/pgx/v5/pgconn"
 )

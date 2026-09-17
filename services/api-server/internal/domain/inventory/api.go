@@ -6,10 +6,10 @@ var (
 	ErrInvalidAPIName  = errors.New("invalid api name")
 	ErrUnknownAPIType  = errors.New("unknown component api type")
 	ErrInvalidExposure = errors.New("unknown network exposure: available exposures: 'internal', 'internet'")
+	ErrAPILimitExceeded = errors.New("api limit exceeded: max is 5")
 )
 
 type APIType string
-type APIRole string
 type NetworkExposure string
 
 const (
@@ -21,58 +21,55 @@ const (
 	APITypeWebSocket      APIType = "websocket"
 	APITypeOdata          APIType = "odata"
 	APITypeSSE            APIType = "sse"
-	APITypeEventStream    APIType = "event"
+	APITypeEventConsumer  APIType = "event-consumer"
 	APITypeTopic          APIType = "topic"
 	APITypeExchange       APIType = "exchange"
 	APITypeQueue          APIType = "queue"
 	APITypeNativeProtocol APIType = "native-protocol"
 
-	APIRoleProvider APIRole = "provider"
-	APIRoleConsumer APIRole = "consumer"
-
 	NetworkExposureInternal NetworkExposure = "internal"
 	NetworkExposureInternet NetworkExposure = "internet"
 )
 
-type API struct {
+type ComponentAPI struct {
 	id       int64
 	name     string
 	exposure NetworkExposure
 	apiType  APIType
 }
 
-func NewAPI(
+func NewComponentAPI(
 	name string,
 	apiType APIType,
 	exposure NetworkExposure,
-) (API, error) {
+) (ComponentAPI, error) {
 	if name == "" {
-		return API{}, ErrInvalidAPIName
+		return ComponentAPI{}, ErrInvalidAPIName
 	}
 	if !isValidAPIType(apiType) {
-		return API{}, ErrUnknownAPIType
+		return ComponentAPI{}, ErrUnknownAPIType
 	}
 
 	if exposure != NetworkExposureInternal && exposure != NetworkExposureInternet {
-		return API{}, ErrInvalidExposure
+		return ComponentAPI{}, ErrInvalidExposure
 	}
-	return API{
+	return ComponentAPI{
 		name:     name,
 		apiType:  apiType,
 		exposure: exposure,
 	}, nil
 }
 
-func (a *API) ID() int64 {
+func (a *ComponentAPI) ID() int64 {
 	return a.id
 }
-func (a *API) Name() string {
+func (a *ComponentAPI) Name() string {
 	return a.name
 }
-func (a *API) Exposure() NetworkExposure {
+func (a *ComponentAPI) Exposure() NetworkExposure {
 	return a.exposure
 }
-func (a *API) APIType() APIType {
+func (a *ComponentAPI) APIType() APIType {
 	return a.apiType
 }
 
@@ -86,7 +83,7 @@ func isValidAPIType(apiType APIType) bool {
 		APITypeWebSocket,
 		APITypeOdata,
 		APITypeSSE,
-		APITypeEventStream,
+		APITypeEventConsumer,
 		APITypeTopic,
 		APITypeExchange,
 		APITypeQueue,
@@ -102,8 +99,8 @@ func RestoreAPI(
 	name string,
 	exposure NetworkExposure,
 	apiType APIType,
-) API {
-	return API{
+) ComponentAPI {
+	return ComponentAPI{
 		id:       id,
 		name:     name,
 		exposure: exposure,

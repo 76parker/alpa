@@ -37,14 +37,6 @@ func Encode(details inventory.ComponentDetails) (json.RawMessage, error) {
 			LanguageVersion: stringPointer(typed.LanguageVersion),
 			MainFramework:   stringPointer(typed.MainFramework),
 		}
-	case inventory.BackgroundWorkerComponentDetails:
-		payload = BackgroundWorkerDetailsV1{
-			SchemaVersion:   schemaVersion,
-			CoreLanguage:    typed.Language,
-			LanguageVersion: stringPointer(typed.LanguageVersion),
-			MainFramework:   stringPointer(typed.MainFramework),
-			Broker:          BackgroundWorkerDetailsV1Broker(typed.Broker),
-		}
 	case inventory.InfrastructureComponentDetails:
 		payload = InfrastructureDetailsV1{
 			SchemaVersion:  schemaVersion,
@@ -112,21 +104,6 @@ func Decode(
 		)
 		if err != nil {
 			return nil, fmt.Errorf("%w: restore frontend service v1: %w", errInvalidDetails, err)
-		}
-		return details, nil
-	case inventory.ComponentTypeBackgroundWorker:
-		var payload BackgroundWorkerDetailsV1
-		if err := json.Unmarshal(raw, &payload); err != nil {
-			return nil, fmt.Errorf("%w: decode background worker v1: %w", errInvalidDetails, err)
-		}
-		details, err := inventory.NewBackgroundWorkerComponentDetails(
-			payload.CoreLanguage,
-			stringValue(payload.LanguageVersion),
-			stringValue(payload.MainFramework),
-			inventory.EventBrokerType(payload.Broker),
-		)
-		if err != nil {
-			return nil, fmt.Errorf("%w: restore background worker v1: %w", errInvalidDetails, err)
 		}
 		return details, nil
 	case inventory.ComponentTypeInfrastructure:

@@ -17,38 +17,6 @@ type BackendServiceDetailsV1 struct {
 	SchemaVersion int `json:"schema_version"`
 }
 
-// Version 1 details for a background worker component.
-type BackgroundWorkerDetailsV1 struct {
-	// Broker corresponds to the JSON schema field "broker".
-	Broker BackgroundWorkerDetailsV1Broker `json:"broker"`
-
-	// CoreLanguage corresponds to the JSON schema field "core_language".
-	CoreLanguage string `json:"core_language"`
-
-	// LanguageVersion corresponds to the JSON schema field "language_version".
-	LanguageVersion *string `json:"language_version,omitempty,omitzero"`
-
-	// MainFramework corresponds to the JSON schema field "main_framework".
-	MainFramework *string `json:"main_framework,omitempty,omitzero"`
-
-	// SchemaVersion corresponds to the JSON schema field "schema_version".
-	SchemaVersion int `json:"schema_version"`
-}
-
-type BackgroundWorkerDetailsV1Broker string
-
-const BackgroundWorkerDetailsV1BrokerActivemq BackgroundWorkerDetailsV1Broker = "activemq"
-const BackgroundWorkerDetailsV1BrokerApachePulsar BackgroundWorkerDetailsV1Broker = "apache-pulsar"
-const BackgroundWorkerDetailsV1BrokerAwsSqs BackgroundWorkerDetailsV1Broker = "aws-sqs"
-const BackgroundWorkerDetailsV1BrokerAzureServiceBus BackgroundWorkerDetailsV1Broker = "azure-service-bus"
-const BackgroundWorkerDetailsV1BrokerGoogleCloudPubSub BackgroundWorkerDetailsV1Broker = "google-cloud-pub-sub"
-const BackgroundWorkerDetailsV1BrokerIbmMq BackgroundWorkerDetailsV1Broker = "ibm-mq"
-const BackgroundWorkerDetailsV1BrokerKafka BackgroundWorkerDetailsV1Broker = "kafka"
-const BackgroundWorkerDetailsV1BrokerNatsJetstream BackgroundWorkerDetailsV1Broker = "nats-jetstream"
-const BackgroundWorkerDetailsV1BrokerRabbitmq BackgroundWorkerDetailsV1Broker = "rabbitmq"
-const BackgroundWorkerDetailsV1BrokerRedisStreams BackgroundWorkerDetailsV1Broker = "redis-streams"
-const BackgroundWorkerDetailsV1BrokerRedpanda BackgroundWorkerDetailsV1Broker = "redpanda"
-
 // Version 1 details for a frontend service component.
 type FrontendServiceDetailsV1 struct {
 	// CoreLanguage corresponds to the JSON schema field "core_language".

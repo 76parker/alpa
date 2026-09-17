@@ -10,13 +10,13 @@ type Application struct {
 	service *service
 }
 
-func NewApplication(store Store) *Application {
+func NewApplication(store Store, txManager TxManager) *Application {
 	return &Application{
-		service: newService(store),
+		service: newService(store, txManager),
 	}
 }
 
-func (a *Application) Create(ctx context.Context, command CreateInput) (inventory.Component, error) {
+func (a *Application) Create(ctx context.Context, command CreateCommand) (inventory.Component, error) {
 	return a.service.create(ctx, command)
 }
 
@@ -34,12 +34,4 @@ func (a *Application) ListByProduct(ctx context.Context,
 
 func (a *Application) Delete(ctx context.Context, id int64) error {
 	return a.service.delete(ctx, id)
-}
-
-func (a *Application) AddConsumerAPI(ctx context.Context, componentID, apiID int64) error {
-	return a.service.addConsumerAPI(ctx, componentID, apiID)
-}
-
-func (a *Application) RemoveConsumerAPI(ctx context.Context, componentID, apiID int64) error {
-	return a.service.removeConsumerAPI(ctx, componentID, apiID)
 }
