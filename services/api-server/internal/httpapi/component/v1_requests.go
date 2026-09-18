@@ -42,10 +42,10 @@ type ServiceDetailsV1 struct {
 }
 
 type InfrastructureDetailsV1 struct {
-	System         string               `json:"system" validate:"max=50,allowed_text"`
-	Version        *string              `json:"version,omitempty" validate:"omitempty,min=1,max=50,allowed_text"`
-	SystemType     inventory.SystemType `json:"system_type" validate:"max=50,allowed_text"`
-	NetworkAddress []string             `json:"network_address,omitempty" validate:"dive,min=1,max=50,allowed_text"`
+	Technology inventory.InfrastructureTechnology `json:"technology" validate:"max=50,allowed_text"`
+	Version    *string                            `json:"version,omitempty" validate:"omitempty,min=1,max=50,allowed_text"`
+	SystemType inventory.SystemType               `json:"system_type" validate:"max=50,allowed_text"`
+	Endpoints  []string                           `json:"endpoints,omitempty" validate:"dive,min=1,max=50,allowed_text"`
 }
 
 func decodeDetails(
@@ -75,10 +75,10 @@ func decodeDetails(
 			return nil, err
 		}
 		return appcomponent.InfrastructureDetails{
-			System:         details.System,
-			Version:        stringValue(details.Version),
-			SystemType:     details.SystemType,
-			NetworkAddress: details.NetworkAddress,
+			Technology: details.Technology,
+			Version:    stringValue(details.Version),
+			SystemType: details.SystemType,
+			Endpoints:  details.Endpoints,
 		}, nil
 	default:
 		return nil, fmt.Errorf("%w: %q", inventory.ErrUnknownComponentType, componentType)
@@ -124,11 +124,11 @@ func (r *ServiceDetailsV1) Normalize() {
 }
 
 func (r *InfrastructureDetailsV1) Normalize() {
-	r.System = strings.TrimSpace(r.System)
+	r.Technology = inventory.InfrastructureTechnology(strings.TrimSpace(string(r.Technology)))
 	r.SystemType = inventory.SystemType(strings.TrimSpace(string(r.SystemType)))
 	trimOptional(r.Version)
-	for i := range r.NetworkAddress {
-		r.NetworkAddress[i] = strings.TrimSpace(r.NetworkAddress[i])
+	for i := range r.Endpoints {
+		r.Endpoints[i] = strings.TrimSpace(r.Endpoints[i])
 	}
 }
 

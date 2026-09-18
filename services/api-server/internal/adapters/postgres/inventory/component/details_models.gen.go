@@ -34,17 +34,17 @@ type FrontendServiceDetailsV1 struct {
 
 // Version 1 details for an infrastructure component.
 type InfrastructureDetailsV1 struct {
-	// NetworkAddress corresponds to the JSON schema field "network_address".
-	NetworkAddress []string `json:"network_address"`
+	// Endpoints corresponds to the JSON schema field "endpoints".
+	Endpoints []string `json:"endpoints"`
 
 	// SchemaVersion corresponds to the JSON schema field "schema_version".
 	SchemaVersion int `json:"schema_version"`
 
-	// System corresponds to the JSON schema field "system".
-	System string `json:"system"`
-
 	// SystemType corresponds to the JSON schema field "system_type".
 	SystemType InfrastructureDetailsV1SystemType `json:"system_type"`
+
+	// Technology corresponds to the JSON schema field "technology".
+	Technology InfrastructureDetailsV1Technology `json:"technology"`
 
 	// Version corresponds to the JSON schema field "version".
 	Version *string `json:"version,omitempty,omitzero"`
@@ -52,7 +52,55 @@ type InfrastructureDetailsV1 struct {
 
 type InfrastructureDetailsV1SystemType string
 
+const InfrastructureDetailsV1SystemTypeApiGateway InfrastructureDetailsV1SystemType = "api-gateway"
+const InfrastructureDetailsV1SystemTypeCache InfrastructureDetailsV1SystemType = "cache"
+const InfrastructureDetailsV1SystemTypeIdentityProvider InfrastructureDetailsV1SystemType = "identity-provider"
+const InfrastructureDetailsV1SystemTypeLoadBalancer InfrastructureDetailsV1SystemType = "load-balancer"
+const InfrastructureDetailsV1SystemTypeLogging InfrastructureDetailsV1SystemType = "logging"
+const InfrastructureDetailsV1SystemTypeMessageBroker InfrastructureDetailsV1SystemType = "message-broker"
+const InfrastructureDetailsV1SystemTypeMonitoring InfrastructureDetailsV1SystemType = "monitoring"
 const InfrastructureDetailsV1SystemTypeNosqlDatabase InfrastructureDetailsV1SystemType = "nosql-database"
-const InfrastructureDetailsV1SystemTypeQueueStream InfrastructureDetailsV1SystemType = "queue/stream"
+const InfrastructureDetailsV1SystemTypeObjectStorage InfrastructureDetailsV1SystemType = "object-storage"
+const InfrastructureDetailsV1SystemTypeSearchEngine InfrastructureDetailsV1SystemType = "search-engine"
+const InfrastructureDetailsV1SystemTypeSecretStorage InfrastructureDetailsV1SystemType = "secret-storage"
+const InfrastructureDetailsV1SystemTypeServiceMesh InfrastructureDetailsV1SystemType = "service-mesh"
 const InfrastructureDetailsV1SystemTypeSqlDatabase InfrastructureDetailsV1SystemType = "sql-database"
+const InfrastructureDetailsV1SystemTypeTracing InfrastructureDetailsV1SystemType = "tracing"
 const InfrastructureDetailsV1SystemTypeWorkflowEngine InfrastructureDetailsV1SystemType = "workflow-engine"
+
+type InfrastructureDetailsV1Technology string
+
+const InfrastructureDetailsV1TechnologyAirflow InfrastructureDetailsV1Technology = "airflow"
+const InfrastructureDetailsV1TechnologyArgoWorkflows InfrastructureDetailsV1Technology = "argo-workflows"
+const InfrastructureDetailsV1TechnologyCassandra InfrastructureDetailsV1Technology = "cassandra"
+const InfrastructureDetailsV1TechnologyCeph InfrastructureDetailsV1Technology = "ceph"
+const InfrastructureDetailsV1TechnologyClickhouse InfrastructureDetailsV1Technology = "clickhouse"
+const InfrastructureDetailsV1TechnologyElasticsearch InfrastructureDetailsV1Technology = "elasticsearch"
+const InfrastructureDetailsV1TechnologyEnvoy InfrastructureDetailsV1Technology = "envoy"
+const InfrastructureDetailsV1TechnologyEtcd InfrastructureDetailsV1Technology = "etcd"
+const InfrastructureDetailsV1TechnologyGrafana InfrastructureDetailsV1Technology = "grafana"
+const InfrastructureDetailsV1TechnologyHaproxy InfrastructureDetailsV1Technology = "haproxy"
+const InfrastructureDetailsV1TechnologyJaeger InfrastructureDetailsV1Technology = "jaeger"
+const InfrastructureDetailsV1TechnologyKafka InfrastructureDetailsV1Technology = "kafka"
+const InfrastructureDetailsV1TechnologyKeycloak InfrastructureDetailsV1Technology = "keycloak"
+const InfrastructureDetailsV1TechnologyKong InfrastructureDetailsV1Technology = "kong"
+const InfrastructureDetailsV1TechnologyMariadb InfrastructureDetailsV1Technology = "mariadb"
+const InfrastructureDetailsV1TechnologyMemcached InfrastructureDetailsV1Technology = "memcached"
+const InfrastructureDetailsV1TechnologyMinio InfrastructureDetailsV1Technology = "minio"
+const InfrastructureDetailsV1TechnologyMongodb InfrastructureDetailsV1Technology = "mongodb"
+const InfrastructureDetailsV1TechnologyMysql InfrastructureDetailsV1Technology = "mysql"
+const InfrastructureDetailsV1TechnologyNats InfrastructureDetailsV1Technology = "nats"
+const InfrastructureDetailsV1TechnologyNginx InfrastructureDetailsV1Technology = "nginx"
+const InfrastructureDetailsV1TechnologyOpensearch InfrastructureDetailsV1Technology = "opensearch"
+const InfrastructureDetailsV1TechnologyOpentelemetry InfrastructureDetailsV1Technology = "opentelemetry"
+const InfrastructureDetailsV1TechnologyPostgresql InfrastructureDetailsV1Technology = "postgresql"
+const InfrastructureDetailsV1TechnologyPrometheus InfrastructureDetailsV1Technology = "prometheus"
+const InfrastructureDetailsV1TechnologyPulsar InfrastructureDetailsV1Technology = "pulsar"
+const InfrastructureDetailsV1TechnologyRabbitmq InfrastructureDetailsV1Technology = "rabbitmq"
+const InfrastructureDetailsV1TechnologyRedis InfrastructureDetailsV1Technology = "redis"
+const InfrastructureDetailsV1TechnologyS3 InfrastructureDetailsV1Technology = "s3"
+const InfrastructureDetailsV1TechnologyTemporal InfrastructureDetailsV1Technology = "temporal"
+const InfrastructureDetailsV1TechnologyTraefik InfrastructureDetailsV1Technology = "traefik"
+const InfrastructureDetailsV1TechnologyVault InfrastructureDetailsV1Technology = "vault"
+const InfrastructureDetailsV1TechnologyZabbix InfrastructureDetailsV1Technology = "zabbix"
+const InfrastructureDetailsV1TechnologyZipkin InfrastructureDetailsV1Technology = "zipkin"

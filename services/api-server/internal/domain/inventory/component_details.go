@@ -34,25 +34,25 @@ func (d BackendServiceComponentDetails) validate() error {
 }
 
 type InfrastructureComponentDetails struct {
-	System         string
-	SystemType     SystemType
-	Version        string
-	NetworkAddress []string
+	Technology InfrastructureTechnology
+	SystemType SystemType
+	Version    string
+	Endpoints  []string
 }
 
 func NewInfrastructureComponentDetails(
-	system string,
+	technology InfrastructureTechnology,
 	systemType SystemType,
 	version string,
-	networkAddress []string,
+	endpoints []string,
 ) (InfrastructureComponentDetails, error) {
-	addresses := make([]string, len(networkAddress))
-	copy(addresses, networkAddress)
+	copiedEndpoints := make([]string, len(endpoints))
+	copy(copiedEndpoints, endpoints)
 	details := InfrastructureComponentDetails{
-		System:         system,
-		SystemType:     systemType,
-		Version:        version,
-		NetworkAddress: addresses,
+		Technology: technology,
+		SystemType: systemType,
+		Version:    version,
+		Endpoints:  copiedEndpoints,
 	}
 	if err := details.validate(); err != nil {
 		return InfrastructureComponentDetails{}, err
@@ -65,14 +65,14 @@ func (InfrastructureComponentDetails) componentType() ComponentType {
 }
 
 func (d InfrastructureComponentDetails) validate() error {
+	if !isValidInfrastructureTechnology(d.Technology) {
+		return ErrUnknownInfrastructureTechnology
+	}
 	if !isValidSystemType(d.SystemType) {
 		return ErrUnknownSystemType
 	}
-	if d.System == "" {
-		return ErrInvalidDetails
-	}
-	if len(d.NetworkAddress) > 10 {
-		return ErrTooManyNetworkAddresses
+	if len(d.Endpoints) > 10 {
+		return ErrTooManyEndpoints
 	}
 	return nil
 }
@@ -110,9 +110,65 @@ func (d FrontendServiceComponentDetails) validate() error {
 	return nil
 }
 
+func isValidInfrastructureTechnology(technology InfrastructureTechnology) bool {
+	switch technology {
+	case InfrastructureTechnologyPostgreSQL,
+		InfrastructureTechnologyMySQL,
+		InfrastructureTechnologyMariaDB,
+		InfrastructureTechnologyMongoDB,
+		InfrastructureTechnologyCassandra,
+		InfrastructureTechnologyClickHouse,
+		InfrastructureTechnologyRedis,
+		InfrastructureTechnologyMemcached,
+		InfrastructureTechnologyEtcd,
+		InfrastructureTechnologyKafka,
+		InfrastructureTechnologyRabbitMQ,
+		InfrastructureTechnologyNATS,
+		InfrastructureTechnologyPulsar,
+		InfrastructureTechnologyElasticsearch,
+		InfrastructureTechnologyOpenSearch,
+		InfrastructureTechnologyS3,
+		InfrastructureTechnologyMinIO,
+		InfrastructureTechnologyCeph,
+		InfrastructureTechnologyTemporal,
+		InfrastructureTechnologyAirflow,
+		InfrastructureTechnologyArgo,
+		InfrastructureTechnologyNginx,
+		InfrastructureTechnologyEnvoy,
+		InfrastructureTechnologyKong,
+		InfrastructureTechnologyTraefik,
+		InfrastructureTechnologyHAProxy,
+		InfrastructureTechnologyPrometheus,
+		InfrastructureTechnologyGrafana,
+		InfrastructureTechnologyZabbix,
+		InfrastructureTechnologyJaeger,
+		InfrastructureTechnologyZipkin,
+		InfrastructureTechnologyOpenTelemetry,
+		InfrastructureTechnologyKeycloak,
+		InfrastructureTechnologyVault:
+		return true
+	default:
+		return false
+	}
+}
+
 func isValidSystemType(systemType SystemType) bool {
 	switch systemType {
-	case SystemTypeQueueStream, SystemTypeSQLDatabase, SystemTypeNoSQLDatabase, SystemTypeWorkflowEngine:
+	case SystemTypeMessageBroker,
+		SystemTypeSQLDatabase,
+		SystemTypeNoSQLDatabase,
+		SystemTypeCache,
+		SystemTypeSearchEngine,
+		SystemTypeObjectStorage,
+		SystemTypeWorkflowEngine,
+		SystemTypeServiceMesh,
+		SystemTypeAPIGateway,
+		SystemTypeLoadBalancer,
+		SystemTypeIdentityProvider,
+		SystemTypeSecretStorage,
+		SystemTypeMonitoring,
+		SystemTypeLogging,
+		SystemTypeTracing:
 		return true
 	default:
 		return false

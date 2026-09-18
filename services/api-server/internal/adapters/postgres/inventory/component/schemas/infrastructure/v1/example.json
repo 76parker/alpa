@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "system": "PostgreSQL",
+  "technology": "postgresql",
   "version": "18",
   "system_type": "sql-database",
-  "network_address": [
+  "endpoints": [
     "postgres-primary.internal:5432",
     "postgres-replica.internal:5432"
   ]

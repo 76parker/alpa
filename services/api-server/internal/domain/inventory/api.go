@@ -3,32 +3,10 @@ package inventory
 import "errors"
 
 var (
-	ErrInvalidAPIName  = errors.New("invalid api name")
-	ErrUnknownAPIType  = errors.New("unknown component api type")
-	ErrInvalidExposure = errors.New("unknown network exposure: available exposures: 'internal', 'internet'")
+	ErrInvalidAPIName   = errors.New("invalid api name")
+	ErrUnknownAPIType   = errors.New("unknown component api type")
+	ErrInvalidExposure  = errors.New("unknown network exposure: available exposures: 'internal', 'internet'")
 	ErrAPILimitExceeded = errors.New("api limit exceeded: max is 5")
-)
-
-type APIType string
-type NetworkExposure string
-
-const (
-	APITypeREST           APIType = "rest"
-	APITypeGraphQL        APIType = "graphql"
-	APITypeGRPC           APIType = "grpc"
-	APITypeJSONRPC        APIType = "json-rpc"
-	APITypeSOAP           APIType = "soap"
-	APITypeWebSocket      APIType = "websocket"
-	APITypeOdata          APIType = "odata"
-	APITypeSSE            APIType = "sse"
-	APITypeEventConsumer  APIType = "event-consumer"
-	APITypeTopic          APIType = "topic"
-	APITypeExchange       APIType = "exchange"
-	APITypeQueue          APIType = "queue"
-	APITypeNativeProtocol APIType = "native-protocol"
-
-	NetworkExposureInternal NetworkExposure = "internal"
-	NetworkExposureInternet NetworkExposure = "internet"
 )
 
 type ComponentAPI struct {

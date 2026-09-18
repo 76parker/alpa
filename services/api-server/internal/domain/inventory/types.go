@@ -11,6 +11,122 @@ var (
 	ErrSyncCallerCannotHaveEventCommunicationType = errors.New("sync caller cannot have event communication type")
 )
 
+type ComponentType string
+
+const (
+	ComponentTypeFrontend       ComponentType = "frontend-service"
+	ComponentTypeBackend        ComponentType = "backend-service"
+	ComponentTypeInfrastructure ComponentType = "infrastructure"
+)
+
+type InfrastructureTechnology string
+
+const (
+	// Databases
+	InfrastructureTechnologyPostgreSQL InfrastructureTechnology = "postgresql"
+	InfrastructureTechnologyMySQL      InfrastructureTechnology = "mysql"
+	InfrastructureTechnologyMariaDB    InfrastructureTechnology = "mariadb"
+	InfrastructureTechnologyMongoDB    InfrastructureTechnology = "mongodb"
+	InfrastructureTechnologyCassandra  InfrastructureTechnology = "cassandra"
+	InfrastructureTechnologyClickHouse InfrastructureTechnology = "clickhouse"
+
+	// Cache / Key-Value
+	InfrastructureTechnologyRedis     InfrastructureTechnology = "redis"
+	InfrastructureTechnologyMemcached InfrastructureTechnology = "memcached"
+	InfrastructureTechnologyEtcd      InfrastructureTechnology = "etcd"
+
+	// Message Brokers / Streaming
+	InfrastructureTechnologyKafka    InfrastructureTechnology = "kafka"
+	InfrastructureTechnologyRabbitMQ InfrastructureTechnology = "rabbitmq"
+	InfrastructureTechnologyNATS     InfrastructureTechnology = "nats"
+	InfrastructureTechnologyPulsar   InfrastructureTechnology = "pulsar"
+
+	// Search
+	InfrastructureTechnologyElasticsearch InfrastructureTechnology = "elasticsearch"
+	InfrastructureTechnologyOpenSearch    InfrastructureTechnology = "opensearch"
+
+	// Object Storage
+	InfrastructureTechnologyS3    InfrastructureTechnology = "s3"
+	InfrastructureTechnologyMinIO InfrastructureTechnology = "minio"
+	InfrastructureTechnologyCeph  InfrastructureTechnology = "ceph"
+
+	// Workflow Engines
+	InfrastructureTechnologyTemporal InfrastructureTechnology = "temporal"
+	InfrastructureTechnologyAirflow  InfrastructureTechnology = "airflow"
+	InfrastructureTechnologyArgo     InfrastructureTechnology = "argo-workflows"
+
+	// API Gateway / Proxy / Load Balancer
+	InfrastructureTechnologyNginx   InfrastructureTechnology = "nginx"
+	InfrastructureTechnologyEnvoy   InfrastructureTechnology = "envoy"
+	InfrastructureTechnologyKong    InfrastructureTechnology = "kong"
+	InfrastructureTechnologyTraefik InfrastructureTechnology = "traefik"
+	InfrastructureTechnologyHAProxy InfrastructureTechnology = "haproxy"
+
+	// Monitoring
+	InfrastructureTechnologyPrometheus InfrastructureTechnology = "prometheus"
+	InfrastructureTechnologyGrafana    InfrastructureTechnology = "grafana"
+	InfrastructureTechnologyZabbix     InfrastructureTechnology = "zabbix"
+
+	// Tracing / Observability
+	InfrastructureTechnologyJaeger        InfrastructureTechnology = "jaeger"
+	InfrastructureTechnologyZipkin        InfrastructureTechnology = "zipkin"
+	InfrastructureTechnologyOpenTelemetry InfrastructureTechnology = "opentelemetry"
+
+	// IAM
+	InfrastructureTechnologyKeycloak InfrastructureTechnology = "keycloak"
+	// Secrets
+	InfrastructureTechnologyVault InfrastructureTechnology = "vault"
+)
+
+type SystemType string
+
+const (
+	SystemTypeMessageBroker SystemType = "message-broker"
+
+	SystemTypeSQLDatabase   SystemType = "sql-database"
+	SystemTypeNoSQLDatabase SystemType = "nosql-database"
+	SystemTypeCache         SystemType = "cache"
+	SystemTypeSearchEngine  SystemType = "search-engine"
+	SystemTypeObjectStorage SystemType = "object-storage"
+
+	SystemTypeWorkflowEngine SystemType = "workflow-engine"
+	SystemTypeServiceMesh    SystemType = "service-mesh"
+	SystemTypeAPIGateway     SystemType = "api-gateway"
+	SystemTypeLoadBalancer   SystemType = "load-balancer"
+
+	SystemTypeIdentityProvider SystemType = "identity-provider"
+	SystemTypeSecretStorage    SystemType = "secret-storage"
+
+	SystemTypeMonitoring SystemType = "monitoring"
+	SystemTypeLogging    SystemType = "logging"
+	SystemTypeTracing    SystemType = "tracing"
+)
+
+type APIType string
+
+const (
+	APITypeREST           APIType = "rest"
+	APITypeGraphQL        APIType = "graphql"
+	APITypeGRPC           APIType = "grpc"
+	APITypeJSONRPC        APIType = "json-rpc"
+	APITypeSOAP           APIType = "soap"
+	APITypeWebSocket      APIType = "websocket"
+	APITypeOdata          APIType = "odata"
+	APITypeSSE            APIType = "sse"
+	APITypeEventConsumer  APIType = "event-consumer"
+	APITypeTopic          APIType = "topic"
+	APITypeExchange       APIType = "exchange"
+	APITypeQueue          APIType = "queue"
+	APITypeNativeProtocol APIType = "native-protocol"
+)
+
+type NetworkExposure string
+
+const (
+	NetworkExposureInternal NetworkExposure = "internal"
+	NetworkExposureInternet NetworkExposure = "internet"
+)
+
 // Component clients names
 
 type ComponentClientName string

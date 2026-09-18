@@ -240,29 +240,77 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "system",
+        "technology",
         "system_type",
         "version",
-        "network_address"
+        "endpoints"
       ],
       "properties": {
-        "system": {
-          "type": "string"
+        "technology": {
+          "type": "string",
+          "maxLength": 50,
+          "enum": [
+            "postgresql",
+            "mysql",
+            "mariadb",
+            "mongodb",
+            "cassandra",
+            "clickhouse",
+            "redis",
+            "memcached",
+            "etcd",
+            "kafka",
+            "rabbitmq",
+            "nats",
+            "pulsar",
+            "elasticsearch",
+            "opensearch",
+            "s3",
+            "minio",
+            "ceph",
+            "temporal",
+            "airflow",
+            "argo-workflows",
+            "nginx",
+            "envoy",
+            "kong",
+            "traefik",
+            "haproxy",
+            "prometheus",
+            "grafana",
+            "zabbix",
+            "jaeger",
+            "zipkin",
+            "opentelemetry",
+            "keycloak",
+            "vault"
+          ]
         },
         "system_type": {
           "type": "string",
           "maxLength": 50,
           "enum": [
-            "queue/stream",
+            "message-broker",
             "sql-database",
             "nosql-database",
-            "workflow-engine"
+            "cache",
+            "search-engine",
+            "object-storage",
+            "workflow-engine",
+            "service-mesh",
+            "api-gateway",
+            "load-balancer",
+            "identity-provider",
+            "secret-storage",
+            "monitoring",
+            "logging",
+            "tracing"
           ]
         },
         "version": {
           "type": "string"
         },
-        "network_address": {
+        "endpoints": {
           "type": "array",
           "maxItems": 10,
           "items": {

@@ -227,7 +227,7 @@ components:
       required: [message, code, status]
       properties:
         message: {type: string, example: "name contains unsupported characters"}
-        code: {type: string, description: "Business errors include unknown_system_type, too_many_network_addresses, invalid_product_code, api_limit_exceeded, client_limit_exceeded, invalid_client_binding, and client_already_bound. Transport errors use invalid_request.", example: invalid_request}
+        code: {type: string, description: "Business errors include unknown_infrastructure_technology, unknown_system_type, too_many_endpoints, invalid_product_code, api_limit_exceeded, client_limit_exceeded, invalid_client_binding, and client_already_bound. Transport errors use invalid_request.", example: invalid_request}
         status: {type: integer, example: 400}
     Workspace:
       type: object
@@ -292,16 +292,21 @@ components:
     SystemType:
       type: string
       maxLength: 50
-      enum: [queue/stream, sql-database, nosql-database, workflow-engine]
+      enum: [message-broker, sql-database, nosql-database, cache, search-engine, object-storage, workflow-engine, service-mesh, api-gateway, load-balancer, identity-provider, secret-storage, monitoring, logging, tracing]
       example: sql-database
+    InfrastructureTechnology:
+      type: string
+      maxLength: 50
+      enum: [postgresql, mysql, mariadb, mongodb, cassandra, clickhouse, redis, memcached, etcd, kafka, rabbitmq, nats, pulsar, elasticsearch, opensearch, s3, minio, ceph, temporal, airflow, argo-workflows, nginx, envoy, kong, traefik, haproxy, prometheus, grafana, zabbix, jaeger, zipkin, opentelemetry, keycloak, vault]
+      example: postgresql
     InfrastructureDetails:
       type: object
-      required: [system, system_type, version, network_address]
+      required: [technology, system_type, version, endpoints]
       properties:
-        system: {allOf: [{$ref: '#/components/schemas/Name'}], example: PostgreSQL}
+        technology: {$ref: '#/components/schemas/InfrastructureTechnology'}
         version: {type: string, maxLength: 50, example: "17.2"}
         system_type: {$ref: '#/components/schemas/SystemType'}
-        network_address:
+        endpoints:
           type: array
           maxItems: 10
           description: Optional on input. Missing, null, or empty input is returned and stored as []. Order and duplicates are preserved.
@@ -309,12 +314,12 @@ components:
           example: ["postgres-primary.internal:5432", "postgres-replica.internal:5432"]
     InfrastructureDetailsRequest:
       type: object
-      required: [system, system_type]
+      required: [technology, system_type]
       properties:
-        system: {allOf: [{$ref: '#/components/schemas/Name'}], example: PostgreSQL}
+        technology: {$ref: '#/components/schemas/InfrastructureTechnology'}
         version: {allOf: [{$ref: '#/components/schemas/Name'}], example: "17.2"}
         system_type: {$ref: '#/components/schemas/SystemType'}
-        network_address:
+        endpoints:
           type: array
           nullable: true
           maxItems: 10

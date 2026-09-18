@@ -39,11 +39,11 @@ func Encode(details inventory.ComponentDetails) (json.RawMessage, error) {
 		}
 	case inventory.InfrastructureComponentDetails:
 		payload = InfrastructureDetailsV1{
-			SchemaVersion:  schemaVersion,
-			System:         typed.System,
-			Version:        stringPointer(typed.Version),
-			SystemType:     InfrastructureDetailsV1SystemType(typed.SystemType),
-			NetworkAddress: append([]string{}, typed.NetworkAddress...),
+			Endpoints:     append([]string{}, typed.Endpoints...),
+			SchemaVersion: schemaVersion,
+			SystemType:    InfrastructureDetailsV1SystemType(typed.SystemType),
+			Technology:    InfrastructureDetailsV1Technology(typed.Technology),
+			Version:       stringPointer(typed.Version),
 		}
 	default:
 		return nil, fmt.Errorf("%w: unsupported type %T", errInvalidDetails, details)
@@ -112,10 +112,10 @@ func Decode(
 			return nil, fmt.Errorf("%w: decode infrastructure v1: %w", errInvalidDetails, err)
 		}
 		details, err := inventory.NewInfrastructureComponentDetails(
-			payload.System,
+			inventory.InfrastructureTechnology(payload.Technology),
 			inventory.SystemType(payload.SystemType),
 			stringValue(payload.Version),
-			payload.NetworkAddress,
+			payload.Endpoints,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("%w: restore infrastructure v1: %w", errInvalidDetails, err)

@@ -208,10 +208,10 @@ func newDomainDetails(input Details) (inventory.ComponentDetails, error) {
 		)
 	case InfrastructureDetails:
 		return inventory.NewInfrastructureComponentDetails(
-			details.System,
+			details.Technology,
 			details.SystemType,
 			details.Version,
-			details.NetworkAddress,
+			details.Endpoints,
 		)
 	case nil:
 		return nil, nil

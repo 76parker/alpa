@@ -34,7 +34,7 @@
 - Consumes: `InfrastructureTechnology`, `SystemType`, and their constants from `internal/domain/inventory/types.go`.
 - Produces: `NewInfrastructureComponentDetails(technology InfrastructureTechnology, systemType SystemType, version string, endpoints []string) (InfrastructureComponentDetails, error)`, `ErrUnknownInfrastructureTechnology`, and `ErrTooManyEndpoints`.
 
-- [ ] **Step 1: Write the failing domain scenarios**
+- [x] **Step 1: Write the failing domain scenarios**
 
 ```go
 func TestNewInfrastructureComponentDetails(t *testing.T) {
@@ -89,13 +89,13 @@ func TestNewInfrastructureComponentDetails(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run the new test to verify RED**
+- [x] **Step 2: Run the new test to verify RED**
 
 Run: `go test ./internal/domain/inventory -run TestNewInfrastructureComponentDetails -count=1`
 
 Expected: compilation fails because `ErrUnknownInfrastructureTechnology` and `ErrTooManyEndpoints` do not exist; this proves the new validation contract is not yet implemented.
 
-- [ ] **Step 3: Implement the domain contract**
+- [x] **Step 3: Implement the domain contract**
 
 In `component.go`, replace `ErrTooManyNetworkAddresses` with `ErrTooManyEndpoints` and add `ErrUnknownInfrastructureTechnology`.
 
@@ -118,7 +118,7 @@ func (d InfrastructureComponentDetails) validate() error {
 
 Implement both helpers as exhaustive `switch` statements over the constants in `types.go`; the technology helper contains all 34 `InfrastructureTechnology*` constants and the system-type helper contains all 15 `SystemType*` constants listed in Task 1.
 
-- [ ] **Step 4: Complete the application-layer mapping**
+- [x] **Step 4: Complete the application-layer mapping**
 
 Ensure the application command and its conversion to the domain use the new names without any remaining translation to the legacy terms:
 
@@ -138,13 +138,13 @@ return inventory.NewInfrastructureComponentDetails(
 )
 ```
 
-- [ ] **Step 5: Run the domain test to verify GREEN**
+- [x] **Step 5: Run the domain test to verify GREEN**
 
 Run: `go test ./internal/domain/inventory -run TestNewInfrastructureComponentDetails -count=1`
 
 Expected: PASS. The test must prove that every declared enum value is accepted, both invalid values receive their dedicated errors, and the endpoint limit remains ten.
 
-- [ ] **Step 6: Format the changed domain and application files**
+- [x] **Step 6: Format the changed domain and application files**
 
 Run: `gofmt -w internal/domain/inventory/component.go internal/domain/inventory/component_details.go internal/domain/inventory/component_details_test.go internal/applications/inventory/component/commands.go internal/applications/inventory/component/service.go`
 
@@ -161,7 +161,7 @@ Run: `gofmt -w internal/domain/inventory/component.go internal/domain/inventory/
 - Consumes: the domain constructor and the generated `InfrastructureDetailsV1` model.
 - Produces: JSONB with `schema_version`, `technology`, `system_type`, optional `version`, and `endpoints`.
 
-- [ ] **Step 1: Write the failing persistence round-trip test**
+- [x] **Step 1: Write the failing persistence round-trip test**
 
 ```go
 func TestInfrastructureDetailsCodecRoundTrip(t *testing.T) {
@@ -185,13 +185,13 @@ func TestInfrastructureDetailsCodecRoundTrip(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run the codec test to verify RED**
+- [x] **Step 2: Run the codec test to verify RED**
 
 Run: `go test ./internal/adapters/postgres/inventory/component -run TestInfrastructureDetailsCodecRoundTrip -count=1`
 
 Expected: FAIL to build because the generated model and codec still expose `System` and `NetworkAddress`.
 
-- [ ] **Step 3: Replace the JSONB schema and regenerate the model**
+- [x] **Step 3: Replace the JSONB schema and regenerate the model**
 
 Edit `schemas/infrastructure/v1/schema.json` so its required fields are `schema_version`, `technology`, `system_type`, and `endpoints`; replace the old property names; and make the technology and system-type enum lists match `types.go`. Update `example.json` to use `technology: "postgresql"` and `endpoints`.
 
@@ -199,7 +199,7 @@ Run: `go generate ./internal/adapters/postgres/inventory/component`
 
 The generated `InfrastructureDetailsV1` must expose `Technology`, `SystemType`, `Version`, and `Endpoints` with the corresponding JSON tags and enum aliases.
 
-- [ ] **Step 4: Implement the codec mapping**
+- [x] **Step 4: Implement the codec mapping**
 
 ```go
 payload = InfrastructureDetailsV1{
@@ -218,7 +218,7 @@ details, err := inventory.NewInfrastructureComponentDetails(
 )
 ```
 
-- [ ] **Step 5: Run the codec test to verify GREEN and format it**
+- [x] **Step 5: Run the codec test to verify GREEN and format it**
 
 Run: `gofmt -w internal/adapters/postgres/inventory/component/details_codec.go internal/adapters/postgres/inventory/component/details_codec_test.go && go test ./internal/adapters/postgres/inventory/component -run TestInfrastructureDetailsCodecRoundTrip -count=1`
 
@@ -236,19 +236,19 @@ Expected: PASS. The encoded JSON uses only the new names and decoding restores t
 - Consumes: `appcomponent.InfrastructureDetails{Technology, Version, SystemType, Endpoints}` and the domain errors from Task 1.
 - Produces: request and response JSON containing `technology`, `system_type`, `version`, and `endpoints`; HTTP error codes `unknown_infrastructure_technology` and `too_many_endpoints`.
 
-- [ ] **Step 1: Change the existing e2e scenario to the new public contract**
+- [x] **Step 1: Change the existing e2e scenario to the new public contract**
 
 Rename the scenario to `InfrastructureTechnologiesTypesAndEndpoints`. Build each details payload with `technology` and `endpoints`; change expected stored and returned JSON fields to the same names. Preserve the assertions for trimming, null/omitted/empty endpoint arrays, order, duplicates, rejected scalar endpoint JSON, and no persistence after rejected requests.
 
 Add valid cases for every system type in the specification, use `" message-broker "` instead of `queue/stream`, add an invalid `technology: "postgres"` case expecting `unknown_infrastructure_technology`, and change the eleven-item case to expect `too_many_endpoints`.
 
-- [ ] **Step 2: Run the e2e scenario to verify RED**
+- [x] **Step 2: Run the e2e scenario to verify RED**
 
-Run: `go test ./tests/e2e -run InfrastructureTechnologiesTypesAndEndpoints -count=1`
+Run: `go test ./tests/e2e -run '^TestComponentE2E/InfrastructureTechnologiesTypesAndEndpoints$' -count=1`
 
 Expected: FAIL because HTTP request and response structures still use the removed public field names.
 
-- [ ] **Step 3: Implement request, response, and error mappings**
+- [x] **Step 3: Implement request, response, and error mappings**
 
 Replace the HTTP request fields and tags with:
 
@@ -263,13 +263,13 @@ Normalize `Technology` and each endpoint, map those fields to the application co
 
 In `errmap.go`, replace `CodeTooManyNetworkAddresses` with `CodeTooManyEndpoints`, add `CodeUnknownInfrastructureTechnology`, and map the two corresponding domain errors to clear 400 responses.
 
-- [ ] **Step 4: Run the e2e scenario to verify GREEN**
+- [x] **Step 4: Run the e2e scenario to verify GREEN**
 
-Run: `go test ./tests/e2e -run InfrastructureTechnologiesTypesAndEndpoints -count=1`
+Run: `go test ./tests/e2e -run '^TestComponentE2E/InfrastructureTechnologiesTypesAndEndpoints$' -count=1`
 
 Expected: PASS. The scenario exercises the HTTP-to-JSONB-to-HTTP round trip and all public errors.
 
-- [ ] **Step 5: Format the HTTP changes**
+- [x] **Step 5: Format the HTTP changes**
 
 Run: `gofmt -w internal/httpapi/component/v1_requests.go internal/httpapi/component/v1_responses.go internal/httpapi/errmap/errmap.go tests/e2e/component_test.go`
 
@@ -278,31 +278,46 @@ Run: `gofmt -w internal/httpapi/component/v1_requests.go internal/httpapi/compon
 **Files:**
 - Modify: `docs/openapi.yaml`
 - Modify: `docs/openapi.json`
+- Modify: `internal/httpapi/component/v1/create-request.schema.json`
+- Modify: `internal/httpapi/component/v1/create-response.schema.json`
+- Modify: `internal/httpapi/component/v1/get-response.schema.json`
+- Modify: `internal/httpapi/component/v1/list-response.schema.json`
+- Modify: `internal/httpapi/component/v1/examples/create-component-examples.json`
 - Test: `docs/embed_test.go`
 
 **Interfaces:**
 - Consumes: the HTTP field names, enum sets, optional-input rules, and error codes implemented in Task 3.
 - Produces: equivalent YAML and JSON OpenAPI documents served by the embedded documentation package.
 
-- [ ] **Step 1: Update the YAML source contract**
+- [x] **Step 1: Update the YAML source contract**
 
 Add an `InfrastructureTechnology` string enum containing the values from the specification. Expand `SystemType` to all 15 values. In `InfrastructureDetails` and `InfrastructureDetailsRequest`, replace `system` with required `technology` referencing the new enum and replace `network_address` with `endpoints`; retain the documented array semantics and use technology/endpoint examples. Replace old error-code terms in the create-component endpoint description.
 
-- [ ] **Step 2: Run the documentation equivalence test to verify RED**
+- [x] **Step 2: Run the documentation equivalence test to verify RED**
 
 Run: `go test ./docs -run TestOpenAPIDocumentsAreValidAndEquivalent -count=1`
 
 Expected: FAIL with `OpenAPI YAML and JSON differ`, proving the served JSON contract has not yet been updated.
 
-- [ ] **Step 3: Mirror the YAML contract in JSON**
+- [x] **Step 3: Mirror the YAML contract in JSON**
 
 Apply the identical schemas, enum values, examples, required lists, and error-code wording in `docs/openapi.json`. Do not retain legacy property names or enum values.
 
-- [ ] **Step 4: Run the documentation test to verify GREEN**
+- [x] **Step 4: Run the documentation test to verify GREEN**
 
 Run: `go test ./docs -run TestOpenAPIDocumentsAreValidAndEquivalent -count=1`
 
 Expected: PASS. Both embedded documents parse and normalize to the same API contract.
+
+- [x] **Step 5: Update local HTTP JSON-schema artifacts and examples**
+
+In all four `internal/httpapi/component/v1/*response.schema.json` files, replace Infrastructure Details fields with `technology` and `endpoints`, expand both enum lists to the values in the specification, and retain the response requirement that endpoints is an array. In `create-request.schema.json`, apply the same field names and enum lists while allowing `endpoints: null` on input. Update the infrastructure example to use `technology: "postgresql"` and `endpoints`.
+
+- [x] **Step 6: Validate local JSON-schema syntax**
+
+Run: `jq empty internal/httpapi/component/v1/create-request.schema.json internal/httpapi/component/v1/create-response.schema.json internal/httpapi/component/v1/get-response.schema.json internal/httpapi/component/v1/list-response.schema.json internal/httpapi/component/v1/examples/create-component-examples.json`
+
+Expected: PASS with no output.
 
 ### Task 5: Verify the complete change and commit only task-owned files
 
@@ -313,28 +328,28 @@ Expected: PASS. Both embedded documents parse and normalize to the same API cont
 - Consumes: the complete implementation and documentation contract.
 - Produces: a formatted, compiling API server with its test suite and public documentation in agreement.
 
-- [ ] **Step 1: Check compiler diagnostics for edited Go files**
+- [x] **Step 1: Check compiler diagnostics for edited Go files**
 
 Run the gopls/Serena diagnostics operation for each edited Go file and resolve every diagnostic.
 
-- [ ] **Step 2: Run focused package tests**
+- [x] **Step 2: Run focused package tests**
 
 Run: `go test ./internal/domain/inventory ./internal/adapters/postgres/inventory/component ./internal/httpapi/component ./internal/httpapi/errmap ./docs -count=1`
 
 Expected: PASS.
 
-- [ ] **Step 3: Run repository-wide verification**
+- [x] **Step 3: Run repository-wide verification**
 
 Run: `go test ./... -count=1 && git diff --check`
 
 Expected: PASS with no whitespace errors.
 
-- [ ] **Step 4: Inspect the final migration sweep**
+- [x] **Step 4: Inspect the final migration sweep**
 
-Run: `grep -RInE 'network_address|"system"|queue/stream|TooManyNetworkAddresses' internal/adapters/postgres/inventory/component internal/httpapi docs tests/e2e || true`
+Run: `grep -RInE 'network_address|"system"|queue/stream|TooManyNetworkAddresses' internal/adapters/postgres/inventory/component internal/httpapi docs/openapi.yaml docs/openapi.json || true`
 
-Expected: no legacy Infrastructure Details contract references remain in the scoped paths.
+Expected: no legacy Infrastructure Details contract references remain in production code or served OpenAPI documents. Tests may retain a legacy value only to verify rejection.
 
-- [ ] **Step 5: Commit task-owned files**
+- [x] **Step 5: Commit task-owned files**
 
 Stage only the implementation, tests, OpenAPI documents, generated model, design, and plan files belonging to this Infrastructure Details migration. Do not stage unrelated modified files such as the transaction manager, product API, bootstrap test, or frontend files. Commit with: `feat(inventory): replace infrastructure details contract`.

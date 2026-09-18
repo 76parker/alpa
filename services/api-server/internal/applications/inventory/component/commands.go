@@ -23,10 +23,10 @@ type FrontendServiceDetails struct {
 func (FrontendServiceDetails) isComponentDetails() {}
 
 type InfrastructureDetails struct {
-	System         string
-	Version        string
-	SystemType     inventory.SystemType
-	NetworkAddress []string
+	Technology inventory.InfrastructureTechnology
+	Version    string
+	SystemType inventory.SystemType
+	Endpoints  []string
 }
 
 func (InfrastructureDetails) isComponentDetails() {}

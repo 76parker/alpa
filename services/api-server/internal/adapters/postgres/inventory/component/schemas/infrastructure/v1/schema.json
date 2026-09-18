@@ -6,9 +6,9 @@
   "additionalProperties": false,
   "required": [
     "schema_version",
-    "system",
+    "technology",
     "system_type",
-    "network_address"
+    "endpoints"
   ],
   "properties": {
     "schema_version": {
@@ -16,11 +16,45 @@
       "minimum": 1,
       "maximum": 1
     },
-    "system": {
+    "technology": {
       "type": "string",
-      "minLength": 1,
-      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$",
-      "maxLength": 50
+      "maxLength": 50,
+      "enum": [
+        "postgresql",
+        "mysql",
+        "mariadb",
+        "mongodb",
+        "cassandra",
+        "clickhouse",
+        "redis",
+        "memcached",
+        "etcd",
+        "kafka",
+        "rabbitmq",
+        "nats",
+        "pulsar",
+        "elasticsearch",
+        "opensearch",
+        "s3",
+        "minio",
+        "ceph",
+        "temporal",
+        "airflow",
+        "argo-workflows",
+        "nginx",
+        "envoy",
+        "kong",
+        "traefik",
+        "haproxy",
+        "prometheus",
+        "grafana",
+        "zabbix",
+        "jaeger",
+        "zipkin",
+        "opentelemetry",
+        "keycloak",
+        "vault"
+      ]
     },
     "version": {
       "type": "string",
@@ -28,7 +62,7 @@
       "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$",
       "maxLength": 50
     },
-    "network_address": {
+    "endpoints": {
       "type": "array",
       "maxItems": 10,
       "items": {
@@ -42,10 +76,21 @@
       "type": "string",
       "maxLength": 50,
       "enum": [
-        "queue/stream",
+        "message-broker",
         "sql-database",
         "nosql-database",
-        "workflow-engine"
+        "cache",
+        "search-engine",
+        "object-storage",
+        "workflow-engine",
+        "service-mesh",
+        "api-gateway",
+        "load-balancer",
+        "identity-provider",
+        "secret-storage",
+        "monitoring",
+        "logging",
+        "tracing"
       ]
     }
   }

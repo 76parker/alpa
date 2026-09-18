@@ -123,14 +123,14 @@ func TestComponentE2E(t *testing.T) {
 		})
 	}, allureArtifactsDir))
 
-	// Infrastructure details must survive HTTP normalization and JSONB storage without losing addresses.
-	t.Run("InfrastructureSystemTypesAndAddresses", testo.Test(func(t T) {
+	// Infrastructure details must survive HTTP normalization and JSONB storage without losing endpoints.
+	t.Run("InfrastructureTechnologiesTypesAndEndpoints", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Component")
 		t.Story("Create infrastructure component")
 		t.Severity(allure.SeverityCritical)
 		t.Tags("e2e")
-		t.Title("Validate system types and round-trip infrastructure addresses")
+		t.Title("Validate infrastructure technologies, system types, and endpoint round trips")
 		resetDatabase(t)
 		createdProduct := createTestProductForComponent(t, client)
 
@@ -146,31 +146,49 @@ func TestComponentE2E(t *testing.T) {
 		expectedAddresses[0] = "Primary.internal:5432"
 		cases := []struct {
 			name           string
+			technology     string
 			systemType     string
-			addressJSON    string
+			endpointsJSON  string
+			wantTechnology string
 			wantSystemType string
-			wantAddresses  []string
+			wantEndpoints  []string
 			wantCode       errmap.Code
 		}{
-			{name: "queue with ten addresses", systemType: `" queue/stream "`, addressJSON: string(encodedAddresses), wantSystemType: "queue/stream", wantAddresses: expectedAddresses},
-			{name: "sql with null addresses", systemType: `"sql-database"`, addressJSON: "null", wantSystemType: "sql-database", wantAddresses: []string{}},
-			{name: "nosql without addresses", systemType: `"nosql-database"`, wantSystemType: "nosql-database", wantAddresses: []string{}},
-			{name: "workflow with empty addresses", systemType: `"workflow-engine"`, addressJSON: "[]", wantSystemType: "workflow-engine", wantAddresses: []string{}},
-			{name: "unknown system type", systemType: `"SQL-DATABASE"`, wantCode: "unknown_system_type"},
-			{name: "empty system type", systemType: `"  "`, wantCode: "unknown_system_type"},
-			{name: "missing system type", wantCode: "unknown_system_type"},
-			{name: "eleven addresses", systemType: `"sql-database"`, addressJSON: string(tooMany), wantCode: "too_many_network_addresses"},
-			{name: "legacy address string", systemType: `"sql-database"`, addressJSON: `"host:5432"`, wantCode: "invalid_request"},
+			{name: "message broker with ten endpoints", technology: `" kafka "`, systemType: `" message-broker "`, endpointsJSON: string(encodedAddresses), wantTechnology: "kafka", wantSystemType: "message-broker", wantEndpoints: expectedAddresses},
+			{name: "sql with null endpoints", technology: `" postgresql "`, systemType: `"sql-database"`, endpointsJSON: "null", wantTechnology: "postgresql", wantSystemType: "sql-database", wantEndpoints: []string{}},
+			{name: "nosql without endpoints", technology: `"mongodb"`, systemType: `"nosql-database"`, wantTechnology: "mongodb", wantSystemType: "nosql-database", wantEndpoints: []string{}},
+			{name: "cache with empty endpoints", technology: `"redis"`, systemType: `"cache"`, endpointsJSON: "[]", wantTechnology: "redis", wantSystemType: "cache", wantEndpoints: []string{}},
+			{name: "search engine", technology: `"elasticsearch"`, systemType: `"search-engine"`, wantTechnology: "elasticsearch", wantSystemType: "search-engine", wantEndpoints: []string{}},
+			{name: "object storage", technology: `"s3"`, systemType: `"object-storage"`, wantTechnology: "s3", wantSystemType: "object-storage", wantEndpoints: []string{}},
+			{name: "workflow engine", technology: `"temporal"`, systemType: `"workflow-engine"`, wantTechnology: "temporal", wantSystemType: "workflow-engine", wantEndpoints: []string{}},
+			{name: "service mesh", technology: `"envoy"`, systemType: `"service-mesh"`, wantTechnology: "envoy", wantSystemType: "service-mesh", wantEndpoints: []string{}},
+			{name: "api gateway", technology: `"kong"`, systemType: `"api-gateway"`, wantTechnology: "kong", wantSystemType: "api-gateway", wantEndpoints: []string{}},
+			{name: "load balancer", technology: `"haproxy"`, systemType: `"load-balancer"`, wantTechnology: "haproxy", wantSystemType: "load-balancer", wantEndpoints: []string{}},
+			{name: "identity provider", technology: `"keycloak"`, systemType: `"identity-provider"`, wantTechnology: "keycloak", wantSystemType: "identity-provider", wantEndpoints: []string{}},
+			{name: "secret storage", technology: `"vault"`, systemType: `"secret-storage"`, wantTechnology: "vault", wantSystemType: "secret-storage", wantEndpoints: []string{}},
+			{name: "monitoring", technology: `"prometheus"`, systemType: `"monitoring"`, wantTechnology: "prometheus", wantSystemType: "monitoring", wantEndpoints: []string{}},
+			{name: "logging", technology: `"grafana"`, systemType: `"logging"`, wantTechnology: "grafana", wantSystemType: "logging", wantEndpoints: []string{}},
+			{name: "tracing", technology: `"jaeger"`, systemType: `"tracing"`, wantTechnology: "jaeger", wantSystemType: "tracing", wantEndpoints: []string{}},
+			{name: "unknown technology", technology: `"postgres"`, systemType: `"sql-database"`, wantCode: "unknown_infrastructure_technology"},
+			{name: "missing technology", systemType: `"sql-database"`, wantCode: "unknown_infrastructure_technology"},
+			{name: "unknown system type", technology: `"postgresql"`, systemType: `"SQL-DATABASE"`, wantCode: "unknown_system_type"},
+			{name: "empty system type", technology: `"postgresql"`, systemType: `"  "`, wantCode: "unknown_system_type"},
+			{name: "missing system type", technology: `"postgresql"`, wantCode: "unknown_system_type"},
+			{name: "eleven endpoints", technology: `"postgresql"`, systemType: `"sql-database"`, endpointsJSON: string(tooMany), wantCode: "too_many_endpoints"},
+			{name: "endpoint string", technology: `"postgresql"`, systemType: `"sql-database"`, endpointsJSON: `"host:5432"`, wantCode: "invalid_request"},
 		}
 		persisted := 0
 		for _, tc := range cases {
 			allure.Step(t, tc.name, func(t T) {
-				detailsJSON := `{"system":" PostgreSQL ","version":" 17 "`
+				detailsJSON := `{"version":" 17 "`
+				if tc.technology != "" {
+					detailsJSON += `,"technology":` + tc.technology
+				}
 				if tc.systemType != "" {
 					detailsJSON += `,"system_type":` + tc.systemType
 				}
-				if tc.addressJSON != "" {
-					detailsJSON += `,"network_address":` + tc.addressJSON
+				if tc.endpointsJSON != "" {
+					detailsJSON += `,"endpoints":` + tc.endpointsJSON
 				}
 				detailsJSON += "}"
 				input := component.CreateRequestV1{
@@ -202,20 +220,20 @@ func TestComponentE2E(t *testing.T) {
 					err = environment.postgres.pool.QueryRow(t.Context(), "SELECT details FROM inventory.components WHERE id = $1", created.ID).Scan(&storedJSON)
 					t.Require().NoError(err)
 					var stored struct {
-						SchemaVersion  int      `json:"schema_version"`
-						System         string   `json:"system"`
-						SystemType     string   `json:"system_type"`
-						Version        string   `json:"version"`
-						NetworkAddress []string `json:"network_address"`
+						SchemaVersion int      `json:"schema_version"`
+						Technology    string   `json:"technology"`
+						SystemType    string   `json:"system_type"`
+						Version       string   `json:"version"`
+						Endpoints     []string `json:"endpoints"`
 					}
 					t.Require().NoError(json.Unmarshal(storedJSON, &stored))
 					t.Assert().Equal(1, stored.SchemaVersion)
-					t.Assert().Equal("PostgreSQL", stored.System)
+					t.Assert().Equal(tc.wantTechnology, stored.Technology)
 					t.Assert().Equal("17", stored.Version)
 					t.Assert().Equal(tc.wantSystemType, stored.SystemType)
-					t.Assert().Equal(tc.wantAddresses, stored.NetworkAddress)
+					t.Assert().Equal(tc.wantEndpoints, stored.Endpoints)
 					wantDetails, err := json.Marshal(map[string]any{
-						"system": "PostgreSQL", "system_type": tc.wantSystemType, "version": "17", "network_address": tc.wantAddresses,
+						"technology": tc.wantTechnology, "system_type": tc.wantSystemType, "version": "17", "endpoints": tc.wantEndpoints,
 					})
 					t.Require().NoError(err)
 					gotDetails, err := json.Marshal(returned.Details)

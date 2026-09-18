@@ -14,8 +14,9 @@ import (
 type Code string
 
 const (
+	CodeUnknownInfrastructureTechnology            Code = "unknown_infrastructure_technology"
 	CodeUnknownSystemType                          Code = "unknown_system_type"
-	CodeTooManyNetworkAddresses                    Code = "too_many_network_addresses"
+	CodeTooManyEndpoints                           Code = "too_many_endpoints"
 	CodeInvalidProductCode                         Code = "invalid_product_code"
 	CodeInvalidID                                  Code = "invalid_id"
 	CodeInvalidWorkspaceName                       Code = "invalid_workspace_name"
@@ -68,10 +69,12 @@ func Resolve(err error) (Error, bool) {
 	var validationErrors validator.ValidationErrors
 
 	switch {
+	case errors.Is(err, inventory.ErrUnknownInfrastructureTechnology):
+		return newBadRequest(CodeUnknownInfrastructureTechnology, "unknown infrastructure technology"), true
 	case errors.Is(err, inventory.ErrUnknownSystemType):
 		return newBadRequest(CodeUnknownSystemType, "unknown system type"), true
-	case errors.Is(err, inventory.ErrTooManyNetworkAddresses):
-		return newBadRequest(CodeTooManyNetworkAddresses, "at most 10 network addresses are allowed"), true
+	case errors.Is(err, inventory.ErrTooManyEndpoints):
+		return newBadRequest(CodeTooManyEndpoints, "at most 10 endpoints are allowed"), true
 	case errors.Is(err, inventory.ErrInvalidProductCode):
 		return newBadRequest(CodeInvalidProductCode, "product code must contain only uppercase Latin letters"), true
 	case errors.Is(err, inventory.ErrNegativeID):

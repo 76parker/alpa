@@ -6,35 +6,21 @@ import (
 )
 
 var (
-	ErrUnknownSystemType            = errors.New("unknown system type")
-	ErrTooManyNetworkAddresses      = errors.New("too many network addresses")
-	ErrInvalidComponentName         = errors.New("invalid component name")
-	ErrUnknownComponentType         = errors.New("unknown component type")
-	ErrEmptyDetails                 = errors.New("component details cannot be empty")
-	ErrInvalidDetails               = errors.New("invalid component details")
-	ErrComponentDetailsTypeMismatch = errors.New("component details type does not match component type")
-	ErrInvalidDescription           = errors.New("invalid component description")
+	ErrUnknownInfrastructureTechnology = errors.New("unknown infrastructure technology")
+	ErrUnknownSystemType               = errors.New("unknown system type")
+	ErrTooManyEndpoints                = errors.New("too many endpoints")
+	ErrInvalidComponentName            = errors.New("invalid component name")
+	ErrUnknownComponentType            = errors.New("unknown component type")
+	ErrEmptyDetails                    = errors.New("component details cannot be empty")
+	ErrInvalidDetails                  = errors.New("invalid component details")
+	ErrComponentDetailsTypeMismatch    = errors.New("component details type does not match component type")
+	ErrInvalidDescription              = errors.New("invalid component description")
 )
-
-type ComponentType string
-
-type SystemType string
 
 type ComponentDetails interface {
 	componentType() ComponentType
 	validate() error
 }
-
-const (
-	SystemTypeQueueStream    SystemType = "queue/stream"
-	SystemTypeSQLDatabase    SystemType = "sql-database"
-	SystemTypeNoSQLDatabase  SystemType = "nosql-database"
-	SystemTypeWorkflowEngine SystemType = "workflow-engine"
-
-	ComponentTypeFrontend       ComponentType = "frontend-service"
-	ComponentTypeBackend        ComponentType = "backend-service"
-	ComponentTypeInfrastructure ComponentType = "infrastructure"
-)
 
 type Component struct {
 	id          int64
