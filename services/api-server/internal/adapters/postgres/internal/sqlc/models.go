@@ -169,11 +169,12 @@ func (e InventoryProductCriticality) Valid() bool {
 }
 
 type InventoryApi struct {
-	ID              int64
-	ComponentID     int64
-	Name            string
-	ApiType         string
-	NetworkExposure InventoryNetworkExposure
+	ID               int64
+	ComponentID      int64
+	Name             string
+	ApiType          string
+	NetworkExposure  InventoryNetworkExposure
+	DocumentationUrl *string
 }
 
 type InventoryComponent struct {
@@ -191,7 +192,9 @@ type InventoryComponentClient struct {
 	ClientName        string
 	Role              string
 	CommunicationType string
-	Description       *string
+	Action            *string
+	Capabilities      *string
+	SecureConnection  bool
 	ApiID             *int64
 }
 

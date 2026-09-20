@@ -30,40 +30,41 @@ func TestClientCreationE2E(t *testing.T) {
 		t.Require().Equal(http.StatusCreated, status)
 
 		cases := []struct {
-			name    string
-			request httpclients.CreateRequestV1
+			name                  string
+			request               httpclients.CreateRequestV1
+			wantCommunicationType inventory.CommunicationType
 		}{
 			{
 				name: "sync REST client",
 				request: httpclients.CreateRequestV1{
-					ClientName:        inventory.RESTClient,
-					Role:              inventory.CallerRole,
-					CommunicationType: inventory.RequestResponse,
+					ClientName: inventory.RESTClient,
+					Role:       inventory.Caller,
 				},
+				wantCommunicationType: inventory.RequestResponse,
 			},
 			{
 				name: "async Kafka producer",
 				request: httpclients.CreateRequestV1{
-					ClientName:        inventory.KafkaClient,
-					Role:              inventory.EventProducerRole,
-					CommunicationType: inventory.Events,
+					ClientName: inventory.KafkaClient,
+					Role:       inventory.Producer,
 				},
+				wantCommunicationType: inventory.Events,
 			},
 			{
 				name: "streaming WebSocket listener",
 				request: httpclients.CreateRequestV1{
-					ClientName:        inventory.WebSocketClient,
-					Role:              inventory.ListenerRole,
-					CommunicationType: inventory.Stream,
+					ClientName: inventory.WebSocketClient,
+					Role:       inventory.Listener,
 				},
+				wantCommunicationType: inventory.Stream,
 			},
 			{
 				name: "S3 client",
 				request: httpclients.CreateRequestV1{
-					ClientName:        inventory.S3Client,
-					Role:              inventory.CallerRole,
-					CommunicationType: inventory.RequestResponse,
+					ClientName: inventory.S3Client,
+					Role:       inventory.Caller,
 				},
+				wantCommunicationType: inventory.RequestResponse,
 			},
 		}
 
@@ -73,7 +74,7 @@ func TestClientCreationE2E(t *testing.T) {
 				t.Require().Equal(http.StatusCreated, status)
 				t.Assert().Equal(tc.request.ClientName, created.ClientName)
 				t.Assert().Equal(tc.request.Role, created.Role)
-				t.Assert().Equal(tc.request.CommunicationType, created.CommunicationType)
+				t.Assert().Equal(tc.wantCommunicationType, created.CommunicationType)
 				t.Assert().Nil(created.APIID)
 
 				var storedName, storedRole, storedCommunicationType string
@@ -85,7 +86,7 @@ func TestClientCreationE2E(t *testing.T) {
 				t.Require().NoError(err)
 				t.Assert().Equal(string(tc.request.ClientName), storedName)
 				t.Assert().Equal(string(tc.request.Role), storedRole)
-				t.Assert().Equal(string(tc.request.CommunicationType), storedCommunicationType)
+				t.Assert().Equal(string(tc.wantCommunicationType), storedCommunicationType)
 			})
 		}
 
@@ -95,7 +96,7 @@ func TestClientCreationE2E(t *testing.T) {
 		for i, tc := range cases {
 			t.Assert().Equal(tc.request.ClientName, returned.Clients[i].ClientName)
 			t.Assert().Equal(tc.request.Role, returned.Clients[i].Role)
-			t.Assert().Equal(tc.request.CommunicationType, returned.Clients[i].CommunicationType)
+			t.Assert().Equal(tc.wantCommunicationType, returned.Clients[i].CommunicationType)
 		}
 
 		listed, status := listTestComponents(t, client, product.ID)
@@ -105,7 +106,7 @@ func TestClientCreationE2E(t *testing.T) {
 		for i, tc := range cases {
 			t.Assert().Equal(tc.request.ClientName, listed.Data[0].Clients[i].ClientName)
 			t.Assert().Equal(tc.request.Role, listed.Data[0].Clients[i].Role)
-			t.Assert().Equal(tc.request.CommunicationType, listed.Data[0].Clients[i].CommunicationType)
+			t.Assert().Equal(tc.wantCommunicationType, listed.Data[0].Clients[i].CommunicationType)
 		}
 	}, allureArtifactsDir))
 
@@ -116,7 +117,7 @@ func TestClientCreationE2E(t *testing.T) {
 		t.Story("Create client")
 		t.Severity(allure.SeverityCritical)
 		t.Tags("e2e", "negative")
-		t.Title("Reject incompatible client name role and communication type combinations")
+		t.Title("Reject incompatible client name and role combinations")
 
 		resetDatabase(t)
 		product := createTestProductForComponent(t, client)
@@ -131,65 +132,34 @@ func TestClientCreationE2E(t *testing.T) {
 			{
 				name: "unknown client name",
 				request: httpclients.CreateRequestV1{
-					ClientName:        "unknown-client",
-					Role:              inventory.CallerRole,
-					CommunicationType: inventory.RequestResponse,
+					ClientName: "unknown-client",
+					Role:       inventory.Caller,
 				},
 				wantCode: errmap.CodeInvalidClientType,
 			},
 			{
 				name: "async caller",
 				request: httpclients.CreateRequestV1{
-					ClientName:        inventory.KafkaClient,
-					Role:              inventory.CallerRole,
-					CommunicationType: inventory.Events,
+					ClientName: inventory.KafkaClient,
+					Role:       inventory.Caller,
 				},
 				wantCode: errmap.CodeAsyncClientCannotBeCallerRole,
 			},
 			{
-				name: "async non events communication",
-				request: httpclients.CreateRequestV1{
-					ClientName:        inventory.KafkaClient,
-					Role:              inventory.EventProducerRole,
-					CommunicationType: inventory.RequestResponse,
-				},
-				wantCode: errmap.CodeAsyncClientInvalidCommunicationType,
-			},
-			{
 				name: "streaming non listener",
 				request: httpclients.CreateRequestV1{
-					ClientName:        inventory.WebSocketClient,
-					Role:              inventory.CallerRole,
-					CommunicationType: inventory.Stream,
+					ClientName: inventory.WebSocketClient,
+					Role:       inventory.Caller,
 				},
 				wantCode: errmap.CodeStreamingClientCanBeOnlyListener,
 			},
 			{
-				name: "streaming non stream communication",
-				request: httpclients.CreateRequestV1{
-					ClientName:        inventory.WebSocketClient,
-					Role:              inventory.ListenerRole,
-					CommunicationType: inventory.RequestResponse,
-				},
-				wantCode: errmap.CodeStreamingClientInvalidCommunicationType,
-			},
-			{
 				name: "sync non caller",
 				request: httpclients.CreateRequestV1{
-					ClientName:        inventory.RESTClient,
-					Role:              inventory.ListenerRole,
-					CommunicationType: inventory.RequestResponse,
+					ClientName: inventory.RESTClient,
+					Role:       inventory.Listener,
 				},
 				wantCode: errmap.CodeSyncClientCanBeOnlyCallerRole,
-			},
-			{
-				name: "sync event communication",
-				request: httpclients.CreateRequestV1{
-					ClientName:        inventory.RESTClient,
-					Role:              inventory.CallerRole,
-					CommunicationType: inventory.Events,
-				},
-				wantCode: errmap.CodeSyncCallerCannotHaveEventCommunicationType,
 			},
 		}
 
@@ -211,9 +181,8 @@ type clientCreationResult struct {
 
 func testRESTClientRequest() httpclients.CreateRequestV1 {
 	return httpclients.CreateRequestV1{
-		ClientName:        inventory.RESTClient,
-		Role:              inventory.CallerRole,
-		CommunicationType: inventory.RequestResponse,
+		ClientName: inventory.RESTClient,
+		Role:       inventory.Caller,
 	}
 }
 

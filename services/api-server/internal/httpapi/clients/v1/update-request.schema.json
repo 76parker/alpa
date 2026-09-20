@@ -8,6 +8,6 @@
     "role": { "type": "string", "maxLength": 50, "enum": ["listener", "caller", "producer", "consumer"] },
     "action": { "type": ["string", "null"], "maxLength": 2097152 },
     "capabilities": { "type": ["string", "null"], "maxLength": 2097152 },
-    "secure_connection": { "type": "boolean", "default": false }
+    "secure_connection": { "type": "boolean" }
   }
 }

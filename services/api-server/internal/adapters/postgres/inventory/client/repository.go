@@ -28,18 +28,14 @@ func (r *Repository) Create(
 	componentID int64,
 	client inventory.ComponentClient,
 ) (inventory.ComponentClient, error) {
-	var description *string
-	if client.Description() != "" {
-		value := client.Description()
-		description = &value
-	}
-
 	row, err := r.queries.CreateClient(ctx, sqlc.CreateClientParams{
 		ComponentID:       componentID,
 		ClientName:        string(client.Type().ClientName()),
 		Role:              string(client.Type().Role()),
 		CommunicationType: string(client.Type().CommunicationType()),
-		Description:       description,
+		Action:            client.Action(),
+		Capabilities:      client.Capabilities(),
+		SecureConnection:  client.SecureConnection(),
 	})
 	if err != nil {
 		return inventory.ComponentClient{}, fmt.Errorf("create client: %w", mapCreateError(err))
@@ -49,10 +45,28 @@ func (r *Repository) Create(
 		row.ID,
 		inventory.ComponentClientName(row.ClientName),
 		inventory.ComponentClientRole(row.Role),
-		inventory.CommunicationType(row.CommunicationType),
-		stringValue(row.Description),
+		row.Action,
+		row.Capabilities,
+		row.SecureConnection,
 		row.ApiID,
 	), nil
+}
+
+func (r *Repository) Update(ctx context.Context, componentID, clientID int64, client inventory.ComponentClient) (inventory.ComponentClient, error) {
+	row, err := r.queries.UpdateClient(ctx, sqlc.UpdateClientParams{
+		ClientName:        string(client.Type().ClientName()),
+		Role:              string(client.Type().Role()),
+		CommunicationType: string(client.Type().CommunicationType()),
+		Action:            client.Action(),
+		Capabilities:      client.Capabilities(),
+		SecureConnection:  client.SecureConnection(),
+		ClientID:          clientID,
+		ComponentID:       componentID,
+	})
+	if err != nil {
+		return inventory.ComponentClient{}, fmt.Errorf("update client: %w", postgres.MapDatabaseError(err))
+	}
+	return inventory.RestoreComponentClient(row.ID, inventory.ComponentClientName(row.ClientName), inventory.ComponentClientRole(row.Role), row.Action, row.Capabilities, row.SecureConnection, row.ApiID), nil
 }
 
 func (r *Repository) BatchCreate(
@@ -70,13 +84,25 @@ func (r *Repository) BatchCreate(
 		ClientNames:        make([]string, 0, len(clients)),
 		Roles:              make([]string, 0, len(clients)),
 		CommunicationTypes: make([]string, 0, len(clients)),
-		Descriptions:       make([]string, 0, len(clients)),
+		Actions:            make([]string, 0, len(clients)),
+		Capabilities:       make([]string, 0, len(clients)),
+		SecureConnections:  make([]bool, 0, len(clients)),
 	}
 	for _, client := range clients {
 		params.ClientNames = append(params.ClientNames, string(client.Type().ClientName()))
 		params.Roles = append(params.Roles, string(client.Type().Role()))
 		params.CommunicationTypes = append(params.CommunicationTypes, string(client.Type().CommunicationType()))
-		params.Descriptions = append(params.Descriptions, client.Description())
+		if action := client.Action(); action != nil {
+			params.Actions = append(params.Actions, *action)
+		} else {
+			params.Actions = append(params.Actions, "")
+		}
+		if capabilities := client.Capabilities(); capabilities != nil {
+			params.Capabilities = append(params.Capabilities, *capabilities)
+		} else {
+			params.Capabilities = append(params.Capabilities, "")
+		}
+		params.SecureConnections = append(params.SecureConnections, client.SecureConnection())
 	}
 
 	rows, err := r.queries.BatchCreateClients(ctx, params)
@@ -88,8 +114,9 @@ func (r *Repository) BatchCreate(
 			row.ID,
 			inventory.ComponentClientName(row.ClientName),
 			inventory.ComponentClientRole(row.Role),
-			inventory.CommunicationType(row.CommunicationType),
-			stringValue(row.Description),
+			row.Action,
+			row.Capabilities,
+			row.SecureConnection,
 			row.ApiID,
 		))
 	}
@@ -103,6 +130,16 @@ func (r *Repository) CountByComponentID(ctx context.Context, componentID int64) 
 		return 0, fmt.Errorf("count clients by component id: %w", postgres.MapDatabaseError(err))
 	}
 	return int(count), nil
+}
+
+func (r *Repository) Delete(ctx context.Context, componentID int64, clientID int64) error {
+	if _, err := r.queries.DeleteClient(ctx, sqlc.DeleteClientParams{
+		ClientID:    clientID,
+		ComponentID: componentID,
+	}); err != nil {
+		return fmt.Errorf("delete client: %w", postgres.MapDatabaseError(err))
+	}
+	return nil
 }
 
 func (r *Repository) ListByComponentIDs(
@@ -125,8 +162,9 @@ func (r *Repository) ListByComponentIDs(
 				row.ID,
 				inventory.ComponentClientName(row.ClientName),
 				inventory.ComponentClientRole(row.Role),
-				inventory.CommunicationType(row.CommunicationType),
-				stringValue(row.Description),
+				row.Action,
+				row.Capabilities,
+				row.SecureConnection,
 				row.ApiID,
 			),
 		)
@@ -175,8 +213,9 @@ func (r *Repository) BindAPI(
 		row.ID,
 		inventory.ComponentClientName(row.ClientName),
 		inventory.ComponentClientRole(row.Role),
-		inventory.CommunicationType(row.CommunicationType),
-		stringValue(row.Description),
+		row.Action,
+		row.Capabilities,
+		row.SecureConnection,
 		row.ApiID,
 	), nil
 }
@@ -199,11 +238,4 @@ func mapBindAPIError(err error) error {
 		return fmt.Errorf("%w: %w", postgres.ErrNotFound, mapped)
 	}
 	return mapped
-}
-
-func stringValue(value *string) string {
-	if value == nil {
-		return ""
-	}
-	return *value
 }

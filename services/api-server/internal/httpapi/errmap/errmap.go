@@ -14,14 +14,16 @@ import (
 type Code string
 
 const (
-	CodeUnknownInfrastructureTechnology            Code = "unknown_infrastructure_technology"
-	CodeUnknownSystemType                          Code = "unknown_system_type"
+	CodeUnknownTechnologyName                      Code = "unknown_technology_name"
+	CodeUnknownLanguage                            Code = "unknown_language"
+	CodeUnknownTechnologyType                      Code = "unknown_technology_type"
 	CodeTooManyEndpoints                           Code = "too_many_endpoints"
 	CodeInvalidProductCode                         Code = "invalid_product_code"
 	CodeInvalidID                                  Code = "invalid_id"
 	CodeInvalidWorkspaceName                       Code = "invalid_workspace_name"
 	CodeInvalidProductName                         Code = "invalid_product_name"
 	CodeInvalidCriticality                         Code = "invalid_criticality"
+	CodeInvalidImportancy                          Code = "invalid_importancy"
 	CodeInvalidComponentName                       Code = "invalid_component_name"
 	CodeUnknownComponentType                       Code = "unknown_component_type"
 	CodeEmptyComponentDetails                      Code = "empty_component_details"
@@ -42,6 +44,8 @@ const (
 	CodeInvalidClientBinding                       Code = "invalid_client_binding"
 	CodeClientAlreadyBound                         Code = "client_already_bound"
 	CodeClientLimitExceeded                        Code = "client_limit_exceeded"
+	CodeClientActionTooLarge                       Code = "client_action_too_large"
+	CodeClientCapabilitiesTooLarge                 Code = "client_capabilities_too_large"
 	CodeInvalidRequest                             Code = "invalid_request"
 	CodeInvalidPagination                          Code = "invalid_pagination"
 	CodeNotFound                                   Code = "not_found"
@@ -69,10 +73,12 @@ func Resolve(err error) (Error, bool) {
 	var validationErrors validator.ValidationErrors
 
 	switch {
-	case errors.Is(err, inventory.ErrUnknownInfrastructureTechnology):
-		return newBadRequest(CodeUnknownInfrastructureTechnology, "unknown infrastructure technology"), true
-	case errors.Is(err, inventory.ErrUnknownSystemType):
-		return newBadRequest(CodeUnknownSystemType, "unknown system type"), true
+	case errors.Is(err, inventory.ErrUnknownTechnologyName):
+		return newBadRequest(CodeUnknownTechnologyName, "unknown technology name"), true
+	case errors.Is(err, inventory.ErrUnknownLanguage):
+		return newBadRequest(CodeUnknownLanguage, "unknown language"), true
+	case errors.Is(err, inventory.ErrUnknownTechnologyType):
+		return newBadRequest(CodeUnknownTechnologyType, "unknown technology type"), true
 	case errors.Is(err, inventory.ErrTooManyEndpoints):
 		return newBadRequest(CodeTooManyEndpoints, "at most 10 endpoints are allowed"), true
 	case errors.Is(err, inventory.ErrInvalidProductCode):
@@ -85,6 +91,8 @@ func Resolve(err error) (Error, bool) {
 		return newBadRequest(CodeInvalidProductName, "invalid product name"), true
 	case errors.Is(err, inventory.ErrInvalidCriticality):
 		return newBadRequest(CodeInvalidCriticality, "invalid criticality"), true
+	case errors.Is(err, inventory.ErrInvalidInfrastructureCriticality):
+		return newBadRequest(CodeInvalidImportancy, "invalid importancy"), true
 	case errors.Is(err, inventory.ErrInvalidComponentName):
 		return newBadRequest(CodeInvalidComponentName, "invalid component name"), true
 	case errors.Is(err, inventory.ErrUnknownComponentType):
@@ -125,6 +133,10 @@ func Resolve(err error) (Error, bool) {
 		return newError("client is already bound", CodeClientAlreadyBound, http.StatusConflict), true
 	case errors.Is(err, inventory.ErrClientLimitExceeded):
 		return newBadRequest(CodeClientLimitExceeded, inventory.ErrClientLimitExceeded.Error()), true
+	case errors.Is(err, inventory.ErrActionTooLarge):
+		return newBadRequest(CodeClientActionTooLarge, "client action must be at most 2 MiB in UTF-8"), true
+	case errors.Is(err, inventory.ErrCapabilitiesTooLarge):
+		return newBadRequest(CodeClientCapabilitiesTooLarge, "client capabilities must be at most 2 MiB in UTF-8"), true
 	case errors.Is(err, postgres.ErrNotFound):
 		return newError("resource not found", CodeNotFound, http.StatusNotFound), true
 	case errors.Is(err, postgres.ErrUniqueViolation):

@@ -55,7 +55,8 @@ CREATE TABLE inventory.apis (
     component_id BIGINT NOT NULL REFERENCES inventory.components (id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     api_type TEXT NOT NULL,
-    network_exposure inventory.network_exposure NOT NULL
+    network_exposure inventory.network_exposure NOT NULL,
+    documentation_url TEXT
 );
 
 CREATE INDEX apis_component_id_idx ON inventory.apis (component_id);
@@ -67,7 +68,9 @@ CREATE TABLE inventory.component_clients (
     client_name TEXT NOT NULL,
     role TEXT NOT NULL,
     communication_type TEXT NOT NULL,
-    description TEXT,
+    action TEXT,
+    capabilities TEXT,
+    secure_connection BOOLEAN NOT NULL DEFAULT FALSE,
     api_id BIGINT REFERENCES inventory.apis (id) ON DELETE SET NULL
 );
 

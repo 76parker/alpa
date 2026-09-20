@@ -81,7 +81,7 @@ func (s *service) create(ctx context.Context, command CreateCommand) (inventory.
 func newDomainAPIs(commands []CreateAPICommand) ([]inventory.ComponentAPI, error) {
 	apis := make([]inventory.ComponentAPI, 0, len(commands))
 	for _, command := range commands {
-		api, err := inventory.NewComponentAPI(command.Name, command.APIType, command.NetworkExposure)
+		api, err := inventory.NewComponentAPI(command.Name, command.APIType, command.NetworkExposure, command.DocumentationURL)
 		if err != nil {
 			return nil, err
 		}
@@ -96,8 +96,9 @@ func newDomainClients(commands []CreateClientCommand) ([]inventory.ComponentClie
 		client, err := inventory.NewComponentClient(
 			command.ClientName,
 			command.Role,
-			command.CommunicationType,
-			command.Description,
+			command.Action,
+			command.Capabilities,
+			command.SecureConnection,
 		)
 		if err != nil {
 			return nil, err
@@ -197,8 +198,7 @@ func newDomainDetails(input Details) (inventory.ComponentDetails, error) {
 	case BackendServiceDetails:
 		return inventory.NewBackendServiceComponentDetails(
 			details.CoreLanguage,
-			details.LanguageVersion,
-			details.MainFramework,
+			details.RepositoryURL,
 		)
 	case FrontendServiceDetails:
 		return inventory.NewFrontendServiceComponentDetails(
@@ -208,8 +208,9 @@ func newDomainDetails(input Details) (inventory.ComponentDetails, error) {
 		)
 	case InfrastructureDetails:
 		return inventory.NewInfrastructureComponentDetails(
-			details.Technology,
-			details.SystemType,
+			details.TechnologyName,
+			details.TechnologyType,
+			details.Importancy,
 			details.Version,
 			details.Endpoints,
 		)

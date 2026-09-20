@@ -7,7 +7,9 @@
     "client_name",
     "role",
     "communication_type",
-    "description",
+    "action",
+    "capabilities",
+    "secure_connection",
     "api_id"
   ],
   "properties": {
@@ -23,6 +25,7 @@
         "rest-client",
         "graphql-client",
         "grpc-client",
+        "grpc-streaming-client",
         "json-rpc-client",
         "soap-client",
         "websocket-client",
@@ -53,8 +56,16 @@
       "maxLength": 50,
       "enum": ["request-response", "polling", "long-polling", "events", "stream"]
     },
-    "description": {
-      "type": "string"
+    "action": {
+      "type": ["string", "null"],
+      "maxLength": 2097152
+    },
+    "capabilities": {
+      "type": ["string", "null"],
+      "maxLength": 2097152
+    },
+    "secure_connection": {
+      "type": "boolean"
     },
     "api_id": {
       "oneOf": [

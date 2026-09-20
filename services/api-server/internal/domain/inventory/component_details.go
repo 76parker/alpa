@@ -1,20 +1,21 @@
 package inventory
 
 type BackendServiceComponentDetails struct {
-	Language        string
-	LanguageVersion string
-	MainFramework   string
+	Language      Language
+	RepositoryURL *string
 }
 
 func NewBackendServiceComponentDetails(
-	language,
-	languageVersion,
-	mainFramework string,
+	language Language,
+	repositoryURL *string,
 ) (BackendServiceComponentDetails, error) {
+	canonicalLanguage, err := NewLanguage(string(language))
+	if err != nil {
+		return BackendServiceComponentDetails{}, err
+	}
 	details := BackendServiceComponentDetails{
-		Language:        language,
-		LanguageVersion: languageVersion,
-		MainFramework:   mainFramework,
+		Language:      canonicalLanguage,
+		RepositoryURL: repositoryURL,
 	}
 	if err := details.validate(); err != nil {
 		return BackendServiceComponentDetails{}, err
@@ -27,32 +28,35 @@ func (BackendServiceComponentDetails) componentType() ComponentType {
 }
 
 func (d BackendServiceComponentDetails) validate() error {
-	if d.Language == "" {
-		return ErrInvalidDetails
+	if !isValidLanguage(d.Language) {
+		return ErrUnknownLanguage
 	}
 	return nil
 }
 
 type InfrastructureComponentDetails struct {
-	Technology InfrastructureTechnology
-	SystemType SystemType
-	Version    string
-	Endpoints  []string
+	TechnologyName TechnologyName
+	TechnologyType TechnologyType
+	Importancy     InfrastructureCriticality
+	Version        string
+	Endpoints      []string
 }
 
 func NewInfrastructureComponentDetails(
-	technology InfrastructureTechnology,
-	systemType SystemType,
+	technologyName TechnologyName,
+	technologyType TechnologyType,
+	importancy InfrastructureCriticality,
 	version string,
 	endpoints []string,
 ) (InfrastructureComponentDetails, error) {
 	copiedEndpoints := make([]string, len(endpoints))
 	copy(copiedEndpoints, endpoints)
 	details := InfrastructureComponentDetails{
-		Technology: technology,
-		SystemType: systemType,
-		Version:    version,
-		Endpoints:  copiedEndpoints,
+		TechnologyName: technologyName,
+		TechnologyType: technologyType,
+		Importancy:     importancy,
+		Version:        version,
+		Endpoints:      copiedEndpoints,
 	}
 	if err := details.validate(); err != nil {
 		return InfrastructureComponentDetails{}, err
@@ -65,12 +69,20 @@ func (InfrastructureComponentDetails) componentType() ComponentType {
 }
 
 func (d InfrastructureComponentDetails) validate() error {
-	if !isValidInfrastructureTechnology(d.Technology) {
-		return ErrUnknownInfrastructureTechnology
+	if !isValidTechnologyType(d.TechnologyType) {
+		return ErrUnknownTechnologyType
 	}
-	if !isValidSystemType(d.SystemType) {
-		return ErrUnknownSystemType
+	if !isValidInfrastructureCriticality(d.Importancy) {
+		return ErrInvalidInfrastructureCriticality
 	}
+	defaultParameters, ok := resolveDefaultTechnologyParameters[d.TechnologyName]
+	if !ok {
+		return ErrUnknownTechnologyName
+	}
+	if defaultParameters.TechnologyType != d.TechnologyType {
+		return ErrUnknownTechnologyType
+	}
+
 	if len(d.Endpoints) > 10 {
 		return ErrTooManyEndpoints
 	}
@@ -78,18 +90,22 @@ func (d InfrastructureComponentDetails) validate() error {
 }
 
 type FrontendServiceComponentDetails struct {
-	Language        string
+	Language        Language
 	LanguageVersion string
 	MainFramework   string
 }
 
 func NewFrontendServiceComponentDetails(
-	language,
+	language Language,
 	languageVersion,
 	mainFramework string,
 ) (FrontendServiceComponentDetails, error) {
+	canonicalLanguage, err := NewLanguage(string(language))
+	if err != nil {
+		return FrontendServiceComponentDetails{}, err
+	}
 	details := FrontendServiceComponentDetails{
-		Language:        language,
+		Language:        canonicalLanguage,
 		LanguageVersion: languageVersion,
 		MainFramework:   mainFramework,
 	}
@@ -104,71 +120,29 @@ func (FrontendServiceComponentDetails) componentType() ComponentType {
 }
 
 func (d FrontendServiceComponentDetails) validate() error {
-	if d.Language == "" {
-		return ErrInvalidDetails
+	if !isValidLanguage(d.Language) {
+		return ErrUnknownLanguage
 	}
 	return nil
 }
 
-func isValidInfrastructureTechnology(technology InfrastructureTechnology) bool {
-	switch technology {
-	case InfrastructureTechnologyPostgreSQL,
-		InfrastructureTechnologyMySQL,
-		InfrastructureTechnologyMariaDB,
-		InfrastructureTechnologyMongoDB,
-		InfrastructureTechnologyCassandra,
-		InfrastructureTechnologyClickHouse,
-		InfrastructureTechnologyRedis,
-		InfrastructureTechnologyMemcached,
-		InfrastructureTechnologyEtcd,
-		InfrastructureTechnologyKafka,
-		InfrastructureTechnologyRabbitMQ,
-		InfrastructureTechnologyNATS,
-		InfrastructureTechnologyPulsar,
-		InfrastructureTechnologyElasticsearch,
-		InfrastructureTechnologyOpenSearch,
-		InfrastructureTechnologyS3,
-		InfrastructureTechnologyMinIO,
-		InfrastructureTechnologyCeph,
-		InfrastructureTechnologyTemporal,
-		InfrastructureTechnologyAirflow,
-		InfrastructureTechnologyArgo,
-		InfrastructureTechnologyNginx,
-		InfrastructureTechnologyEnvoy,
-		InfrastructureTechnologyKong,
-		InfrastructureTechnologyTraefik,
-		InfrastructureTechnologyHAProxy,
-		InfrastructureTechnologyPrometheus,
-		InfrastructureTechnologyGrafana,
-		InfrastructureTechnologyZabbix,
-		InfrastructureTechnologyJaeger,
-		InfrastructureTechnologyZipkin,
-		InfrastructureTechnologyOpenTelemetry,
-		InfrastructureTechnologyKeycloak,
-		InfrastructureTechnologyVault:
-		return true
-	default:
-		return false
-	}
-}
-
-func isValidSystemType(systemType SystemType) bool {
-	switch systemType {
-	case SystemTypeMessageBroker,
-		SystemTypeSQLDatabase,
-		SystemTypeNoSQLDatabase,
-		SystemTypeCache,
-		SystemTypeSearchEngine,
-		SystemTypeObjectStorage,
-		SystemTypeWorkflowEngine,
-		SystemTypeServiceMesh,
-		SystemTypeAPIGateway,
-		SystemTypeLoadBalancer,
-		SystemTypeIdentityProvider,
-		SystemTypeSecretStorage,
-		SystemTypeMonitoring,
-		SystemTypeLogging,
-		SystemTypeTracing:
+func isValidTechnologyType(technologyType TechnologyType) bool {
+	switch technologyType {
+	case MessageBroker,
+		SQLDatabase,
+		NoSQLDatabase,
+		Cache,
+		SearchEngine,
+		ObjectStorage,
+		WorkflowEngine,
+		ServiceMesh,
+		APIGateway,
+		LoadBalancer,
+		IdentityProvider,
+		SecretStorage,
+		Monitoring,
+		Logging,
+		Tracing:
 		return true
 	default:
 		return false

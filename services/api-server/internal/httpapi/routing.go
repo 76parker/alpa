@@ -76,17 +76,21 @@ func initSwaggerRoutes(router *gin.Engine) {
 
 func initComponentRoutes(group *gin.RouterGroup, handlers *Handlers) {
 	group.POST("/components", handlerName("component.create"), handlers.Component.Create)
-	group.GET("/components/:id", handlerName("component.get"), handlers.Component.Get)
-	group.DELETE("/components/:id", handlerName("component.delete"), handlers.Component.Delete)
+	group.GET("/components/:component_id", handlerName("component.get"), handlers.Component.Get)
+	group.DELETE("/components/:component_id", handlerName("component.delete"), handlers.Component.Delete)
 	group.GET("/products/:product_id/components", handlerName("component.list"), handlers.Component.List)
 }
 
 func initAPIRoutes(group *gin.RouterGroup, handlers *Handlers) {
 	group.POST("/components/:component_id/apis", handlerName("api.create"), handlers.APIs.Create)
+	group.PUT("/components/:component_id/apis/:id", handlerName("api.update"), handlers.APIs.Update)
+	group.DELETE("/components/:component_id/apis/:id", handlerName("api.delete"), handlers.APIs.Delete)
 }
 
 func initClientRoutes(group *gin.RouterGroup, handlers *Handlers) {
 	group.POST("/components/:component_id/clients", handlerName("client.create"), handlers.Clients.Create)
+	group.PUT("/components/:component_id/clients/:id", handlerName("client.update"), handlers.Clients.Update)
+	group.DELETE("/components/:component_id/clients/:id", handlerName("client.delete"), handlers.Clients.Delete)
 	group.POST(
 		"/components/:component_id/clients/:id/bindings",
 		handlerName("client_binding.create"),

@@ -6,15 +6,17 @@ import (
 )
 
 var (
-	ErrUnknownInfrastructureTechnology = errors.New("unknown infrastructure technology")
-	ErrUnknownSystemType               = errors.New("unknown system type")
-	ErrTooManyEndpoints                = errors.New("too many endpoints")
-	ErrInvalidComponentName            = errors.New("invalid component name")
-	ErrUnknownComponentType            = errors.New("unknown component type")
-	ErrEmptyDetails                    = errors.New("component details cannot be empty")
-	ErrInvalidDetails                  = errors.New("invalid component details")
-	ErrComponentDetailsTypeMismatch    = errors.New("component details type does not match component type")
-	ErrInvalidDescription              = errors.New("invalid component description")
+	ErrUnknownTechnologyName            = errors.New("unknown technology name")
+	ErrUnknownTechnologyType            = errors.New("unknown technology type")
+	ErrTooManyEndpoints                 = errors.New("too many endpoints")
+	ErrInvalidComponentName             = errors.New("invalid component name")
+	ErrUnknownComponentType             = errors.New("unknown component type")
+	ErrEmptyDetails                     = errors.New("component details cannot be empty")
+	ErrInvalidDetails                   = errors.New("invalid component details")
+	ErrComponentDetailsTypeMismatch     = errors.New("component details type does not match component type")
+	ErrInvalidDescription               = errors.New("invalid component description")
+	ErrInvalidInfrastructureCriticality = errors.New("invalid infrastructure criticality")
+	ErrTechnologyTypeMismatch           = errors.New("technology type and technology name mismatch")
 )
 
 type ComponentDetails interface {

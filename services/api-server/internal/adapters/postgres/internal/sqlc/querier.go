@@ -19,6 +19,8 @@ type Querier interface {
 	CreateComponent(ctx context.Context, arg CreateComponentParams) (InventoryComponent, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (InventoryProduct, error)
 	CreateWorkspace(ctx context.Context, name string) (InventoryWorkspace, error)
+	DeleteAPI(ctx context.Context, arg DeleteAPIParams) (int64, error)
+	DeleteClient(ctx context.Context, arg DeleteClientParams) (int64, error)
 	DeleteComponent(ctx context.Context, id int64) (int64, error)
 	DeleteProduct(ctx context.Context, id int64) (int64, error)
 	DeleteWorkspace(ctx context.Context, id int64) (int64, error)
@@ -33,6 +35,8 @@ type Querier interface {
 	ListProductsByWorkspaceID(ctx context.Context, arg ListProductsByWorkspaceIDParams) ([]InventoryProduct, error)
 	ListWorkspaces(ctx context.Context, arg ListWorkspacesParams) ([]InventoryWorkspace, error)
 	LockComponentForUpdate(ctx context.Context, id int64) (int64, error)
+	UpdateAPI(ctx context.Context, arg UpdateAPIParams) (InventoryApi, error)
+	UpdateClient(ctx context.Context, arg UpdateClientParams) (InventoryComponentClient, error)
 }
 
 var _ Querier = (*Queries)(nil)

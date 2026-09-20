@@ -18,10 +18,11 @@ type ResponseV1 struct {
 }
 
 type APIResponseV1 struct {
-	ID              int64                     `json:"id"`
-	Name            string                    `json:"name"`
-	APIType         inventory.APIType         `json:"api_type"`
-	NetworkExposure inventory.NetworkExposure `json:"network_exposure"`
+	ID               int64                     `json:"id"`
+	Name             string                    `json:"name"`
+	APIType          inventory.APIType         `json:"api_type"`
+	NetworkExposure  inventory.NetworkExposure `json:"network_exposure"`
+	DocumentationURL *string                   `json:"documentation_url"`
 }
 
 type ClientResponseV1 struct {
@@ -29,21 +30,29 @@ type ClientResponseV1 struct {
 	ClientName        inventory.ComponentClientName `json:"client_name"`
 	Role              inventory.ComponentClientRole `json:"role"`
 	CommunicationType inventory.CommunicationType   `json:"communication_type"`
-	Description       string                        `json:"description"`
+	Action            *string                       `json:"action"`
+	Capabilities      *string                       `json:"capabilities"`
+	SecureConnection  bool                          `json:"secure_connection"`
 	APIID             *int64                        `json:"api_id"`
 }
 
-type ServiceDetailsResponseV1 struct {
-	Language        string `json:"language"`
-	LanguageVersion string `json:"language_version"`
-	Framework       string `json:"framework"`
+type BackendServiceDetailsResponseV1 struct {
+	Language      inventory.Language `json:"language"`
+	RepositoryURL *string            `json:"repository_url"`
+}
+
+type FrontendServiceDetailsResponseV1 struct {
+	Language        inventory.Language `json:"language"`
+	LanguageVersion string             `json:"language_version"`
+	Framework       string             `json:"framework"`
 }
 
 type InfrastructureDetailsResponseV1 struct {
-	Technology inventory.InfrastructureTechnology `json:"technology"`
-	Version    string                             `json:"version"`
-	SystemType inventory.SystemType               `json:"system_type"`
-	Endpoints  []string                           `json:"endpoints"`
+	TechnologyName inventory.TechnologyName            `json:"technology_name"`
+	Version        string                              `json:"version"`
+	TechnologyType inventory.TechnologyType            `json:"technology_type"`
+	Importancy     inventory.InfrastructureCriticality `json:"importancy"`
+	Endpoints      []string                            `json:"endpoints"`
 }
 
 func NewResponseV1(component inventory.Component) (ResponseV1, error) {
@@ -55,10 +64,11 @@ func NewResponseV1(component inventory.Component) (ResponseV1, error) {
 	apis := make([]APIResponseV1, 0, len(componentAPIs))
 	for _, componentAPI := range componentAPIs {
 		apis = append(apis, APIResponseV1{
-			ID:              componentAPI.ID(),
-			Name:            componentAPI.Name(),
-			APIType:         componentAPI.APIType(),
-			NetworkExposure: componentAPI.Exposure(),
+			ID:               componentAPI.ID(),
+			Name:             componentAPI.Name(),
+			APIType:          componentAPI.APIType(),
+			NetworkExposure:  componentAPI.Exposure(),
+			DocumentationURL: componentAPI.DocumentationURL(),
 		})
 	}
 	clients := make([]ClientResponseV1, 0, len(component.Clients()))
@@ -68,7 +78,9 @@ func NewResponseV1(component inventory.Component) (ResponseV1, error) {
 			ClientName:        componentClient.Type().ClientName(),
 			Role:              componentClient.Type().Role(),
 			CommunicationType: componentClient.Type().CommunicationType(),
-			Description:       componentClient.Description(),
+			Action:            componentClient.Action(),
+			Capabilities:      componentClient.Capabilities(),
+			SecureConnection:  componentClient.SecureConnection(),
 		}
 		if apiID := componentClient.APIID(); apiID != nil {
 			response.APIID = apiID
@@ -90,15 +102,16 @@ func NewResponseV1(component inventory.Component) (ResponseV1, error) {
 func newDetailsResponseV1(details inventory.ComponentDetails) (any, error) {
 	switch details := details.(type) {
 	case inventory.BackendServiceComponentDetails:
-		return ServiceDetailsResponseV1{Language: details.Language, LanguageVersion: details.LanguageVersion, Framework: details.MainFramework}, nil
+		return BackendServiceDetailsResponseV1{Language: details.Language, RepositoryURL: details.RepositoryURL}, nil
 	case inventory.FrontendServiceComponentDetails:
-		return ServiceDetailsResponseV1{Language: details.Language, LanguageVersion: details.LanguageVersion, Framework: details.MainFramework}, nil
+		return FrontendServiceDetailsResponseV1{Language: details.Language, LanguageVersion: details.LanguageVersion, Framework: details.MainFramework}, nil
 	case inventory.InfrastructureComponentDetails:
 		return InfrastructureDetailsResponseV1{
-			Technology: details.Technology,
-			SystemType: details.SystemType,
-			Version:    details.Version,
-			Endpoints:  append([]string{}, details.Endpoints...),
+			TechnologyName: details.TechnologyName,
+			TechnologyType: details.TechnologyType,
+			Importancy:     details.Importancy,
+			Version:        details.Version,
+			Endpoints:      append([]string{}, details.Endpoints...),
 		}, nil
 	default:
 		return nil, fmt.Errorf("%w: unsupported details type %T", inventory.ErrInvalidDetails, details)

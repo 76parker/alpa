@@ -7,15 +7,14 @@ type Details interface {
 }
 
 type BackendServiceDetails struct {
-	CoreLanguage    string
-	LanguageVersion string
-	MainFramework   string
+	CoreLanguage  inventory.Language
+	RepositoryURL *string
 }
 
 func (BackendServiceDetails) isComponentDetails() {}
 
 type FrontendServiceDetails struct {
-	CoreLanguage    string
+	CoreLanguage    inventory.Language
 	LanguageVersion string
 	MainFramework   string
 }
@@ -23,10 +22,11 @@ type FrontendServiceDetails struct {
 func (FrontendServiceDetails) isComponentDetails() {}
 
 type InfrastructureDetails struct {
-	Technology inventory.InfrastructureTechnology
-	Version    string
-	SystemType inventory.SystemType
-	Endpoints  []string
+	TechnologyName inventory.TechnologyName
+	Version        string
+	TechnologyType inventory.TechnologyType
+	Importancy     inventory.InfrastructureCriticality
+	Endpoints      []string
 }
 
 func (InfrastructureDetails) isComponentDetails() {}
@@ -42,14 +42,16 @@ type CreateCommand struct {
 }
 
 type CreateAPICommand struct {
-	Name            string
-	APIType         inventory.APIType
-	NetworkExposure inventory.NetworkExposure
+	Name             string
+	APIType          inventory.APIType
+	NetworkExposure  inventory.NetworkExposure
+	DocumentationURL *string
 }
 
 type CreateClientCommand struct {
-	ClientName        inventory.ComponentClientName
-	Role              inventory.ComponentClientRole
-	CommunicationType inventory.CommunicationType
-	Description       string
+	ClientName       inventory.ComponentClientName
+	Role             inventory.ComponentClientRole
+	Action           *string
+	Capabilities     *string
+	SecureConnection bool
 }

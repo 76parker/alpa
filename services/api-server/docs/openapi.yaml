@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: ALPA Inventory API
   version: 1.0.0
-  description: API for maintaining workspaces, products, and components. Input strings are trimmed without changing case. Business validation returns domain error codes; JSON, length, and character validation returns invalid_request.
+  description: API for maintaining workspaces, products, and components. Input strings are trimmed; programming language values are normalized to lowercase. Business validation returns domain error codes; JSON, length, and character validation returns invalid_request.
 servers:
   - url: /
 tags:
@@ -132,6 +132,31 @@ paths:
         '400': {$ref: '#/components/responses/BadRequest'}
         '404': {$ref: '#/components/responses/NotFound'}
         '500': {$ref: '#/components/responses/InternalError'}
+  /v1/components/{component_id}/apis/{id}:
+    parameters: [{$ref: '#/components/parameters/ParentComponentID'}, {$ref: '#/components/parameters/APIID'}]
+    delete:
+      tags: [APIs]
+      summary: Delete a component API
+      operationId: deleteComponentAPI
+      responses:
+        '204': {description: API deleted}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    put:
+      tags: [APIs]
+      summary: Update a component API
+      operationId: updateComponentAPI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateAPIRequest'}
+      responses:
+        '200': {description: API updated, content: {application/json: {schema: {$ref: '#/components/schemas/ComponentAPI'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
   /v1/components/{component_id}/clients:
     parameters: [{$ref: '#/components/parameters/ParentComponentID'}]
     post:
@@ -145,6 +170,31 @@ paths:
             schema: {$ref: '#/components/schemas/CreateClientRequest'}
       responses:
         '201': {description: Client created, content: {application/json: {schema: {$ref: '#/components/schemas/ComponentClient'}}}}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+  /v1/components/{component_id}/clients/{id}:
+    parameters: [{$ref: '#/components/parameters/ParentComponentID'}, {$ref: '#/components/parameters/ClientID'}]
+    delete:
+      tags: [Clients]
+      summary: Delete a component client
+      operationId: deleteComponentClient
+      responses:
+        '204': {description: Client deleted}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalError'}
+    put:
+      tags: [Clients]
+      summary: Update a component client
+      operationId: updateComponentClient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/UpdateClientRequest'}
+      responses:
+        '200': {description: Client updated, content: {application/json: {schema: {$ref: '#/components/schemas/ComponentClient'}}}}
         '400': {$ref: '#/components/responses/BadRequest'}
         '404': {$ref: '#/components/responses/NotFound'}
         '500': {$ref: '#/components/responses/InternalError'}
@@ -203,6 +253,7 @@ components:
     ProductID: {name: product_id, in: path, required: true, schema: {allOf: [{$ref: '#/components/schemas/ID'}], example: 2001}}
     ComponentID: {name: id, in: path, required: true, schema: {allOf: [{$ref: '#/components/schemas/ID'}], example: 3001}}
     ParentComponentID: {name: component_id, in: path, required: true, schema: {allOf: [{$ref: '#/components/schemas/ID'}], example: 3001}}
+    APIID: {name: id, in: path, required: true, schema: {allOf: [{$ref: '#/components/schemas/ID'}], example: 4001}}
     ClientID: {name: id, in: path, required: true, schema: {allOf: [{$ref: '#/components/schemas/ID'}], example: 5001}}
     Limit: {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20, example: 20}}
     Offset: {name: offset, in: query, schema: {type: integer, minimum: 0, default: 0, example: 0}}
@@ -227,7 +278,7 @@ components:
       required: [message, code, status]
       properties:
         message: {type: string, example: "name contains unsupported characters"}
-        code: {type: string, description: "Business errors include unknown_infrastructure_technology, unknown_system_type, too_many_endpoints, invalid_product_code, api_limit_exceeded, client_limit_exceeded, invalid_client_binding, and client_already_bound. Transport errors use invalid_request.", example: invalid_request}
+        code: {type: string, description: "Business errors include unknown_language, unknown_technology_name, unknown_technology_type, too_many_endpoints, invalid_criticality, invalid_importancy, invalid_product_code, api_limit_exceeded, client_limit_exceeded, client_action_too_large, client_capabilities_too_large, invalid_client_binding, and client_already_bound. Transport errors use invalid_request.", example: invalid_request}
         status: {type: integer, example: 400}
     Workspace:
       type: object
@@ -282,30 +333,47 @@ components:
       maxLength: 50
       enum: [backend-service, frontend-service, infrastructure]
       example: backend-service
-    ServiceDetails:
+    BackendServiceDetails:
       type: object
       required: [language]
       properties:
-        language: {allOf: [{$ref: '#/components/schemas/Name'}], example: Go}
+        language: {$ref: '#/components/schemas/Language'}
+        repository_url: {type: string, format: uri, maxLength: 2048, nullable: true, example: "https://github.com/example/backend"}
+    FrontendServiceDetails:
+      type: object
+      required: [language]
+      properties:
+        language: {$ref: '#/components/schemas/Language'}
         language_version: {allOf: [{$ref: '#/components/schemas/Name'}], example: "1.27"}
         framework: {allOf: [{$ref: '#/components/schemas/Name'}], example: Gin}
-    SystemType:
+    Language:
+      type: string
+      maxLength: 50
+      enum: [c, c++, c#, go, java, javascript, typescript, python, ruby, php, rust, swift, kotlin, scala, dart, lua, perl, r, objective-c, shell, bash, powershell, sql, solidity, haskell, elixir, erlang, clojure, groovy, fortran, cobol, assembly, visual-basic, matlab, pascal, delphi, f#, julia, zig, nim, ocaml, prolog, common-lisp, scratch]
+      example: go
+    TechnologyType:
       type: string
       maxLength: 50
       enum: [message-broker, sql-database, nosql-database, cache, search-engine, object-storage, workflow-engine, service-mesh, api-gateway, load-balancer, identity-provider, secret-storage, monitoring, logging, tracing]
       example: sql-database
-    InfrastructureTechnology:
+    TechnologyName:
       type: string
       maxLength: 50
       enum: [postgresql, mysql, mariadb, mongodb, cassandra, clickhouse, redis, memcached, etcd, kafka, rabbitmq, nats, pulsar, elasticsearch, opensearch, s3, minio, ceph, temporal, airflow, argo-workflows, nginx, envoy, kong, traefik, haproxy, prometheus, grafana, zabbix, jaeger, zipkin, opentelemetry, keycloak, vault]
       example: postgresql
+    InfrastructureImportancy:
+      type: string
+      maxLength: 50
+      enum: [critical, important, supporting]
+      example: critical
     InfrastructureDetails:
       type: object
-      required: [technology, system_type, version, endpoints]
+      required: [technology_name, technology_type, importancy, version, endpoints]
       properties:
-        technology: {$ref: '#/components/schemas/InfrastructureTechnology'}
+        technology_name: {$ref: '#/components/schemas/TechnologyName'}
         version: {type: string, maxLength: 50, example: "17.2"}
-        system_type: {$ref: '#/components/schemas/SystemType'}
+        technology_type: {$ref: '#/components/schemas/TechnologyType'}
+        importancy: {$ref: '#/components/schemas/InfrastructureImportancy'}
         endpoints:
           type: array
           maxItems: 10
@@ -314,11 +382,12 @@ components:
           example: ["postgres-primary.internal:5432", "postgres-replica.internal:5432"]
     InfrastructureDetailsRequest:
       type: object
-      required: [technology, system_type]
+      required: [technology_name, technology_type, importancy]
       properties:
-        technology: {$ref: '#/components/schemas/InfrastructureTechnology'}
+        technology_name: {$ref: '#/components/schemas/TechnologyName'}
         version: {allOf: [{$ref: '#/components/schemas/Name'}], example: "17.2"}
-        system_type: {$ref: '#/components/schemas/SystemType'}
+        technology_type: {$ref: '#/components/schemas/TechnologyType'}
+        importancy: {$ref: '#/components/schemas/InfrastructureImportancy'}
         endpoints:
           type: array
           nullable: true
@@ -328,11 +397,13 @@ components:
           example: ["postgres-primary.internal:5432", "postgres-replica.internal:5432"]
     ComponentDetails:
       oneOf:
-        - {$ref: '#/components/schemas/ServiceDetails'}
+        - {$ref: '#/components/schemas/BackendServiceDetails'}
+        - {$ref: '#/components/schemas/FrontendServiceDetails'}
         - {$ref: '#/components/schemas/InfrastructureDetails'}
     ComponentDetailsRequest:
       oneOf:
-        - {$ref: '#/components/schemas/ServiceDetails'}
+        - {$ref: '#/components/schemas/BackendServiceDetails'}
+        - {$ref: '#/components/schemas/FrontendServiceDetails'}
         - {$ref: '#/components/schemas/InfrastructureDetailsRequest'}
     Component:
       type: object
@@ -366,17 +437,18 @@ components:
     APIType:
       type: string
       maxLength: 50
-      enum: [rest, graphql, grpc, json-rpc, soap, websocket, odata, sse, event-consumer, topic, exchange, queue, native-protocol]
+      enum: [rest, graphql, grpc, json-rpc, soap, websocket, odata, sse, event-consumer, topic, subject, exchange, queue, native-protocol, database]
       example: rest
     NetworkExposure: {type: string, maxLength: 50, enum: [internal, internet], example: internet}
     ComponentAPI:
       type: object
-      required: [id, name, api_type, network_exposure]
+      required: [id, name, api_type, network_exposure, documentation_url]
       properties:
         id: {allOf: [{$ref: '#/components/schemas/ID'}], example: 4001}
         name: {allOf: [{$ref: '#/components/schemas/Name'}], example: Checkout Public API}
         api_type: {$ref: '#/components/schemas/APIType'}
         network_exposure: {$ref: '#/components/schemas/NetworkExposure'}
+        documentation_url: {type: string, nullable: true, format: uri, example: "https://docs.example.com/checkout"}
     CreateAPIRequest:
       type: object
       required: [name, api_type, network_exposure]
@@ -385,10 +457,14 @@ components:
         name: {allOf: [{$ref: '#/components/schemas/Name'}], example: Checkout Public API}
         api_type: {$ref: '#/components/schemas/APIType'}
         network_exposure: {$ref: '#/components/schemas/NetworkExposure'}
+        documentation_url: {type: string, nullable: true, format: uri, example: "https://docs.example.com/checkout"}
+    UpdateAPIRequest:
+      allOf:
+        - {$ref: '#/components/schemas/CreateAPIRequest'}
     ClientName:
       type: string
       maxLength: 50
-      enum: [s3-client, rest-client, graphql-client, grpc-client, json-rpc-client, soap-client, websocket-client, odata-client, sse-client, kafka-client, rabbitmq-client, amqp-client, redpanda-client, nats-client, pulsar-client, sqs-client, gcp-pub-sub-client, azure-service-bus-client, redis-streams-client, activemq-client, ibm-mq-client, native-protocol-client]
+      enum: [s3-client, rest-client, graphql-client, grpc-client, grpc-streaming-client, json-rpc-client, soap-client, websocket-client, odata-client, sse-client, kafka-client, rabbitmq-client, amqp-client, redpanda-client, nats-client, pulsar-client, sqs-client, gcp-pub-sub-client, azure-service-bus-client, redis-streams-client, activemq-client, ibm-mq-client, native-protocol-client]
       example: rest-client
     ClientRole:
       type: string
@@ -402,23 +478,29 @@ components:
       example: request-response
     ComponentClient:
       type: object
-      required: [id, client_name, role, communication_type, description, api_id]
+      required: [id, client_name, role, communication_type, action, capabilities, secure_connection, api_id]
       properties:
         id: {allOf: [{$ref: '#/components/schemas/ID'}], example: 5001}
         client_name: {$ref: '#/components/schemas/ClientName'}
         role: {$ref: '#/components/schemas/ClientRole'}
         communication_type: {$ref: '#/components/schemas/CommunicationType'}
-        description: {type: string, example: Calls the checkout API.}
+        action: {type: string, nullable: true, maxLength: 2097152, example: "# Call checkout"}
+        capabilities: {type: string, nullable: true, maxLength: 2097152, example: "read:orders"}
+        secure_connection: {type: boolean, example: false}
         api_id: {allOf: [{$ref: '#/components/schemas/ID'}], nullable: true, example: 4001}
     CreateClientRequest:
       type: object
-      required: [client_name, role, communication_type]
+      required: [client_name, role]
       additionalProperties: false
       properties:
         client_name: {$ref: '#/components/schemas/ClientName'}
         role: {$ref: '#/components/schemas/ClientRole'}
-        communication_type: {$ref: '#/components/schemas/CommunicationType'}
-        description: {$ref: '#/components/schemas/Description'}
+        action: {type: string, nullable: true, maxLength: 2097152, example: "# Call checkout"}
+        capabilities: {type: string, nullable: true, maxLength: 2097152, example: "read:orders"}
+        secure_connection: {type: boolean, default: false}
+    UpdateClientRequest:
+      allOf:
+        - {$ref: '#/components/schemas/CreateClientRequest'}
     ClientBinding:
       type: object
       required: [client_id, api_id]

@@ -11,25 +11,28 @@ import (
 
 const batchCreateAPIs = `-- name: BatchCreateAPIs :many
 WITH input AS (
-    SELECT names.name, api_types.api_type, network_exposures.network_exposure, names.ordinality
+    SELECT names.name, api_types.api_type, network_exposures.network_exposure, documentation_urls.documentation_url, names.ordinality
     FROM unnest($2::TEXT[]) WITH ORDINALITY AS names(name, ordinality)
     JOIN unnest($3::TEXT[]) WITH ORDINALITY AS api_types(api_type, ordinality)
         USING (ordinality)
     JOIN unnest($4::TEXT[]) WITH ORDINALITY AS network_exposures(network_exposure, ordinality)
         USING (ordinality)
+    JOIN unnest($5::TEXT[]) WITH ORDINALITY AS documentation_urls(documentation_url, ordinality)
+        USING (ordinality)
 )
-INSERT INTO inventory.apis (component_id, name, api_type, network_exposure)
-SELECT $1, name, api_type, network_exposure::inventory.network_exposure
+INSERT INTO inventory.apis (component_id, name, api_type, network_exposure, documentation_url)
+SELECT $1, name, api_type, network_exposure::inventory.network_exposure, NULLIF(documentation_url, '')
 FROM input
 ORDER BY ordinality
-RETURNING id, component_id, name, api_type, network_exposure
+RETURNING id, component_id, name, api_type, network_exposure, documentation_url
 `
 
 type BatchCreateAPIsParams struct {
-	ComponentID      int64
-	Names            []string
-	ApiTypes         []string
-	NetworkExposures []string
+	ComponentID       int64
+	Names             []string
+	ApiTypes          []string
+	NetworkExposures  []string
+	DocumentationUrls []string
 }
 
 func (q *Queries) BatchCreateAPIs(ctx context.Context, arg BatchCreateAPIsParams) ([]InventoryApi, error) {
@@ -38,6 +41,7 @@ func (q *Queries) BatchCreateAPIs(ctx context.Context, arg BatchCreateAPIsParams
 		arg.Names,
 		arg.ApiTypes,
 		arg.NetworkExposures,
+		arg.DocumentationUrls,
 	)
 	if err != nil {
 		return nil, err
@@ -52,6 +56,7 @@ func (q *Queries) BatchCreateAPIs(ctx context.Context, arg BatchCreateAPIsParams
 			&i.Name,
 			&i.ApiType,
 			&i.NetworkExposure,
+			&i.DocumentationUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -81,21 +86,24 @@ INSERT INTO inventory.apis (
     component_id,
     name,
     api_type,
-    network_exposure
+    network_exposure,
+    documentation_url
 ) VALUES (
     $1,
     $2,
     $3,
-    $4
+    $4,
+    $5
 )
-RETURNING id, component_id, name, api_type, network_exposure
+RETURNING id, component_id, name, api_type, network_exposure, documentation_url
 `
 
 type CreateAPIParams struct {
-	ComponentID     int64
-	Name            string
-	ApiType         string
-	NetworkExposure InventoryNetworkExposure
+	ComponentID      int64
+	Name             string
+	ApiType          string
+	NetworkExposure  InventoryNetworkExposure
+	DocumentationUrl *string
 }
 
 func (q *Queries) CreateAPI(ctx context.Context, arg CreateAPIParams) (InventoryApi, error) {
@@ -104,6 +112,7 @@ func (q *Queries) CreateAPI(ctx context.Context, arg CreateAPIParams) (Inventory
 		arg.Name,
 		arg.ApiType,
 		arg.NetworkExposure,
+		arg.DocumentationUrl,
 	)
 	var i InventoryApi
 	err := row.Scan(
@@ -112,23 +121,44 @@ func (q *Queries) CreateAPI(ctx context.Context, arg CreateAPIParams) (Inventory
 		&i.Name,
 		&i.ApiType,
 		&i.NetworkExposure,
+		&i.DocumentationUrl,
 	)
 	return i, err
 }
 
+const deleteAPI = `-- name: DeleteAPI :one
+DELETE FROM inventory.apis
+WHERE id = $1
+  AND component_id = $2
+RETURNING id
+`
+
+type DeleteAPIParams struct {
+	ApiID       int64
+	ComponentID int64
+}
+
+func (q *Queries) DeleteAPI(ctx context.Context, arg DeleteAPIParams) (int64, error) {
+	row := q.db.QueryRow(ctx, deleteAPI, arg.ApiID, arg.ComponentID)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const listAPIsByComponentIDs = `-- name: ListAPIsByComponentIDs :many
-SELECT component_id, id, name, api_type, network_exposure
+SELECT component_id, id, name, api_type, network_exposure, documentation_url
 FROM inventory.apis
 WHERE component_id = ANY($1::BIGINT[])
 ORDER BY component_id, id
 `
 
 type ListAPIsByComponentIDsRow struct {
-	ComponentID     int64
-	ID              int64
-	Name            string
-	ApiType         string
-	NetworkExposure InventoryNetworkExposure
+	ComponentID      int64
+	ID               int64
+	Name             string
+	ApiType          string
+	NetworkExposure  InventoryNetworkExposure
+	DocumentationUrl *string
 }
 
 func (q *Queries) ListAPIsByComponentIDs(ctx context.Context, dollar_1 []int64) ([]ListAPIsByComponentIDsRow, error) {
@@ -146,6 +176,7 @@ func (q *Queries) ListAPIsByComponentIDs(ctx context.Context, dollar_1 []int64) 
 			&i.Name,
 			&i.ApiType,
 			&i.NetworkExposure,
+			&i.DocumentationUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -155,4 +186,45 @@ func (q *Queries) ListAPIsByComponentIDs(ctx context.Context, dollar_1 []int64) 
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateAPI = `-- name: UpdateAPI :one
+UPDATE inventory.apis
+SET name = $1,
+    api_type = $2,
+    network_exposure = $3,
+    documentation_url = $4
+WHERE id = $5
+  AND component_id = $6
+RETURNING id, component_id, name, api_type, network_exposure, documentation_url
+`
+
+type UpdateAPIParams struct {
+	Name             string
+	ApiType          string
+	NetworkExposure  InventoryNetworkExposure
+	DocumentationUrl *string
+	ApiID            int64
+	ComponentID      int64
+}
+
+func (q *Queries) UpdateAPI(ctx context.Context, arg UpdateAPIParams) (InventoryApi, error) {
+	row := q.db.QueryRow(ctx, updateAPI,
+		arg.Name,
+		arg.ApiType,
+		arg.NetworkExposure,
+		arg.DocumentationUrl,
+		arg.ApiID,
+		arg.ComponentID,
+	)
+	var i InventoryApi
+	err := row.Scan(
+		&i.ID,
+		&i.ComponentID,
+		&i.Name,
+		&i.ApiType,
+		&i.NetworkExposure,
+		&i.DocumentationUrl,
+	)
+	return i, err
 }

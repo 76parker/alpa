@@ -49,17 +49,19 @@ func (h *Handler) Create(c *gin.Context) {
 	}
 	for _, api := range request.APIs {
 		input.APIs = append(input.APIs, appcomponent.CreateAPICommand{
-			Name:            api.Name,
-			APIType:         api.APIType,
-			NetworkExposure: api.NetworkExposure,
+			Name:             api.Name,
+			APIType:          api.APIType,
+			NetworkExposure:  api.NetworkExposure,
+			DocumentationURL: api.DocumentationURL,
 		})
 	}
 	for _, client := range request.Clients {
 		input.Clients = append(input.Clients, appcomponent.CreateClientCommand{
-			ClientName:        client.ClientName,
-			Role:              client.Role,
-			CommunicationType: client.CommunicationType,
-			Description:       stringValue(client.Description),
+			ClientName:       client.ClientName,
+			Role:             client.Role,
+			Action:           client.Action,
+			Capabilities:     client.Capabilities,
+			SecureConnection: client.SecureConnection,
 		})
 	}
 	component, err := h.application.Create(c.Request.Context(), input)
@@ -76,7 +78,7 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 func (h *Handler) Get(c *gin.Context) {
-	id, err := httputil.ParseID(c, "id")
+	id, err := httputil.ParseID(c, "component_id")
 	if err != nil {
 		httputil.FailRequest(c, err)
 		return
@@ -125,7 +127,7 @@ func (h *Handler) List(c *gin.Context) {
 }
 
 func (h *Handler) Delete(c *gin.Context) {
-	id, err := httputil.ParseID(c, "id")
+	id, err := httputil.ParseID(c, "component_id")
 	if err != nil {
 		httputil.FailRequest(c, err)
 		return

@@ -9,7 +9,9 @@ import (
 
 type Store interface {
 	Create(ctx context.Context, componentID int64, api inventory.ComponentAPI) (inventory.ComponentAPI, error)
+	Update(ctx context.Context, componentID, apiID int64, api inventory.ComponentAPI) (inventory.ComponentAPI, error)
 	CountByComponentID(ctx context.Context, componentID int64) (int, error)
+	Delete(ctx context.Context, componentID int64, apiID int64) error
 }
 
 type ComponentStore interface {
@@ -30,7 +32,7 @@ func (s *service) create(ctx context.Context, command CreateCommand) (inventory.
 		return inventory.ComponentAPI{}, inventory.ErrNegativeID
 	}
 
-	api, err := inventory.NewComponentAPI(command.Name, command.APIType, command.NetworkExposure)
+	api, err := inventory.NewComponentAPI(command.Name, command.APIType, command.NetworkExposure, command.DocumentationURL)
 	if err != nil {
 		return inventory.ComponentAPI{}, fmt.Errorf("create domain api: %w", err)
 	}
@@ -54,4 +56,33 @@ func (s *service) create(ctx context.Context, command CreateCommand) (inventory.
 		return inventory.ComponentAPI{}, fmt.Errorf("create api: %w", err)
 	}
 	return created, nil
+}
+
+func (s *service) update(ctx context.Context, command UpdateCommand) (inventory.ComponentAPI, error) {
+	if command.ComponentID <= 0 || command.APIID <= 0 {
+		return inventory.ComponentAPI{}, inventory.ErrNegativeID
+	}
+	api, err := inventory.NewComponentAPI(command.Name, command.APIType, command.NetworkExposure, command.DocumentationURL)
+	if err != nil {
+		return inventory.ComponentAPI{}, fmt.Errorf("update domain api: %w", err)
+	}
+	var updated inventory.ComponentAPI
+	err = s.txManager.ExecuteWriteAPITx(ctx, func(stores TxStores) error {
+		updated, err = stores.APIs.Update(ctx, command.ComponentID, command.APIID, api)
+		return err
+	})
+	if err != nil {
+		return inventory.ComponentAPI{}, fmt.Errorf("update api: %w", err)
+	}
+	return updated, nil
+}
+
+func (s *service) delete(ctx context.Context, componentID int64, apiID int64) error {
+	if componentID <= 0 || apiID <= 0 {
+		return inventory.ErrNegativeID
+	}
+	if err := s.store.Delete(ctx, componentID, apiID); err != nil {
+		return fmt.Errorf("delete api: %w", err)
+	}
+	return nil
 }

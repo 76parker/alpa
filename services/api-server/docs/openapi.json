@@ -3,7 +3,7 @@
   "info": {
     "title": "ALPA Inventory API",
     "version": "1.0.0",
-    "description": "API for maintaining workspaces, products, and components. Input strings are trimmed without changing case. Business validation returns domain error codes; JSON, length, and character validation returns invalid_request."
+        "description": "API for maintaining workspaces, products, and components. Input strings are trimmed; programming language values are normalized to lowercase. Business validation returns domain error codes; JSON, length, and character validation returns invalid_request."
   },
   "servers": [
     {
@@ -376,6 +376,75 @@
         }
       }
     },
+    "/v1/components/{component_id}/apis/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ParentComponentID"
+        },
+        {
+          "$ref": "#/components/parameters/APIID"
+        }
+      ],
+      "delete": {
+        "tags": [
+          "APIs"
+        ],
+        "summary": "Delete a component API",
+        "operationId": "deleteComponentAPI",
+        "responses": {
+          "204": {
+            "description": "API deleted"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "APIs"
+        ],
+        "summary": "Update a component API",
+        "operationId": "updateComponentAPI",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAPIRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "API updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentAPI"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
     "/v1/components/{component_id}/clients": {
       "parameters": [
         {
@@ -401,6 +470,75 @@
         "responses": {
           "201": {
             "description": "Client created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentClient"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/v1/components/{component_id}/clients/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ParentComponentID"
+        },
+        {
+          "$ref": "#/components/parameters/ClientID"
+        }
+      ],
+      "delete": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Delete a component client",
+        "operationId": "deleteComponentClient",
+        "responses": {
+          "204": {
+            "description": "Client deleted"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Clients"
+        ],
+        "summary": "Update a component client",
+        "operationId": "updateComponentClient",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClientRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Client updated",
             "content": {
               "application/json": {
                 "schema": {
@@ -626,6 +764,19 @@
           "example": 3001
         }
       },
+      "APIID": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/ID"
+            }
+          ],
+          "example": 4001
+        }
+      },
       "ClientID": {
         "name": "id",
         "in": "path",
@@ -765,7 +916,7 @@
           },
           "code": {
             "type": "string",
-            "description": "Business errors include unknown_infrastructure_technology, unknown_system_type, too_many_endpoints, invalid_product_code, api_limit_exceeded, client_limit_exceeded, invalid_client_binding, and client_already_bound. Transport errors use invalid_request.",
+            "description": "Business errors include unknown_language, unknown_technology_name, unknown_technology_type, too_many_endpoints, invalid_criticality, invalid_importancy, invalid_product_code, api_limit_exceeded, client_limit_exceeded, client_action_too_large, client_capabilities_too_large, invalid_client_binding, and client_already_bound. Transport errors use invalid_request.",
             "example": "invalid_request"
           },
           "status": {
@@ -984,19 +1135,32 @@
         ],
         "example": "backend-service"
       },
-      "ServiceDetails": {
+      "BackendServiceDetails": {
         "type": "object",
         "required": [
           "language"
         ],
         "properties": {
           "language": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Name"
-              }
-            ],
-            "example": "Go"
+            "$ref": "#/components/schemas/Language"
+          },
+          "repository_url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048,
+            "nullable": true,
+            "example": "https://github.com/example/backend"
+          }
+        }
+      },
+      "FrontendServiceDetails": {
+        "type": "object",
+        "required": [
+          "language"
+        ],
+        "properties": {
+          "language": {
+            "$ref": "#/components/schemas/Language"
           },
           "language_version": {
             "allOf": [
@@ -1016,7 +1180,58 @@
           }
         }
       },
-      "SystemType": {
+      "Language": {
+        "type": "string",
+        "maxLength": 50,
+        "enum": [
+          "c",
+          "c++",
+          "c#",
+          "go",
+          "java",
+          "javascript",
+          "typescript",
+          "python",
+          "ruby",
+          "php",
+          "rust",
+          "swift",
+          "kotlin",
+          "scala",
+          "dart",
+          "lua",
+          "perl",
+          "r",
+          "objective-c",
+          "shell",
+          "bash",
+          "powershell",
+          "sql",
+          "solidity",
+          "haskell",
+          "elixir",
+          "erlang",
+          "clojure",
+          "groovy",
+          "fortran",
+          "cobol",
+          "assembly",
+          "visual-basic",
+          "matlab",
+          "pascal",
+          "delphi",
+          "f#",
+          "julia",
+          "zig",
+          "nim",
+          "ocaml",
+          "prolog",
+          "common-lisp",
+          "scratch"
+        ],
+        "example": "go"
+      },
+      "TechnologyType": {
         "type": "string",
         "maxLength": 50,
         "enum": [
@@ -1038,7 +1253,7 @@
         ],
         "example": "sql-database"
       },
-      "InfrastructureTechnology": {
+      "TechnologyName": {
         "type": "string",
         "maxLength": 50,
         "enum": [
@@ -1079,25 +1294,39 @@
         ],
         "example": "postgresql"
       },
+      "InfrastructureImportancy": {
+        "type": "string",
+        "maxLength": 50,
+        "enum": [
+          "critical",
+          "important",
+          "supporting"
+        ],
+        "example": "critical"
+      },
       "InfrastructureDetails": {
         "type": "object",
         "required": [
-          "technology",
-          "system_type",
+          "technology_name",
+          "technology_type",
+          "importancy",
           "version",
           "endpoints"
         ],
         "properties": {
-          "technology": {
-            "$ref": "#/components/schemas/InfrastructureTechnology"
+          "technology_name": {
+            "$ref": "#/components/schemas/TechnologyName"
           },
           "version": {
             "type": "string",
             "maxLength": 50,
             "example": "17.2"
           },
-          "system_type": {
-            "$ref": "#/components/schemas/SystemType"
+          "technology_type": {
+            "$ref": "#/components/schemas/TechnologyType"
+          },
+          "importancy": {
+            "$ref": "#/components/schemas/InfrastructureImportancy"
           },
           "endpoints": {
             "type": "array",
@@ -1116,12 +1345,13 @@
       "InfrastructureDetailsRequest": {
         "type": "object",
         "required": [
-          "technology",
-          "system_type"
+          "technology_name",
+          "technology_type",
+          "importancy"
         ],
         "properties": {
-          "technology": {
-            "$ref": "#/components/schemas/InfrastructureTechnology"
+          "technology_name": {
+            "$ref": "#/components/schemas/TechnologyName"
           },
           "version": {
             "allOf": [
@@ -1131,8 +1361,11 @@
             ],
             "example": "17.2"
           },
-          "system_type": {
-            "$ref": "#/components/schemas/SystemType"
+          "technology_type": {
+            "$ref": "#/components/schemas/TechnologyType"
+          },
+          "importancy": {
+            "$ref": "#/components/schemas/InfrastructureImportancy"
           },
           "endpoints": {
             "type": "array",
@@ -1152,7 +1385,10 @@
       "ComponentDetails": {
         "oneOf": [
           {
-            "$ref": "#/components/schemas/ServiceDetails"
+            "$ref": "#/components/schemas/BackendServiceDetails"
+          },
+          {
+            "$ref": "#/components/schemas/FrontendServiceDetails"
           },
           {
             "$ref": "#/components/schemas/InfrastructureDetails"
@@ -1162,7 +1398,10 @@
       "ComponentDetailsRequest": {
         "oneOf": [
           {
-            "$ref": "#/components/schemas/ServiceDetails"
+            "$ref": "#/components/schemas/BackendServiceDetails"
+          },
+          {
+            "$ref": "#/components/schemas/FrontendServiceDetails"
           },
           {
             "$ref": "#/components/schemas/InfrastructureDetailsRequest"
@@ -1323,9 +1562,11 @@
           "sse",
           "event-consumer",
           "topic",
+          "subject",
           "exchange",
           "queue",
-          "native-protocol"
+          "native-protocol",
+          "database"
         ],
         "example": "rest"
       },
@@ -1344,7 +1585,8 @@
           "id",
           "name",
           "api_type",
-          "network_exposure"
+          "network_exposure",
+          "documentation_url"
         ],
         "properties": {
           "id": {
@@ -1368,6 +1610,12 @@
           },
           "network_exposure": {
             "$ref": "#/components/schemas/NetworkExposure"
+          },
+          "documentation_url": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "https://docs.example.com/checkout"
           }
         }
       },
@@ -1393,8 +1641,21 @@
           },
           "network_exposure": {
             "$ref": "#/components/schemas/NetworkExposure"
+          },
+          "documentation_url": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "https://docs.example.com/checkout"
           }
         }
+      },
+      "UpdateAPIRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CreateAPIRequest"
+          }
+        ]
       },
       "ClientName": {
         "type": "string",
@@ -1404,6 +1665,7 @@
           "rest-client",
           "graphql-client",
           "grpc-client",
+          "grpc-streaming-client",
           "json-rpc-client",
           "soap-client",
           "websocket-client",
@@ -1455,7 +1717,9 @@
           "client_name",
           "role",
           "communication_type",
-          "description",
+          "action",
+          "capabilities",
+          "secure_connection",
           "api_id"
         ],
         "properties": {
@@ -1476,9 +1740,21 @@
           "communication_type": {
             "$ref": "#/components/schemas/CommunicationType"
           },
-          "description": {
+          "action": {
             "type": "string",
-            "example": "Calls the checkout API."
+            "nullable": true,
+            "maxLength": 2097152,
+            "example": "# Call checkout"
+          },
+          "capabilities": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2097152,
+            "example": "read:orders"
+          },
+          "secure_connection": {
+            "type": "boolean",
+            "example": false
           },
           "api_id": {
             "allOf": [
@@ -1495,8 +1771,7 @@
         "type": "object",
         "required": [
           "client_name",
-          "role",
-          "communication_type"
+          "role"
         ],
         "additionalProperties": false,
         "properties": {
@@ -1506,13 +1781,30 @@
           "role": {
             "$ref": "#/components/schemas/ClientRole"
           },
-          "communication_type": {
-            "$ref": "#/components/schemas/CommunicationType"
+          "action": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2097152,
+            "example": "# Call checkout"
           },
-          "description": {
-            "$ref": "#/components/schemas/Description"
+          "capabilities": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2097152,
+            "example": "read:orders"
+          },
+          "secure_connection": {
+            "type": "boolean",
+            "default": false
           }
         }
+      },
+      "UpdateClientRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CreateClientRequest"
+          }
+        ]
       },
       "ClientBinding": {
         "type": "object",

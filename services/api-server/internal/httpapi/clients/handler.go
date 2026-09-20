@@ -13,7 +13,9 @@ import (
 
 type application interface {
 	Create(ctx context.Context, command appclients.CreateCommand) (inventory.ComponentClient, error)
+	Update(ctx context.Context, command appclients.UpdateCommand) (inventory.ComponentClient, error)
 	BindAPI(ctx context.Context, command appclients.BindAPICommand) (inventory.ComponentClient, error)
+	Delete(ctx context.Context, componentID int64, clientID int64) error
 }
 type Handler struct {
 	application application
@@ -67,11 +69,12 @@ func (h *Handler) Create(c *gin.Context) {
 	}
 
 	created, err := h.application.Create(c.Request.Context(), appclients.CreateCommand{
-		ComponentID:       componentID,
-		ClientName:        request.ClientName,
-		Role:              request.Role,
-		CommunicationType: request.CommunicationType,
-		Description:       httputil.OptionalString(request.Description),
+		ComponentID:      componentID,
+		ClientName:       request.ClientName,
+		Role:             request.Role,
+		Action:           request.Action,
+		Capabilities:     request.Capabilities,
+		SecureConnection: request.SecureConnection,
 	})
 	if err != nil {
 		httputil.FailRequest(c, err)
@@ -79,4 +82,54 @@ func (h *Handler) Create(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, NewResponseV1(created))
+}
+
+func (h *Handler) Update(c *gin.Context) {
+	componentID, err := httputil.ParseID(c, "component_id")
+	if err != nil {
+		httputil.FailRequest(c, err)
+		return
+	}
+	clientID, err := httputil.ParseID(c, "id")
+	if err != nil {
+		httputil.FailRequest(c, err)
+		return
+	}
+	request, err := httputil.DecodeAndValidateJSON[UpdateRequestV1](c, h.validator)
+	if err != nil {
+		httputil.FailRequest(c, err)
+		return
+	}
+	updated, err := h.application.Update(c.Request.Context(), appclients.UpdateCommand{
+		ComponentID:      componentID,
+		ClientID:         clientID,
+		ClientName:       request.ClientName,
+		Role:             request.Role,
+		Action:           request.Action,
+		Capabilities:     request.Capabilities,
+		SecureConnection: request.SecureConnection,
+	})
+	if err != nil {
+		httputil.FailRequest(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, NewResponseV1(updated))
+}
+
+func (h *Handler) Delete(c *gin.Context) {
+	componentID, err := httputil.ParseID(c, "component_id")
+	if err != nil {
+		httputil.FailRequest(c, err)
+		return
+	}
+	clientID, err := httputil.ParseID(c, "id")
+	if err != nil {
+		httputil.FailRequest(c, err)
+		return
+	}
+	if err := h.application.Delete(c.Request.Context(), componentID, clientID); err != nil {
+		httputil.FailRequest(c, err)
+		return
+	}
+	c.Status(http.StatusNoContent)
 }

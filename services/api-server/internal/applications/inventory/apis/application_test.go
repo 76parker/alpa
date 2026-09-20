@@ -24,8 +24,8 @@ func TestApplicationCreate(t *testing.T) {
 			command: CreateCommand{
 				ComponentID:     42,
 				Name:            "orders",
-				APIType:         inventory.APITypeREST,
-				NetworkExposure: inventory.NetworkExposureInternal,
+				APIType:         inventory.REST,
+				NetworkExposure: inventory.InternalExposure,
 			},
 			wantStored: true,
 		},
@@ -34,8 +34,8 @@ func TestApplicationCreate(t *testing.T) {
 			command: CreateCommand{
 				ComponentID:     0,
 				Name:            "orders",
-				APIType:         inventory.APITypeREST,
-				NetworkExposure: inventory.NetworkExposureInternal,
+				APIType:         inventory.REST,
+				NetworkExposure: inventory.InternalExposure,
 			},
 			wantErr: inventory.ErrNegativeID,
 		},
@@ -43,8 +43,8 @@ func TestApplicationCreate(t *testing.T) {
 			name: "invalid/empty api name",
 			command: CreateCommand{
 				ComponentID:     42,
-				APIType:         inventory.APITypeREST,
-				NetworkExposure: inventory.NetworkExposureInternal,
+				APIType:         inventory.REST,
+				NetworkExposure: inventory.InternalExposure,
 			},
 			wantErr: inventory.ErrInvalidAPIName,
 		},
@@ -54,7 +54,7 @@ func TestApplicationCreate(t *testing.T) {
 				ComponentID:     42,
 				Name:            "orders",
 				APIType:         inventory.APIType("unknown"),
-				NetworkExposure: inventory.NetworkExposureInternal,
+				NetworkExposure: inventory.InternalExposure,
 			},
 			wantErr: inventory.ErrUnknownAPIType,
 		},
@@ -63,7 +63,7 @@ func TestApplicationCreate(t *testing.T) {
 			command: CreateCommand{
 				ComponentID:     42,
 				Name:            "orders",
-				APIType:         inventory.APITypeREST,
+				APIType:         inventory.REST,
 				NetworkExposure: inventory.NetworkExposure("unknown"),
 			},
 			wantErr: inventory.ErrInvalidExposure,
@@ -73,8 +73,8 @@ func TestApplicationCreate(t *testing.T) {
 			command: CreateCommand{
 				ComponentID:     42,
 				Name:            "orders",
-				APIType:         inventory.APITypeREST,
-				NetworkExposure: inventory.NetworkExposureInternal,
+				APIType:         inventory.REST,
+				NetworkExposure: inventory.InternalExposure,
 			},
 			storeErr:   storeErr,
 			wantErr:    storeErr,
@@ -114,8 +114,8 @@ func TestApplicationCreateEnforcesAPILimitInsideLockedTransaction(t *testing.T) 
 	_, err := app.Create(t.Context(), CreateCommand{
 		ComponentID:     42,
 		Name:            "orders",
-		APIType:         inventory.APITypeREST,
-		NetworkExposure: inventory.NetworkExposureInternal,
+		APIType:         inventory.REST,
+		NetworkExposure: inventory.InternalExposure,
 	})
 	if !errors.Is(err, inventory.ErrAPILimitExceeded) {
 		t.Fatalf("Create() error = %v, want %v", err, inventory.ErrAPILimitExceeded)
@@ -136,13 +136,19 @@ type apiStore struct {
 
 func (*apiStore) CountByComponentID(context.Context, int64) (int, error) { return 0, nil }
 
+func (*apiStore) Delete(context.Context, int64, int64) error { return nil }
+
 func (s *apiStore) Create(_ context.Context, componentID int64, api inventory.ComponentAPI) (inventory.ComponentAPI, error) {
 	s.called = true
 	s.componentID = componentID
 	if s.err != nil {
 		return inventory.ComponentAPI{}, s.err
 	}
-	return inventory.RestoreAPI(7, api.Name(), api.Exposure(), api.APIType()), nil
+	return inventory.RestoreAPI(7, api.Name(), api.Exposure(), api.APIType(), api.DocumentationURL()), nil
+}
+
+func (s *apiStore) Update(context.Context, int64, int64, inventory.ComponentAPI) (inventory.ComponentAPI, error) {
+	return inventory.ComponentAPI{}, s.err
 }
 
 type apiTxManager struct {
@@ -168,9 +174,15 @@ func (s *limitAPIStore) LockForUpdate(context.Context, int64) error {
 	return nil
 }
 func (s *limitAPIStore) CountByComponentID(context.Context, int64) (int, error) { return s.count, nil }
+
+func (*limitAPIStore) Delete(context.Context, int64, int64) error { return nil }
 func (s *limitAPIStore) Create(_ context.Context, _ int64, api inventory.ComponentAPI) (inventory.ComponentAPI, error) {
 	s.created = true
-	return inventory.RestoreAPI(7, api.Name(), api.Exposure(), api.APIType()), nil
+	return inventory.RestoreAPI(7, api.Name(), api.Exposure(), api.APIType(), api.DocumentationURL()), nil
+}
+
+func (s *limitAPIStore) Update(context.Context, int64, int64, inventory.ComponentAPI) (inventory.ComponentAPI, error) {
+	return inventory.ComponentAPI{}, nil
 }
 
 type limitAPITxManager struct{ store *limitAPIStore }

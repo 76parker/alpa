@@ -25,25 +25,25 @@ func Encode(details inventory.ComponentDetails) (json.RawMessage, error) {
 	switch typed := details.(type) {
 	case inventory.BackendServiceComponentDetails:
 		payload = BackendServiceDetailsV1{
-			SchemaVersion:   schemaVersion,
-			CoreLanguage:    typed.Language,
-			LanguageVersion: stringPointer(typed.LanguageVersion),
-			MainFramework:   stringPointer(typed.MainFramework),
+			SchemaVersion: schemaVersion,
+			CoreLanguage:  BackendServiceDetailsV1CoreLanguage(typed.Language),
+			RepositoryUrl: typed.RepositoryURL,
 		}
 	case inventory.FrontendServiceComponentDetails:
 		payload = FrontendServiceDetailsV1{
 			SchemaVersion:   schemaVersion,
-			CoreLanguage:    typed.Language,
+			CoreLanguage:    FrontendServiceDetailsV1CoreLanguage(typed.Language),
 			LanguageVersion: stringPointer(typed.LanguageVersion),
 			MainFramework:   stringPointer(typed.MainFramework),
 		}
 	case inventory.InfrastructureComponentDetails:
 		payload = InfrastructureDetailsV1{
-			Endpoints:     append([]string{}, typed.Endpoints...),
-			SchemaVersion: schemaVersion,
-			SystemType:    InfrastructureDetailsV1SystemType(typed.SystemType),
-			Technology:    InfrastructureDetailsV1Technology(typed.Technology),
-			Version:       stringPointer(typed.Version),
+			Endpoints:      append([]string{}, typed.Endpoints...),
+			SchemaVersion:  schemaVersion,
+			TechnologyName: InfrastructureDetailsV1TechnologyName(typed.TechnologyName),
+			TechnologyType: InfrastructureDetailsV1TechnologyType(typed.TechnologyType),
+			Importancy:     InfrastructureDetailsV1Importancy(typed.Importancy),
+			Version:        stringPointer(typed.Version),
 		}
 	default:
 		return nil, fmt.Errorf("%w: unsupported type %T", errInvalidDetails, details)
@@ -83,10 +83,13 @@ func Decode(
 		if err := json.Unmarshal(raw, &payload); err != nil {
 			return nil, fmt.Errorf("%w: decode backend service v1: %w", errInvalidDetails, err)
 		}
+		language, err := inventory.NewLanguage(string(payload.CoreLanguage))
+		if err != nil {
+			return nil, fmt.Errorf("%w: restore backend service language: %w", errInvalidDetails, err)
+		}
 		details, err := inventory.NewBackendServiceComponentDetails(
-			payload.CoreLanguage,
-			stringValue(payload.LanguageVersion),
-			stringValue(payload.MainFramework),
+			language,
+			payload.RepositoryUrl,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("%w: restore backend service v1: %w", errInvalidDetails, err)
@@ -97,8 +100,12 @@ func Decode(
 		if err := json.Unmarshal(raw, &payload); err != nil {
 			return nil, fmt.Errorf("%w: decode frontend service v1: %w", errInvalidDetails, err)
 		}
+		language, err := inventory.NewLanguage(string(payload.CoreLanguage))
+		if err != nil {
+			return nil, fmt.Errorf("%w: restore frontend service language: %w", errInvalidDetails, err)
+		}
 		details, err := inventory.NewFrontendServiceComponentDetails(
-			payload.CoreLanguage,
+			language,
 			stringValue(payload.LanguageVersion),
 			stringValue(payload.MainFramework),
 		)
@@ -112,8 +119,9 @@ func Decode(
 			return nil, fmt.Errorf("%w: decode infrastructure v1: %w", errInvalidDetails, err)
 		}
 		details, err := inventory.NewInfrastructureComponentDetails(
-			inventory.InfrastructureTechnology(payload.Technology),
-			inventory.SystemType(payload.SystemType),
+			inventory.TechnologyName(payload.TechnologyName),
+			inventory.TechnologyType(payload.TechnologyType),
+			inventory.InfrastructureCriticality(payload.Importancy),
 			stringValue(payload.Version),
 			payload.Endpoints,
 		)

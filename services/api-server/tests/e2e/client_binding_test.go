@@ -36,7 +36,7 @@ func TestClientBindingE2E(t *testing.T) {
 		t.Require().Equal(http.StatusCreated, status)
 		t.Require().Nil(componentClient.APIID, "new client is explicitly unbound")
 		api, status := createTestAPI(t, client, targetID, httpapis.CreateRequestV1{
-			Name: "target", APIType: inventory.APITypeREST, NetworkExposure: inventory.NetworkExposureInternal,
+			Name: "target", APIType: inventory.REST, NetworkExposure: inventory.InternalExposure,
 		})
 		t.Require().Equal(http.StatusCreated, status)
 
@@ -82,9 +82,8 @@ func TestClientBindingE2E(t *testing.T) {
 		firstClient, status := createTestClient(t, client, sourceID, testRESTClientRequest())
 		t.Require().Equal(http.StatusCreated, status)
 		secondClient, status := createTestClient(t, client, sourceID, httpclients.CreateRequestV1{
-			ClientName:        inventory.GraphQLClient,
-			Role:              inventory.CallerRole,
-			CommunicationType: inventory.RequestResponse,
+			ClientName: inventory.GraphQLClient,
+			Role:       inventory.Caller,
 		})
 		t.Require().Equal(http.StatusCreated, status)
 		api, status := createTestAPI(t, client, targetID, bindingAPIRequest("shared"))
@@ -350,7 +349,7 @@ func createBindingComponents(t T, client *http.Client) (int64, int64, int64) {
 
 func bindingAPIRequest(name string) httpapis.CreateRequestV1 {
 	return httpapis.CreateRequestV1{
-		Name: name, APIType: inventory.APITypeREST, NetworkExposure: inventory.NetworkExposureInternal,
+		Name: name, APIType: inventory.REST, NetworkExposure: inventory.InternalExposure,
 	}
 }
 

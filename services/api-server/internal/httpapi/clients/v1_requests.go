@@ -7,10 +7,19 @@ import (
 )
 
 type CreateRequestV1 struct {
-	ClientName        inventory.ComponentClientName `json:"client_name" validate:"required,max=50,allowed_text"`
-	Role              inventory.ComponentClientRole `json:"role" validate:"required,max=50,allowed_text"`
-	CommunicationType inventory.CommunicationType   `json:"communication_type" validate:"required,max=50,allowed_text"`
-	Description       *string                       `json:"description,omitempty" validate:"omitempty,min=1,max=1000,allowed_text"`
+	ClientName       inventory.ComponentClientName `json:"client_name" validate:"required,max=50,allowed_text"`
+	Role             inventory.ComponentClientRole `json:"role" validate:"required,max=50,allowed_text"`
+	Action           *string                       `json:"action,omitempty"`
+	Capabilities     *string                       `json:"capabilities,omitempty"`
+	SecureConnection bool                          `json:"secure_connection"`
+}
+
+type UpdateRequestV1 struct {
+	ClientName       inventory.ComponentClientName `json:"client_name" validate:"required,max=50,allowed_text"`
+	Role             inventory.ComponentClientRole `json:"role" validate:"required,max=50,allowed_text"`
+	Action           *string                       `json:"action,omitempty"`
+	Capabilities     *string                       `json:"capabilities,omitempty"`
+	SecureConnection bool                          `json:"secure_connection"`
 }
 
 type BindAPIRequestV1 struct {
@@ -20,8 +29,9 @@ type BindAPIRequestV1 struct {
 func (r *CreateRequestV1) Normalize() {
 	r.ClientName = inventory.ComponentClientName(strings.TrimSpace(string(r.ClientName)))
 	r.Role = inventory.ComponentClientRole(strings.TrimSpace(string(r.Role)))
-	r.CommunicationType = inventory.CommunicationType(strings.TrimSpace(string(r.CommunicationType)))
-	if r.Description != nil {
-		*r.Description = strings.TrimSpace(*r.Description)
-	}
+}
+
+func (r *UpdateRequestV1) Normalize() {
+	r.ClientName = inventory.ComponentClientName(strings.TrimSpace(string(r.ClientName)))
+	r.Role = inventory.ComponentClientRole(strings.TrimSpace(string(r.Role)))
 }

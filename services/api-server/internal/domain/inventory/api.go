@@ -10,16 +10,19 @@ var (
 )
 
 type ComponentAPI struct {
-	id       int64
-	name     string
-	exposure NetworkExposure
-	apiType  APIType
+	id                int64
+	name              string
+	exposure          NetworkExposure
+	apiType           APIType
+	transportProtocol TransportProtocol
+	documentationURL  *string
 }
 
 func NewComponentAPI(
 	name string,
 	apiType APIType,
 	exposure NetworkExposure,
+	documentationURL *string,
 ) (ComponentAPI, error) {
 	if name == "" {
 		return ComponentAPI{}, ErrInvalidAPIName
@@ -28,13 +31,16 @@ func NewComponentAPI(
 		return ComponentAPI{}, ErrUnknownAPIType
 	}
 
-	if exposure != NetworkExposureInternal && exposure != NetworkExposureInternet {
+	if exposure != InternalExposure && exposure != InternetExposure {
 		return ComponentAPI{}, ErrInvalidExposure
 	}
+	transportProtocol := resolveTransportProtocol[apiType]
 	return ComponentAPI{
-		name:     name,
-		apiType:  apiType,
-		exposure: exposure,
+		name:              name,
+		apiType:           apiType,
+		transportProtocol: transportProtocol,
+		exposure:          exposure,
+		documentationURL:  cloneStringPointer(documentationURL),
 	}, nil
 }
 
@@ -51,21 +57,31 @@ func (a *ComponentAPI) APIType() APIType {
 	return a.apiType
 }
 
+func (a *ComponentAPI) DocumentationURL() *string {
+	return a.documentationURL
+}
+
+func (a *ComponentAPI) TransportProtocol() TransportProtocol {
+	return a.transportProtocol
+}
+
 func isValidAPIType(apiType APIType) bool {
 	switch apiType {
-	case APITypeREST,
-		APITypeGraphQL,
-		APITypeGRPC,
-		APITypeJSONRPC,
-		APITypeSOAP,
-		APITypeWebSocket,
-		APITypeOdata,
-		APITypeSSE,
-		APITypeEventConsumer,
-		APITypeTopic,
-		APITypeExchange,
-		APITypeQueue,
-		APITypeNativeProtocol:
+	case REST,
+		GraphQL,
+		GRPC,
+		JSONRPC,
+		SOAP,
+		WebSocket,
+		Odata,
+		SSE,
+		EventConsumer,
+		Topic,
+		Subject,
+		Exchange,
+		Queue,
+		NativeProtocol,
+		Database:
 		return true
 	default:
 		return false
@@ -77,11 +93,21 @@ func RestoreAPI(
 	name string,
 	exposure NetworkExposure,
 	apiType APIType,
+	documentationURL *string,
 ) ComponentAPI {
 	return ComponentAPI{
-		id:       id,
-		name:     name,
-		exposure: exposure,
-		apiType:  apiType,
+		id:               id,
+		name:             name,
+		exposure:         exposure,
+		apiType:          apiType,
+		documentationURL: cloneStringPointer(documentationURL),
 	}
+}
+
+func cloneStringPointer(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
 }

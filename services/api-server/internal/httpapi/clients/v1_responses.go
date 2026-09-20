@@ -7,7 +7,9 @@ type ResponseV1 struct {
 	ClientName        inventory.ComponentClientName `json:"client_name"`
 	Role              inventory.ComponentClientRole `json:"role"`
 	CommunicationType inventory.CommunicationType   `json:"communication_type"`
-	Description       string                        `json:"description"`
+	Action            *string                       `json:"action"`
+	Capabilities      *string                       `json:"capabilities"`
+	SecureConnection  bool                          `json:"secure_connection"`
 	APIID             *int64                        `json:"api_id"`
 }
 
@@ -22,7 +24,9 @@ func NewResponseV1(client inventory.ComponentClient) ResponseV1 {
 		ClientName:        client.Type().ClientName(),
 		Role:              client.Type().Role(),
 		CommunicationType: client.Type().CommunicationType(),
-		Description:       client.Description(),
+		Action:            client.Action(),
+		Capabilities:      client.Capabilities(),
+		SecureConnection:  client.SecureConnection(),
 	}
 	response.APIID = client.APIID()
 	return response

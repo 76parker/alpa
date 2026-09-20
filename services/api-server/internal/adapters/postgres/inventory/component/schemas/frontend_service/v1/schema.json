@@ -17,8 +17,10 @@
     "core_language": {
       "type": "string",
       "minLength": 1,
-      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$",
-      "maxLength": 50
+      "maxLength": 50,
+      "enum": [
+        "c", "c++", "c#", "go", "java", "javascript", "typescript", "python", "ruby", "php", "rust", "swift", "kotlin", "scala", "dart", "lua", "perl", "r", "objective-c", "shell", "bash", "powershell", "sql", "solidity", "haskell", "elixir", "erlang", "clojure", "groovy", "fortran", "cobol", "assembly", "visual-basic", "matlab", "pascal", "delphi", "f#", "julia", "zig", "nim", "ocaml", "prolog", "common-lisp", "scratch"
+      ]
     },
     "language_version": {
       "type": "string",

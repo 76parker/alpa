@@ -45,12 +45,34 @@ func TestComponentE2E(t *testing.T) {
 
 			details, ok := createdComponent.Details.(map[string]any)
 			t.Require().True(ok, "created component returns service details as a JSON object")
-			t.Assert().Equal("Go", details["language"], "created component has the requested language")
-			t.Assert().Equal("1.25", details["language_version"], "created component has the requested language version")
-			t.Assert().Equal("Gin", details["framework"], "created component has the requested framework")
+			t.Assert().Equal("go", details["language"], "created component stores language in lowercase")
+			t.Assert().Equal("https://github.com/example/backend", details["repository_url"], "created component has the requested repository URL")
+			t.Assert().NotContains(details, "language_version", "backend component does not expose language version")
+			t.Assert().NotContains(details, "framework", "backend component does not expose framework")
 
 			t.Assert().Empty(createdComponent.APIs, "component creation does not create APIs")
 			t.Assert().Empty(createdComponent.Clients, "component creation does not create clients")
+		})
+	}, allureArtifactsDir))
+
+	t.Run("CreateBackendComponentWithoutRepositoryURL", testo.Test(func(t T) {
+		t.Epic("Inventory")
+		t.Feature("Component")
+		t.Story("Create component")
+		t.Severity(allure.SeverityNormal)
+		t.Tags("e2e", "positive")
+		t.Title("Create backend component without optional repository URL")
+		resetDatabase(t)
+
+		createdProduct := createTestProductForComponent(t, client)
+		testRequest := testBackendComponentRequest(createdProduct.ID, "Backend without repository")
+		testRequest.Details = json.RawMessage(`{"language":"Go"}`)
+		createdComponent, statusCode := createTestComponent(t, client, testRequest)
+		allure.Step(t, "verify optional repository URL", func(t T) {
+			t.Require().Equal(http.StatusCreated, statusCode, "backend component without repository URL returns 201 Created")
+			details, ok := createdComponent.Details.(map[string]any)
+			t.Require().True(ok, "created component returns service details as a JSON object")
+			t.Assert().Nil(details["repository_url"], "repository URL is null when it is omitted")
 		})
 	}, allureArtifactsDir))
 
@@ -130,7 +152,7 @@ func TestComponentE2E(t *testing.T) {
 		t.Story("Create infrastructure component")
 		t.Severity(allure.SeverityCritical)
 		t.Tags("e2e")
-		t.Title("Validate infrastructure technologies, system types, and endpoint round trips")
+		t.Title("Validate infrastructure technology names, technology types, and endpoint round trips")
 		resetDatabase(t)
 		createdProduct := createTestProductForComponent(t, client)
 
@@ -146,46 +168,57 @@ func TestComponentE2E(t *testing.T) {
 		expectedAddresses[0] = "Primary.internal:5432"
 		cases := []struct {
 			name           string
-			technology     string
-			systemType     string
+			technologyName string
+			technologyType string
+			importancyJSON string
+			omitImportancy bool
 			endpointsJSON  string
-			wantTechnology string
-			wantSystemType string
+			wantName       string
+			wantType       string
 			wantEndpoints  []string
 			wantCode       errmap.Code
 		}{
-			{name: "message broker with ten endpoints", technology: `" kafka "`, systemType: `" message-broker "`, endpointsJSON: string(encodedAddresses), wantTechnology: "kafka", wantSystemType: "message-broker", wantEndpoints: expectedAddresses},
-			{name: "sql with null endpoints", technology: `" postgresql "`, systemType: `"sql-database"`, endpointsJSON: "null", wantTechnology: "postgresql", wantSystemType: "sql-database", wantEndpoints: []string{}},
-			{name: "nosql without endpoints", technology: `"mongodb"`, systemType: `"nosql-database"`, wantTechnology: "mongodb", wantSystemType: "nosql-database", wantEndpoints: []string{}},
-			{name: "cache with empty endpoints", technology: `"redis"`, systemType: `"cache"`, endpointsJSON: "[]", wantTechnology: "redis", wantSystemType: "cache", wantEndpoints: []string{}},
-			{name: "search engine", technology: `"elasticsearch"`, systemType: `"search-engine"`, wantTechnology: "elasticsearch", wantSystemType: "search-engine", wantEndpoints: []string{}},
-			{name: "object storage", technology: `"s3"`, systemType: `"object-storage"`, wantTechnology: "s3", wantSystemType: "object-storage", wantEndpoints: []string{}},
-			{name: "workflow engine", technology: `"temporal"`, systemType: `"workflow-engine"`, wantTechnology: "temporal", wantSystemType: "workflow-engine", wantEndpoints: []string{}},
-			{name: "service mesh", technology: `"envoy"`, systemType: `"service-mesh"`, wantTechnology: "envoy", wantSystemType: "service-mesh", wantEndpoints: []string{}},
-			{name: "api gateway", technology: `"kong"`, systemType: `"api-gateway"`, wantTechnology: "kong", wantSystemType: "api-gateway", wantEndpoints: []string{}},
-			{name: "load balancer", technology: `"haproxy"`, systemType: `"load-balancer"`, wantTechnology: "haproxy", wantSystemType: "load-balancer", wantEndpoints: []string{}},
-			{name: "identity provider", technology: `"keycloak"`, systemType: `"identity-provider"`, wantTechnology: "keycloak", wantSystemType: "identity-provider", wantEndpoints: []string{}},
-			{name: "secret storage", technology: `"vault"`, systemType: `"secret-storage"`, wantTechnology: "vault", wantSystemType: "secret-storage", wantEndpoints: []string{}},
-			{name: "monitoring", technology: `"prometheus"`, systemType: `"monitoring"`, wantTechnology: "prometheus", wantSystemType: "monitoring", wantEndpoints: []string{}},
-			{name: "logging", technology: `"grafana"`, systemType: `"logging"`, wantTechnology: "grafana", wantSystemType: "logging", wantEndpoints: []string{}},
-			{name: "tracing", technology: `"jaeger"`, systemType: `"tracing"`, wantTechnology: "jaeger", wantSystemType: "tracing", wantEndpoints: []string{}},
-			{name: "unknown technology", technology: `"postgres"`, systemType: `"sql-database"`, wantCode: "unknown_infrastructure_technology"},
-			{name: "missing technology", systemType: `"sql-database"`, wantCode: "unknown_infrastructure_technology"},
-			{name: "unknown system type", technology: `"postgresql"`, systemType: `"SQL-DATABASE"`, wantCode: "unknown_system_type"},
-			{name: "empty system type", technology: `"postgresql"`, systemType: `"  "`, wantCode: "unknown_system_type"},
-			{name: "missing system type", technology: `"postgresql"`, wantCode: "unknown_system_type"},
-			{name: "eleven endpoints", technology: `"postgresql"`, systemType: `"sql-database"`, endpointsJSON: string(tooMany), wantCode: "too_many_endpoints"},
-			{name: "endpoint string", technology: `"postgresql"`, systemType: `"sql-database"`, endpointsJSON: `"host:5432"`, wantCode: "invalid_request"},
+			{name: "message broker with ten endpoints", technologyName: `" kafka "`, technologyType: `" message-broker "`, endpointsJSON: string(encodedAddresses), wantName: "kafka", wantType: "message-broker", wantEndpoints: expectedAddresses},
+			{name: "sql with null endpoints", technologyName: `" postgresql "`, technologyType: `"sql-database"`, endpointsJSON: "null", wantName: "postgresql", wantType: "sql-database", wantEndpoints: []string{}},
+			{name: "nosql without endpoints", technologyName: `"mongodb"`, technologyType: `"nosql-database"`, wantName: "mongodb", wantType: "nosql-database", wantEndpoints: []string{}},
+			{name: "cache with empty endpoints", technologyName: `"redis"`, technologyType: `"cache"`, endpointsJSON: "[]", wantName: "redis", wantType: "cache", wantEndpoints: []string{}},
+			{name: "search engine", technologyName: `"elasticsearch"`, technologyType: `"search-engine"`, wantName: "elasticsearch", wantType: "search-engine", wantEndpoints: []string{}},
+			{name: "object storage", technologyName: `"s3"`, technologyType: `"object-storage"`, wantName: "s3", wantType: "object-storage", wantEndpoints: []string{}},
+			{name: "workflow engine", technologyName: `"temporal"`, technologyType: `"workflow-engine"`, wantName: "temporal", wantType: "workflow-engine", wantEndpoints: []string{}},
+			{name: "service mesh", technologyName: `"envoy"`, technologyType: `"service-mesh"`, wantName: "envoy", wantType: "service-mesh", wantEndpoints: []string{}},
+			{name: "api gateway", technologyName: `"kong"`, technologyType: `"api-gateway"`, wantName: "kong", wantType: "api-gateway", wantEndpoints: []string{}},
+			{name: "load balancer", technologyName: `"haproxy"`, technologyType: `"load-balancer"`, wantName: "haproxy", wantType: "load-balancer", wantEndpoints: []string{}},
+			{name: "identity provider", technologyName: `"keycloak"`, technologyType: `"identity-provider"`, wantName: "keycloak", wantType: "identity-provider", wantEndpoints: []string{}},
+			{name: "secret storage", technologyName: `"vault"`, technologyType: `"secret-storage"`, wantName: "vault", wantType: "secret-storage", wantEndpoints: []string{}},
+			{name: "monitoring", technologyName: `"prometheus"`, technologyType: `"monitoring"`, wantName: "prometheus", wantType: "monitoring", wantEndpoints: []string{}},
+			{name: "grafana monitoring", technologyName: `"grafana"`, technologyType: `"monitoring"`, wantName: "grafana", wantType: "monitoring", wantEndpoints: []string{}},
+			{name: "tracing", technologyName: `"jaeger"`, technologyType: `"tracing"`, wantName: "jaeger", wantType: "tracing", wantEndpoints: []string{}},
+			{name: "unknown technology name", technologyName: `"postgres"`, technologyType: `"sql-database"`, wantCode: "unknown_technology_name"},
+			{name: "missing technology name", technologyType: `"sql-database"`, wantCode: "unknown_technology_name"},
+			{name: "unknown technology type", technologyName: `"postgresql"`, technologyType: `"SQL-DATABASE"`, wantCode: "unknown_technology_type"},
+			{name: "empty technology type", technologyName: `"postgresql"`, technologyType: `"  "`, wantCode: "unknown_technology_type"},
+			{name: "missing technology type", technologyName: `"postgresql"`, wantCode: "unknown_technology_type"},
+			{name: "missing importancy", technologyName: `"postgresql"`, technologyType: `"sql-database"`, omitImportancy: true, wantCode: "invalid_request"},
+			{name: "unknown importancy", technologyName: `"postgresql"`, technologyType: `"sql-database"`, importancyJSON: `"mission-critical"`, wantCode: "invalid_importancy"},
+			{name: "eleven endpoints", technologyName: `"postgresql"`, technologyType: `"sql-database"`, endpointsJSON: string(tooMany), wantCode: "too_many_endpoints"},
+			{name: "endpoint string", technologyName: `"postgresql"`, technologyType: `"sql-database"`, endpointsJSON: `"host:5432"`, wantCode: "invalid_request"},
 		}
 		persisted := 0
 		for _, tc := range cases {
 			allure.Step(t, tc.name, func(t T) {
 				detailsJSON := `{"version":" 17 "`
-				if tc.technology != "" {
-					detailsJSON += `,"technology":` + tc.technology
+				if !tc.omitImportancy {
+					importancy := tc.importancyJSON
+					if importancy == "" {
+						importancy = `"critical"`
+					}
+					detailsJSON += `,"importancy":` + importancy
 				}
-				if tc.systemType != "" {
-					detailsJSON += `,"system_type":` + tc.systemType
+				if tc.technologyName != "" {
+					detailsJSON += `,"technology_name":` + tc.technologyName
+				}
+				if tc.technologyType != "" {
+					detailsJSON += `,"technology_type":` + tc.technologyType
 				}
 				if tc.endpointsJSON != "" {
 					detailsJSON += `,"endpoints":` + tc.endpointsJSON
@@ -220,20 +253,22 @@ func TestComponentE2E(t *testing.T) {
 					err = environment.postgres.pool.QueryRow(t.Context(), "SELECT details FROM inventory.components WHERE id = $1", created.ID).Scan(&storedJSON)
 					t.Require().NoError(err)
 					var stored struct {
-						SchemaVersion int      `json:"schema_version"`
-						Technology    string   `json:"technology"`
-						SystemType    string   `json:"system_type"`
-						Version       string   `json:"version"`
-						Endpoints     []string `json:"endpoints"`
+						SchemaVersion  int      `json:"schema_version"`
+						TechnologyName string   `json:"technology_name"`
+						TechnologyType string   `json:"technology_type"`
+						Importancy     string   `json:"importancy"`
+						Version        string   `json:"version"`
+						Endpoints      []string `json:"endpoints"`
 					}
 					t.Require().NoError(json.Unmarshal(storedJSON, &stored))
 					t.Assert().Equal(1, stored.SchemaVersion)
-					t.Assert().Equal(tc.wantTechnology, stored.Technology)
+					t.Assert().Equal(tc.wantName, stored.TechnologyName)
 					t.Assert().Equal("17", stored.Version)
-					t.Assert().Equal(tc.wantSystemType, stored.SystemType)
+					t.Assert().Equal(tc.wantType, stored.TechnologyType)
+					t.Assert().Equal("critical", stored.Importancy)
 					t.Assert().Equal(tc.wantEndpoints, stored.Endpoints)
 					wantDetails, err := json.Marshal(map[string]any{
-						"technology": tc.wantTechnology, "system_type": tc.wantSystemType, "version": "17", "endpoints": tc.wantEndpoints,
+						"technology_name": tc.wantName, "technology_type": tc.wantType, "importancy": "critical", "version": "17", "endpoints": tc.wantEndpoints,
 					})
 					t.Require().NoError(err)
 					gotDetails, err := json.Marshal(returned.Details)
@@ -264,24 +299,23 @@ func TestComponentE2E(t *testing.T) {
 
 		firstAPI, statusCode := createTestAPI(t, client, createdComponent.ID, httpapis.CreateRequestV1{
 			Name:            "Orders REST",
-			APIType:         inventory.APITypeREST,
-			NetworkExposure: inventory.NetworkExposureInternal,
+			APIType:         inventory.REST,
+			NetworkExposure: inventory.InternalExposure,
 		})
 		t.Require().Equal(http.StatusCreated, statusCode)
 		secondAPI, statusCode := createTestAPI(t, client, createdComponent.ID, httpapis.CreateRequestV1{
 			Name:            "Orders events",
-			APIType:         inventory.APITypeEventConsumer,
-			NetworkExposure: inventory.NetworkExposureInternal,
+			APIType:         inventory.EventConsumer,
+			NetworkExposure: inventory.InternalExposure,
 		})
 		t.Require().Equal(http.StatusCreated, statusCode)
 		firstClient, statusCode := createTestClient(t, client, createdComponent.ID, testRESTClientRequest())
 		t.Require().Equal(http.StatusCreated, statusCode)
-		description := "publishes events"
+		action := "publishes events"
 		secondClient, statusCode := createTestClient(t, client, createdComponent.ID, httpclients.CreateRequestV1{
-			ClientName:        inventory.KafkaClient,
-			Role:              inventory.EventProducerRole,
-			CommunicationType: inventory.Events,
-			Description:       &description,
+			ClientName: inventory.KafkaClient,
+			Role:       inventory.Producer,
+			Action:     &action,
 		})
 		t.Require().Equal(http.StatusCreated, statusCode)
 
@@ -291,15 +325,15 @@ func TestComponentE2E(t *testing.T) {
 		t.Require().Len(returned.Clients, 2)
 		t.Assert().Equal([]int64{firstAPI.ID, secondAPI.ID}, []int64{returned.APIs[0].ID, returned.APIs[1].ID})
 		t.Assert().Equal([]int64{firstClient.ID, secondClient.ID}, []int64{returned.Clients[0].ID, returned.Clients[1].ID})
-		t.Assert().Empty(returned.Clients[0].Description, "omitted description is represented as an empty string")
+		t.Assert().Nil(returned.Clients[0].Action, "omitted action is represented as null")
 
 		// A second aggregate catches accidental cross-component grouping in the list projection.
 		secondComponent, statusCode := createTestComponent(t, client, testBackendComponentRequest(createdProduct.ID, "Billing"))
 		t.Require().Equal(http.StatusCreated, statusCode)
 		billingAPI, statusCode := createTestAPI(t, client, secondComponent.ID, httpapis.CreateRequestV1{
 			Name:            "Billing REST",
-			APIType:         inventory.APITypeREST,
-			NetworkExposure: inventory.NetworkExposureInternal,
+			APIType:         inventory.REST,
+			NetworkExposure: inventory.InternalExposure,
 		})
 		t.Require().Equal(http.StatusCreated, statusCode)
 
@@ -323,8 +357,8 @@ func TestComponentE2E(t *testing.T) {
 
 		_, apiStatus := createTestAPI(t, client, 999, httpapis.CreateRequestV1{
 			Name:            "Unknown",
-			APIType:         inventory.APITypeREST,
-			NetworkExposure: inventory.NetworkExposureInternal,
+			APIType:         inventory.REST,
+			NetworkExposure: inventory.InternalExposure,
 		})
 		_, clientStatus := createTestClient(t, client, 999, testRESTClientRequest())
 		t.Assert().Equal(http.StatusNotFound, apiStatus)
@@ -337,12 +371,12 @@ func TestComponentE2E(t *testing.T) {
 		createdProduct := createTestProductForComponent(t, client)
 		request := testBackendComponentRequest(createdProduct.ID, "Checkout")
 		request.APIs = []component.CreateAPIRequestV1{
-			{Name: "Checkout REST", APIType: inventory.APITypeREST, NetworkExposure: inventory.NetworkExposureInternet},
-			{Name: "Checkout events", APIType: inventory.APITypeEventConsumer, NetworkExposure: inventory.NetworkExposureInternal},
+			{Name: "Checkout REST", APIType: inventory.REST, NetworkExposure: inventory.InternetExposure},
+			{Name: "Checkout events", APIType: inventory.EventConsumer, NetworkExposure: inventory.InternalExposure},
 		}
 		request.Clients = []component.CreateClientRequestV1{
-			{ClientName: inventory.RESTClient, Role: inventory.CallerRole, CommunicationType: inventory.RequestResponse},
-			{ClientName: inventory.KafkaClient, Role: inventory.EventProducerRole, CommunicationType: inventory.Events, Description: testStringPointer("publishes events")},
+			{ClientName: inventory.RESTClient, Role: inventory.Caller},
+			{ClientName: inventory.KafkaClient, Role: inventory.Producer, Action: testStringPointer("publishes events")},
 		}
 
 		created, status := createTestComponent(t, client, request)
@@ -382,7 +416,7 @@ func TestComponentE2E(t *testing.T) {
 		request := testBackendComponentRequest(createdProduct.ID, "Too many APIs")
 		request.APIs = make([]component.CreateAPIRequestV1, 6)
 		for i := range request.APIs {
-			request.APIs[i] = component.CreateAPIRequestV1{Name: "API " + strconv.Itoa(i), APIType: inventory.APITypeREST, NetworkExposure: inventory.NetworkExposureInternal}
+			request.APIs[i] = component.CreateAPIRequestV1{Name: "API " + strconv.Itoa(i), APIType: inventory.REST, NetworkExposure: inventory.InternalExposure}
 		}
 		_, status := createTestComponent(t, client, request)
 		t.Require().Equal(http.StatusBadRequest, status)
@@ -408,8 +442,8 @@ func TestComponentE2E(t *testing.T) {
 				defer group.Done()
 				status, err := createAPIStatus(t.Context(), client, createdComponent.ID, httpapis.CreateRequestV1{
 					Name:            "Concurrent API " + strconv.Itoa(index),
-					APIType:         inventory.APITypeREST,
-					NetworkExposure: inventory.NetworkExposureInternal,
+					APIType:         inventory.REST,
+					NetworkExposure: inventory.InternalExposure,
 				})
 				errs <- err
 				statuses <- status
@@ -489,8 +523,8 @@ func TestComponentE2E(t *testing.T) {
 		})
 		_, statusCode = createTestAPI(t, client, createdComponent.ID, httpapis.CreateRequestV1{
 			Name:            "Orders",
-			APIType:         inventory.APITypeREST,
-			NetworkExposure: inventory.NetworkExposureInternal,
+			APIType:         inventory.REST,
+			NetworkExposure: inventory.InternalExposure,
 		})
 		t.Require().Equal(http.StatusCreated, statusCode)
 		_, statusCode = createTestClient(t, client, createdComponent.ID, testRESTClientRequest())
@@ -555,8 +589,7 @@ func testBackendComponentRequest(productID int64, name string) component.CreateR
 		Description: &description,
 		Details: json.RawMessage(`{
 			"language": "Go",
-			"language_version": "1.25",
-			"framework": "Gin"
+			"repository_url": "https://github.com/example/backend"
 		}`),
 	}
 }

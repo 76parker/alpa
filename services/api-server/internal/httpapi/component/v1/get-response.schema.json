@@ -62,8 +62,7 @@
             "type": "string",
             "maxLength": 50,
             "enum": [
-              "backend-service",
-              "frontend-service"
+              "backend-service"
             ]
           }
         },
@@ -74,8 +73,19 @@
       "then": {
         "properties": {
           "details": {
-            "$ref": "#/$defs/service"
+            "$ref": "#/$defs/backendService"
           }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"type": {"const": "frontend-service"}},
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "details": {"$ref": "#/$defs/frontendService"}
         }
       }
     },
@@ -107,7 +117,8 @@
         "id",
         "name",
         "api_type",
-        "network_exposure"
+        "network_exposure",
+        "documentation_url"
       ],
       "properties": {
         "id": {
@@ -131,9 +142,11 @@
             "sse",
             "event-consumer",
             "topic",
+            "subject",
             "exchange",
             "queue",
-            "native-protocol"
+            "native-protocol",
+            "database"
           ]
         },
         "network_exposure": {
@@ -143,6 +156,14 @@
             "internal",
             "internet"
           ]
+        },
+        "documentation_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri",
+          "maxLength": 2048
         }
       }
     },
@@ -154,8 +175,10 @@
         "client_name",
         "role",
         "communication_type",
-        "description",
-        "api_id"
+        "api_id",
+        "action",
+        "capabilities",
+        "secure_connection"
       ],
       "properties": {
         "id": {
@@ -170,6 +193,7 @@
             "rest-client",
             "graphql-client",
             "grpc-client",
+            "grpc-streaming-client",
             "json-rpc-client",
             "soap-client",
             "websocket-client",
@@ -193,15 +217,23 @@
         "role": {
           "type": "string",
           "maxLength": 50,
-          "enum": ["listener", "caller", "producer", "consumer"]
+          "enum": [
+            "listener",
+            "caller",
+            "producer",
+            "consumer"
+          ]
         },
         "communication_type": {
           "type": "string",
           "maxLength": 50,
-          "enum": ["request-response", "polling", "long-polling", "events", "stream"]
-        },
-        "description": {
-          "type": "string"
+          "enum": [
+            "request-response",
+            "polling",
+            "long-polling",
+            "events",
+            "stream"
+          ]
         },
         "api_id": {
           "oneOf": [
@@ -213,40 +245,71 @@
               "minimum": 1
             }
           ]
+        },
+        "action": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2097152
+        },
+        "capabilities": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 2097152
+        },
+        "secure_connection": {
+          "type": "boolean"
         }
       }
     },
-    "service": {
+    "backendService": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "language",
-        "language_version",
-        "framework"
-      ],
+      "required": ["language", "repository_url"],
       "properties": {
         "language": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "c", "c++", "c#", "go", "java", "javascript", "typescript", "python", "ruby", "php", "rust", "swift", "kotlin", "scala", "dart", "lua", "perl", "r", "objective-c", "shell", "bash", "powershell", "sql", "solidity", "haskell", "elixir", "erlang", "clojure", "groovy", "fortran", "cobol", "assembly", "visual-basic", "matlab", "pascal", "delphi", "f#", "julia", "zig", "nim", "ocaml", "prolog", "common-lisp", "scratch"
+          ]
         },
-        "language_version": {
-          "type": "string"
-        },
-        "framework": {
-          "type": "string"
+        "repository_url": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "maxLength": 2048
         }
+      }
+    },
+    "frontendService": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "language_version", "framework"],
+      "properties": {
+        "language": {
+          "type": "string",
+          "enum": [
+            "c", "c++", "c#", "go", "java", "javascript", "typescript", "python", "ruby", "php", "rust", "swift", "kotlin", "scala", "dart", "lua", "perl", "r", "objective-c", "shell", "bash", "powershell", "sql", "solidity", "haskell", "elixir", "erlang", "clojure", "groovy", "fortran", "cobol", "assembly", "visual-basic", "matlab", "pascal", "delphi", "f#", "julia", "zig", "nim", "ocaml", "prolog", "common-lisp", "scratch"
+          ]
+        },
+        "language_version": {"type": "string"},
+        "framework": {"type": "string"}
       }
     },
     "infrastructure": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "technology",
-        "system_type",
+        "technology_name",
+        "technology_type",
+        "importancy",
         "version",
         "endpoints"
       ],
       "properties": {
-        "technology": {
+        "technology_name": {
           "type": "string",
           "maxLength": 50,
           "enum": [
@@ -286,7 +349,7 @@
             "vault"
           ]
         },
-        "system_type": {
+        "technology_type": {
           "type": "string",
           "maxLength": 50,
           "enum": [
@@ -305,6 +368,14 @@
             "monitoring",
             "logging",
             "tracing"
+          ]
+        },
+        "importancy": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "important",
+            "supporting"
           ]
         },
         "version": {

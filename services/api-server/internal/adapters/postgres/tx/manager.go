@@ -33,6 +33,7 @@ func (m *Manager) BindClientAPITx(ctx context.Context, executeTx func(stores app
 	})
 }
 
+// ExecuteWriteAPITx executes a write transaction for creating or updating APIs (INSERT/UPDATE)
 func (m *Manager) ExecuteWriteAPITx(ctx context.Context, executeTx func(stores appapis.TxStores) error) error {
 	return pgx.BeginFunc(ctx, m.pool, func(tx pgx.Tx) error {
 		return executeTx(appapis.TxStores{
@@ -42,7 +43,7 @@ func (m *Manager) ExecuteWriteAPITx(ctx context.Context, executeTx func(stores a
 	})
 }
 
-// ExecuteReadComponentTx executes a transaction that load full component aggregate from db (component + clients + apis)
+// ExecuteReadComponentTx executes a transaction that loads full component aggregate from db (component + clients + apis)
 func (m *Manager) ExecuteReadComponentTx(ctx context.Context, executeTx func(stores appcomponent.TxStores) error) error {
 	txOpts := pgx.TxOptions{
 		IsoLevel:   pgx.RepeatableRead,
@@ -82,6 +83,7 @@ func (m *Manager) ExecuteWriteComponentTx(ctx context.Context, executeTx func(st
 	return nil
 }
 
+// ExecuteWriteClientTx executes a write transaction for creating or updating clients (INSERT/UPDATE)
 func (m *Manager) ExecuteWriteClientTx(ctx context.Context, executeTx func(stores appclient.TxStores) error) error {
 	return pgx.BeginFunc(ctx, m.pool, func(tx pgx.Tx) error {
 		return executeTx(appclient.TxStores{

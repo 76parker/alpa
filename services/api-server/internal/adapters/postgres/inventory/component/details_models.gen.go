@@ -5,22 +5,64 @@ package component
 // Version 1 details for a backend service component.
 type BackendServiceDetailsV1 struct {
 	// CoreLanguage corresponds to the JSON schema field "core_language".
-	CoreLanguage string `json:"core_language"`
+	CoreLanguage BackendServiceDetailsV1CoreLanguage `json:"core_language"`
 
-	// LanguageVersion corresponds to the JSON schema field "language_version".
-	LanguageVersion *string `json:"language_version,omitempty,omitzero"`
-
-	// MainFramework corresponds to the JSON schema field "main_framework".
-	MainFramework *string `json:"main_framework,omitempty,omitzero"`
+	// RepositoryUrl corresponds to the JSON schema field "repository_url".
+	RepositoryUrl *string `json:"repository_url,omitempty,omitzero"`
 
 	// SchemaVersion corresponds to the JSON schema field "schema_version".
 	SchemaVersion int `json:"schema_version"`
 }
+
+type BackendServiceDetailsV1CoreLanguage string
+
+const BackendServiceDetailsV1CoreLanguageAssembly BackendServiceDetailsV1CoreLanguage = "assembly"
+const BackendServiceDetailsV1CoreLanguageBash BackendServiceDetailsV1CoreLanguage = "bash"
+const BackendServiceDetailsV1CoreLanguageC BackendServiceDetailsV1CoreLanguage = "c"
+const BackendServiceDetailsV1CoreLanguageClojure BackendServiceDetailsV1CoreLanguage = "clojure"
+const BackendServiceDetailsV1CoreLanguageCobol BackendServiceDetailsV1CoreLanguage = "cobol"
+const BackendServiceDetailsV1CoreLanguageCommonLisp BackendServiceDetailsV1CoreLanguage = "common-lisp"
+const BackendServiceDetailsV1CoreLanguageDart BackendServiceDetailsV1CoreLanguage = "dart"
+const BackendServiceDetailsV1CoreLanguageDelphi BackendServiceDetailsV1CoreLanguage = "delphi"
+const BackendServiceDetailsV1CoreLanguageElixir BackendServiceDetailsV1CoreLanguage = "elixir"
+const BackendServiceDetailsV1CoreLanguageErlang BackendServiceDetailsV1CoreLanguage = "erlang"
+const BackendServiceDetailsV1CoreLanguageF BackendServiceDetailsV1CoreLanguage = "f#"
+const BackendServiceDetailsV1CoreLanguageFortran BackendServiceDetailsV1CoreLanguage = "fortran"
+const BackendServiceDetailsV1CoreLanguageGo BackendServiceDetailsV1CoreLanguage = "go"
+const BackendServiceDetailsV1CoreLanguageGroovy BackendServiceDetailsV1CoreLanguage = "groovy"
+const BackendServiceDetailsV1CoreLanguageHaskell BackendServiceDetailsV1CoreLanguage = "haskell"
+const BackendServiceDetailsV1CoreLanguageJava BackendServiceDetailsV1CoreLanguage = "java"
+const BackendServiceDetailsV1CoreLanguageJavascript BackendServiceDetailsV1CoreLanguage = "javascript"
+const BackendServiceDetailsV1CoreLanguageJulia BackendServiceDetailsV1CoreLanguage = "julia"
+const BackendServiceDetailsV1CoreLanguageKotlin BackendServiceDetailsV1CoreLanguage = "kotlin"
+const BackendServiceDetailsV1CoreLanguageLua BackendServiceDetailsV1CoreLanguage = "lua"
+const BackendServiceDetailsV1CoreLanguageMatlab BackendServiceDetailsV1CoreLanguage = "matlab"
+const BackendServiceDetailsV1CoreLanguageNim BackendServiceDetailsV1CoreLanguage = "nim"
+const BackendServiceDetailsV1CoreLanguageObjectiveC BackendServiceDetailsV1CoreLanguage = "objective-c"
+const BackendServiceDetailsV1CoreLanguageOcaml BackendServiceDetailsV1CoreLanguage = "ocaml"
+const BackendServiceDetailsV1CoreLanguagePascal BackendServiceDetailsV1CoreLanguage = "pascal"
+const BackendServiceDetailsV1CoreLanguagePerl BackendServiceDetailsV1CoreLanguage = "perl"
+const BackendServiceDetailsV1CoreLanguagePhp BackendServiceDetailsV1CoreLanguage = "php"
+const BackendServiceDetailsV1CoreLanguagePowershell BackendServiceDetailsV1CoreLanguage = "powershell"
+const BackendServiceDetailsV1CoreLanguageProlog BackendServiceDetailsV1CoreLanguage = "prolog"
+const BackendServiceDetailsV1CoreLanguagePython BackendServiceDetailsV1CoreLanguage = "python"
+const BackendServiceDetailsV1CoreLanguageR BackendServiceDetailsV1CoreLanguage = "r"
+const BackendServiceDetailsV1CoreLanguageRuby BackendServiceDetailsV1CoreLanguage = "ruby"
+const BackendServiceDetailsV1CoreLanguageRust BackendServiceDetailsV1CoreLanguage = "rust"
+const BackendServiceDetailsV1CoreLanguageScala BackendServiceDetailsV1CoreLanguage = "scala"
+const BackendServiceDetailsV1CoreLanguageScratch BackendServiceDetailsV1CoreLanguage = "scratch"
+const BackendServiceDetailsV1CoreLanguageShell BackendServiceDetailsV1CoreLanguage = "shell"
+const BackendServiceDetailsV1CoreLanguageSolidity BackendServiceDetailsV1CoreLanguage = "solidity"
+const BackendServiceDetailsV1CoreLanguageSql BackendServiceDetailsV1CoreLanguage = "sql"
+const BackendServiceDetailsV1CoreLanguageSwift BackendServiceDetailsV1CoreLanguage = "swift"
+const BackendServiceDetailsV1CoreLanguageTypescript BackendServiceDetailsV1CoreLanguage = "typescript"
+const BackendServiceDetailsV1CoreLanguageVisualBasic BackendServiceDetailsV1CoreLanguage = "visual-basic"
+const BackendServiceDetailsV1CoreLanguageZig BackendServiceDetailsV1CoreLanguage = "zig"
 
 // Version 1 details for a frontend service component.
 type FrontendServiceDetailsV1 struct {
 	// CoreLanguage corresponds to the JSON schema field "core_language".
-	CoreLanguage string `json:"core_language"`
+	CoreLanguage FrontendServiceDetailsV1CoreLanguage `json:"core_language"`
 
 	// LanguageVersion corresponds to the JSON schema field "language_version".
 	LanguageVersion *string `json:"language_version,omitempty,omitzero"`
@@ -31,76 +73,130 @@ type FrontendServiceDetailsV1 struct {
 	// SchemaVersion corresponds to the JSON schema field "schema_version".
 	SchemaVersion int `json:"schema_version"`
 }
+
+type FrontendServiceDetailsV1CoreLanguage string
+
+const FrontendServiceDetailsV1CoreLanguageAssembly FrontendServiceDetailsV1CoreLanguage = "assembly"
+const FrontendServiceDetailsV1CoreLanguageBash FrontendServiceDetailsV1CoreLanguage = "bash"
+const FrontendServiceDetailsV1CoreLanguageC FrontendServiceDetailsV1CoreLanguage = "c"
+const FrontendServiceDetailsV1CoreLanguageClojure FrontendServiceDetailsV1CoreLanguage = "clojure"
+const FrontendServiceDetailsV1CoreLanguageCobol FrontendServiceDetailsV1CoreLanguage = "cobol"
+const FrontendServiceDetailsV1CoreLanguageCommonLisp FrontendServiceDetailsV1CoreLanguage = "common-lisp"
+const FrontendServiceDetailsV1CoreLanguageDart FrontendServiceDetailsV1CoreLanguage = "dart"
+const FrontendServiceDetailsV1CoreLanguageDelphi FrontendServiceDetailsV1CoreLanguage = "delphi"
+const FrontendServiceDetailsV1CoreLanguageElixir FrontendServiceDetailsV1CoreLanguage = "elixir"
+const FrontendServiceDetailsV1CoreLanguageErlang FrontendServiceDetailsV1CoreLanguage = "erlang"
+const FrontendServiceDetailsV1CoreLanguageF FrontendServiceDetailsV1CoreLanguage = "f#"
+const FrontendServiceDetailsV1CoreLanguageFortran FrontendServiceDetailsV1CoreLanguage = "fortran"
+const FrontendServiceDetailsV1CoreLanguageGo FrontendServiceDetailsV1CoreLanguage = "go"
+const FrontendServiceDetailsV1CoreLanguageGroovy FrontendServiceDetailsV1CoreLanguage = "groovy"
+const FrontendServiceDetailsV1CoreLanguageHaskell FrontendServiceDetailsV1CoreLanguage = "haskell"
+const FrontendServiceDetailsV1CoreLanguageJava FrontendServiceDetailsV1CoreLanguage = "java"
+const FrontendServiceDetailsV1CoreLanguageJavascript FrontendServiceDetailsV1CoreLanguage = "javascript"
+const FrontendServiceDetailsV1CoreLanguageJulia FrontendServiceDetailsV1CoreLanguage = "julia"
+const FrontendServiceDetailsV1CoreLanguageKotlin FrontendServiceDetailsV1CoreLanguage = "kotlin"
+const FrontendServiceDetailsV1CoreLanguageLua FrontendServiceDetailsV1CoreLanguage = "lua"
+const FrontendServiceDetailsV1CoreLanguageMatlab FrontendServiceDetailsV1CoreLanguage = "matlab"
+const FrontendServiceDetailsV1CoreLanguageNim FrontendServiceDetailsV1CoreLanguage = "nim"
+const FrontendServiceDetailsV1CoreLanguageObjectiveC FrontendServiceDetailsV1CoreLanguage = "objective-c"
+const FrontendServiceDetailsV1CoreLanguageOcaml FrontendServiceDetailsV1CoreLanguage = "ocaml"
+const FrontendServiceDetailsV1CoreLanguagePascal FrontendServiceDetailsV1CoreLanguage = "pascal"
+const FrontendServiceDetailsV1CoreLanguagePerl FrontendServiceDetailsV1CoreLanguage = "perl"
+const FrontendServiceDetailsV1CoreLanguagePhp FrontendServiceDetailsV1CoreLanguage = "php"
+const FrontendServiceDetailsV1CoreLanguagePowershell FrontendServiceDetailsV1CoreLanguage = "powershell"
+const FrontendServiceDetailsV1CoreLanguageProlog FrontendServiceDetailsV1CoreLanguage = "prolog"
+const FrontendServiceDetailsV1CoreLanguagePython FrontendServiceDetailsV1CoreLanguage = "python"
+const FrontendServiceDetailsV1CoreLanguageR FrontendServiceDetailsV1CoreLanguage = "r"
+const FrontendServiceDetailsV1CoreLanguageRuby FrontendServiceDetailsV1CoreLanguage = "ruby"
+const FrontendServiceDetailsV1CoreLanguageRust FrontendServiceDetailsV1CoreLanguage = "rust"
+const FrontendServiceDetailsV1CoreLanguageScala FrontendServiceDetailsV1CoreLanguage = "scala"
+const FrontendServiceDetailsV1CoreLanguageScratch FrontendServiceDetailsV1CoreLanguage = "scratch"
+const FrontendServiceDetailsV1CoreLanguageShell FrontendServiceDetailsV1CoreLanguage = "shell"
+const FrontendServiceDetailsV1CoreLanguageSolidity FrontendServiceDetailsV1CoreLanguage = "solidity"
+const FrontendServiceDetailsV1CoreLanguageSql FrontendServiceDetailsV1CoreLanguage = "sql"
+const FrontendServiceDetailsV1CoreLanguageSwift FrontendServiceDetailsV1CoreLanguage = "swift"
+const FrontendServiceDetailsV1CoreLanguageTypescript FrontendServiceDetailsV1CoreLanguage = "typescript"
+const FrontendServiceDetailsV1CoreLanguageVisualBasic FrontendServiceDetailsV1CoreLanguage = "visual-basic"
+const FrontendServiceDetailsV1CoreLanguageZig FrontendServiceDetailsV1CoreLanguage = "zig"
 
 // Version 1 details for an infrastructure component.
 type InfrastructureDetailsV1 struct {
 	// Endpoints corresponds to the JSON schema field "endpoints".
 	Endpoints []string `json:"endpoints"`
 
+	// Importancy corresponds to the JSON schema field "importancy".
+	Importancy InfrastructureDetailsV1Importancy `json:"importancy"`
+
 	// SchemaVersion corresponds to the JSON schema field "schema_version".
 	SchemaVersion int `json:"schema_version"`
 
-	// SystemType corresponds to the JSON schema field "system_type".
-	SystemType InfrastructureDetailsV1SystemType `json:"system_type"`
+	// TechnologyName corresponds to the JSON schema field "technology_name".
+	TechnologyName InfrastructureDetailsV1TechnologyName `json:"technology_name"`
 
-	// Technology corresponds to the JSON schema field "technology".
-	Technology InfrastructureDetailsV1Technology `json:"technology"`
+	// TechnologyType corresponds to the JSON schema field "technology_type".
+	TechnologyType InfrastructureDetailsV1TechnologyType `json:"technology_type"`
 
 	// Version corresponds to the JSON schema field "version".
 	Version *string `json:"version,omitempty,omitzero"`
 }
 
-type InfrastructureDetailsV1SystemType string
+type InfrastructureDetailsV1Importancy string
 
-const InfrastructureDetailsV1SystemTypeApiGateway InfrastructureDetailsV1SystemType = "api-gateway"
-const InfrastructureDetailsV1SystemTypeCache InfrastructureDetailsV1SystemType = "cache"
-const InfrastructureDetailsV1SystemTypeIdentityProvider InfrastructureDetailsV1SystemType = "identity-provider"
-const InfrastructureDetailsV1SystemTypeLoadBalancer InfrastructureDetailsV1SystemType = "load-balancer"
-const InfrastructureDetailsV1SystemTypeLogging InfrastructureDetailsV1SystemType = "logging"
-const InfrastructureDetailsV1SystemTypeMessageBroker InfrastructureDetailsV1SystemType = "message-broker"
-const InfrastructureDetailsV1SystemTypeMonitoring InfrastructureDetailsV1SystemType = "monitoring"
-const InfrastructureDetailsV1SystemTypeNosqlDatabase InfrastructureDetailsV1SystemType = "nosql-database"
-const InfrastructureDetailsV1SystemTypeObjectStorage InfrastructureDetailsV1SystemType = "object-storage"
-const InfrastructureDetailsV1SystemTypeSearchEngine InfrastructureDetailsV1SystemType = "search-engine"
-const InfrastructureDetailsV1SystemTypeSecretStorage InfrastructureDetailsV1SystemType = "secret-storage"
-const InfrastructureDetailsV1SystemTypeServiceMesh InfrastructureDetailsV1SystemType = "service-mesh"
-const InfrastructureDetailsV1SystemTypeSqlDatabase InfrastructureDetailsV1SystemType = "sql-database"
-const InfrastructureDetailsV1SystemTypeTracing InfrastructureDetailsV1SystemType = "tracing"
-const InfrastructureDetailsV1SystemTypeWorkflowEngine InfrastructureDetailsV1SystemType = "workflow-engine"
+const InfrastructureDetailsV1ImportancyCritical InfrastructureDetailsV1Importancy = "critical"
+const InfrastructureDetailsV1ImportancyImportant InfrastructureDetailsV1Importancy = "important"
+const InfrastructureDetailsV1ImportancySupporting InfrastructureDetailsV1Importancy = "supporting"
 
-type InfrastructureDetailsV1Technology string
+type InfrastructureDetailsV1TechnologyName string
 
-const InfrastructureDetailsV1TechnologyAirflow InfrastructureDetailsV1Technology = "airflow"
-const InfrastructureDetailsV1TechnologyArgoWorkflows InfrastructureDetailsV1Technology = "argo-workflows"
-const InfrastructureDetailsV1TechnologyCassandra InfrastructureDetailsV1Technology = "cassandra"
-const InfrastructureDetailsV1TechnologyCeph InfrastructureDetailsV1Technology = "ceph"
-const InfrastructureDetailsV1TechnologyClickhouse InfrastructureDetailsV1Technology = "clickhouse"
-const InfrastructureDetailsV1TechnologyElasticsearch InfrastructureDetailsV1Technology = "elasticsearch"
-const InfrastructureDetailsV1TechnologyEnvoy InfrastructureDetailsV1Technology = "envoy"
-const InfrastructureDetailsV1TechnologyEtcd InfrastructureDetailsV1Technology = "etcd"
-const InfrastructureDetailsV1TechnologyGrafana InfrastructureDetailsV1Technology = "grafana"
-const InfrastructureDetailsV1TechnologyHaproxy InfrastructureDetailsV1Technology = "haproxy"
-const InfrastructureDetailsV1TechnologyJaeger InfrastructureDetailsV1Technology = "jaeger"
-const InfrastructureDetailsV1TechnologyKafka InfrastructureDetailsV1Technology = "kafka"
-const InfrastructureDetailsV1TechnologyKeycloak InfrastructureDetailsV1Technology = "keycloak"
-const InfrastructureDetailsV1TechnologyKong InfrastructureDetailsV1Technology = "kong"
-const InfrastructureDetailsV1TechnologyMariadb InfrastructureDetailsV1Technology = "mariadb"
-const InfrastructureDetailsV1TechnologyMemcached InfrastructureDetailsV1Technology = "memcached"
-const InfrastructureDetailsV1TechnologyMinio InfrastructureDetailsV1Technology = "minio"
-const InfrastructureDetailsV1TechnologyMongodb InfrastructureDetailsV1Technology = "mongodb"
-const InfrastructureDetailsV1TechnologyMysql InfrastructureDetailsV1Technology = "mysql"
-const InfrastructureDetailsV1TechnologyNats InfrastructureDetailsV1Technology = "nats"
-const InfrastructureDetailsV1TechnologyNginx InfrastructureDetailsV1Technology = "nginx"
-const InfrastructureDetailsV1TechnologyOpensearch InfrastructureDetailsV1Technology = "opensearch"
-const InfrastructureDetailsV1TechnologyOpentelemetry InfrastructureDetailsV1Technology = "opentelemetry"
-const InfrastructureDetailsV1TechnologyPostgresql InfrastructureDetailsV1Technology = "postgresql"
-const InfrastructureDetailsV1TechnologyPrometheus InfrastructureDetailsV1Technology = "prometheus"
-const InfrastructureDetailsV1TechnologyPulsar InfrastructureDetailsV1Technology = "pulsar"
-const InfrastructureDetailsV1TechnologyRabbitmq InfrastructureDetailsV1Technology = "rabbitmq"
-const InfrastructureDetailsV1TechnologyRedis InfrastructureDetailsV1Technology = "redis"
-const InfrastructureDetailsV1TechnologyS3 InfrastructureDetailsV1Technology = "s3"
-const InfrastructureDetailsV1TechnologyTemporal InfrastructureDetailsV1Technology = "temporal"
-const InfrastructureDetailsV1TechnologyTraefik InfrastructureDetailsV1Technology = "traefik"
-const InfrastructureDetailsV1TechnologyVault InfrastructureDetailsV1Technology = "vault"
-const InfrastructureDetailsV1TechnologyZabbix InfrastructureDetailsV1Technology = "zabbix"
-const InfrastructureDetailsV1TechnologyZipkin InfrastructureDetailsV1Technology = "zipkin"
+const InfrastructureDetailsV1TechnologyNameAirflow InfrastructureDetailsV1TechnologyName = "airflow"
+const InfrastructureDetailsV1TechnologyNameArgoWorkflows InfrastructureDetailsV1TechnologyName = "argo-workflows"
+const InfrastructureDetailsV1TechnologyNameCassandra InfrastructureDetailsV1TechnologyName = "cassandra"
+const InfrastructureDetailsV1TechnologyNameCeph InfrastructureDetailsV1TechnologyName = "ceph"
+const InfrastructureDetailsV1TechnologyNameClickhouse InfrastructureDetailsV1TechnologyName = "clickhouse"
+const InfrastructureDetailsV1TechnologyNameElasticsearch InfrastructureDetailsV1TechnologyName = "elasticsearch"
+const InfrastructureDetailsV1TechnologyNameEnvoy InfrastructureDetailsV1TechnologyName = "envoy"
+const InfrastructureDetailsV1TechnologyNameEtcd InfrastructureDetailsV1TechnologyName = "etcd"
+const InfrastructureDetailsV1TechnologyNameGrafana InfrastructureDetailsV1TechnologyName = "grafana"
+const InfrastructureDetailsV1TechnologyNameHaproxy InfrastructureDetailsV1TechnologyName = "haproxy"
+const InfrastructureDetailsV1TechnologyNameJaeger InfrastructureDetailsV1TechnologyName = "jaeger"
+const InfrastructureDetailsV1TechnologyNameKafka InfrastructureDetailsV1TechnologyName = "kafka"
+const InfrastructureDetailsV1TechnologyNameKeycloak InfrastructureDetailsV1TechnologyName = "keycloak"
+const InfrastructureDetailsV1TechnologyNameKong InfrastructureDetailsV1TechnologyName = "kong"
+const InfrastructureDetailsV1TechnologyNameMariadb InfrastructureDetailsV1TechnologyName = "mariadb"
+const InfrastructureDetailsV1TechnologyNameMemcached InfrastructureDetailsV1TechnologyName = "memcached"
+const InfrastructureDetailsV1TechnologyNameMinio InfrastructureDetailsV1TechnologyName = "minio"
+const InfrastructureDetailsV1TechnologyNameMongodb InfrastructureDetailsV1TechnologyName = "mongodb"
+const InfrastructureDetailsV1TechnologyNameMysql InfrastructureDetailsV1TechnologyName = "mysql"
+const InfrastructureDetailsV1TechnologyNameNats InfrastructureDetailsV1TechnologyName = "nats"
+const InfrastructureDetailsV1TechnologyNameNginx InfrastructureDetailsV1TechnologyName = "nginx"
+const InfrastructureDetailsV1TechnologyNameOpensearch InfrastructureDetailsV1TechnologyName = "opensearch"
+const InfrastructureDetailsV1TechnologyNameOpentelemetry InfrastructureDetailsV1TechnologyName = "opentelemetry"
+const InfrastructureDetailsV1TechnologyNamePostgresql InfrastructureDetailsV1TechnologyName = "postgresql"
+const InfrastructureDetailsV1TechnologyNamePrometheus InfrastructureDetailsV1TechnologyName = "prometheus"
+const InfrastructureDetailsV1TechnologyNamePulsar InfrastructureDetailsV1TechnologyName = "pulsar"
+const InfrastructureDetailsV1TechnologyNameRabbitmq InfrastructureDetailsV1TechnologyName = "rabbitmq"
+const InfrastructureDetailsV1TechnologyNameRedis InfrastructureDetailsV1TechnologyName = "redis"
+const InfrastructureDetailsV1TechnologyNameS3 InfrastructureDetailsV1TechnologyName = "s3"
+const InfrastructureDetailsV1TechnologyNameTemporal InfrastructureDetailsV1TechnologyName = "temporal"
+const InfrastructureDetailsV1TechnologyNameTraefik InfrastructureDetailsV1TechnologyName = "traefik"
+const InfrastructureDetailsV1TechnologyNameVault InfrastructureDetailsV1TechnologyName = "vault"
+const InfrastructureDetailsV1TechnologyNameZabbix InfrastructureDetailsV1TechnologyName = "zabbix"
+const InfrastructureDetailsV1TechnologyNameZipkin InfrastructureDetailsV1TechnologyName = "zipkin"
+
+type InfrastructureDetailsV1TechnologyType string
+
+const InfrastructureDetailsV1TechnologyTypeApiGateway InfrastructureDetailsV1TechnologyType = "api-gateway"
+const InfrastructureDetailsV1TechnologyTypeCache InfrastructureDetailsV1TechnologyType = "cache"
+const InfrastructureDetailsV1TechnologyTypeIdentityProvider InfrastructureDetailsV1TechnologyType = "identity-provider"
+const InfrastructureDetailsV1TechnologyTypeLoadBalancer InfrastructureDetailsV1TechnologyType = "load-balancer"
+const InfrastructureDetailsV1TechnologyTypeLogging InfrastructureDetailsV1TechnologyType = "logging"
+const InfrastructureDetailsV1TechnologyTypeMessageBroker InfrastructureDetailsV1TechnologyType = "message-broker"
+const InfrastructureDetailsV1TechnologyTypeMonitoring InfrastructureDetailsV1TechnologyType = "monitoring"
+const InfrastructureDetailsV1TechnologyTypeNosqlDatabase InfrastructureDetailsV1TechnologyType = "nosql-database"
+const InfrastructureDetailsV1TechnologyTypeObjectStorage InfrastructureDetailsV1TechnologyType = "object-storage"
+const InfrastructureDetailsV1TechnologyTypeSearchEngine InfrastructureDetailsV1TechnologyType = "search-engine"
+const InfrastructureDetailsV1TechnologyTypeSecretStorage InfrastructureDetailsV1TechnologyType = "secret-storage"
+const InfrastructureDetailsV1TechnologyTypeServiceMesh InfrastructureDetailsV1TechnologyType = "service-mesh"
+const InfrastructureDetailsV1TechnologyTypeSqlDatabase InfrastructureDetailsV1TechnologyType = "sql-database"
+const InfrastructureDetailsV1TechnologyTypeTracing InfrastructureDetailsV1TechnologyType = "tracing"
+const InfrastructureDetailsV1TechnologyTypeWorkflowEngine InfrastructureDetailsV1TechnologyType = "workflow-engine"
