@@ -1,11 +1,3 @@
 import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
-  test: {
-    environment: 'jsdom',
-    environmentOptions: { jsdom: { url: 'http://localhost/' } },
-    setupFiles: ['./test/setup.ts'],
-    include: ['**/*.test.{ts,tsx}'],
-    exclude: ['node_modules/**', 'dist/**'],
-  },
-});
+import { fileURLToPath, URL } from 'node:url';
+export default defineConfig({ resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } }, test: { environment: 'jsdom', setupFiles: ['./src/test/setup.ts'], include: ['src/**/*.test.{ts,tsx}'] } });

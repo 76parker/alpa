@@ -1,0 +1,15 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="18.2" height="13.2889" viewBox="0 0 18.2 13.2889" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Kotlin logo" clip-path="url(#clip0_0_1249)">
+<path id="Vector" d="M15.7591 13.1503H0.165885V0.138238H15.7591L7.9625 6.64165L15.7591 13.1503Z" fill="url(#paint0_linear_0_1249)"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_1249" x1="1559.35" y1="-0.00134402" x2="279.497" y2="1534.35" gradientUnits="userSpaceOnUse">
+<stop offset="0.003" stop-color="#E44857"/>
+<stop offset="0.469" stop-color="#C711E1"/>
+<stop offset="1" stop-color="#7F52FF"/>
+</linearGradient>
+<clipPath id="clip0_0_1249">
+<rect width="18.2" height="13.2889" fill="white"/>
+</clipPath>
+</defs>
+</svg>
