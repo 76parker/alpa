@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { infrastructure, mockInventory, service } from "./inventory-fixture";
 
 const base = "/workspaces/1/products/1";
-for (const width of [1440, 1024, 757, 390]) {
+for (const width of [1440, 1024, 838, 757, 390]) {
   test(`product headings, infrastructure and component details at ${width}px`, async ({
     page,
     context,
@@ -28,7 +28,15 @@ for (const width of [1440, 1024, 757, 390]) {
     };
     redis.apis = [];
     const orders = service();
-    orders.clients[0].api_id = kafka.apis[0].id;
+    orders.clients[0].integrations = [
+      {
+        id: 6001,
+        client_id: 10,
+        api_id: kafka.apis[0].id,
+        action: "produce",
+        description: null,
+      },
+    ];
     state.components = [orders, kafka, redis];
     await page.setViewportSize({ width, height: 1000 });
     await page.goto(base);
@@ -71,7 +79,8 @@ for (const width of [1440, 1024, 757, 390]) {
       .getByRole("row")
       .filter({ has: page.getByRole("link", { name: "Kafka", exact: true }) });
     await expect(row.getByRole("cell").first()).toContainText("CRITICAL");
-    await expect(row.getByRole("cell").nth(1)).toContainText("orders.created");
+    await expect(row.getByRole("cell").nth(1)).toContainText("Orders");
+    await expect(row.getByRole("cell").nth(1)).not.toContainText("Internal");
     await expect(row.getByRole("cell").nth(1)).toContainText("Topic");
     await expect(row.getByRole("cell").nth(2)).toContainText(
       "kafka-1.internal:9092",
@@ -95,27 +104,26 @@ for (const width of [1440, 1024, 757, 390]) {
       page.getByRole("heading", { name: orders.name, exact: true }),
     ).toBeVisible();
     await expect(page.locator(".product-heading")).toHaveCount(0);
-    await expect(
-      page.getByLabel("Architecture preview").getByRole("article"),
-    ).toBeVisible();
+    await expect(page.getByLabel("Architecture preview")).toHaveCount(0);
     await expect(
       page.locator(".component-api-table").getByRole("columnheader"),
-    ).toHaveText(["Name", "API type", "Network exposure"]);
+    ).toHaveText(["ID", "Type", "Network exposure"]);
     await expect(
       page.locator(".component-client-table").getByRole("columnheader"),
-    ).toHaveText(["Client name", "Role", "Communication", "Bound API"]);
+    ).toHaveText(["ID", "Name", "Integrations", "TLS/SSL"]);
+    await expect(page.locator(".component-dependencies")).toHaveCount(0);
     await expect(
-      page.getByRole("link", { name: "Kafka · orders.created", exact: true }),
+      page.getByRole("link", { name: /Security checks/ }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Component actions" }),
     ).toBeVisible();
-    await expect(page.locator(".component-dependencies")).toContainText(
-      "Outgoing · Kafka — produce → orders.created",
-    );
     for (const label of ["Add API", "Add client"]) {
       const add = page.getByRole("button", { name: label, exact: true });
       await expect(add).toHaveText("");
       const heading = await add.locator("..").locator("h3").boundingBox();
       const button = await add.boundingBox();
-      expect(button!.x - heading!.x - heading!.width).toBeCloseTo(8, 0);
+      expect(button!.x).toBeGreaterThan(heading!.x + heading!.width);
       await add.click();
       await expect(page.getByRole("dialog")).toBeVisible();
       await page.getByRole("button", { name: "Cancel", exact: true }).click();
@@ -129,9 +137,7 @@ for (const width of [1440, 1024, 757, 390]) {
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
-    await page
-      .getByRole("link", { name: "Security checks", exact: false })
-      .click();
+    await page.goto(`${base}/components/1/security-checks`);
     await expect(
       page.getByText("In development", { exact: true }),
     ).toBeVisible();

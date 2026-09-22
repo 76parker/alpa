@@ -34,7 +34,7 @@ import { ComponentDialog } from "./component-dialog";
 import { ComponentDetails } from "./component-details";
 import { ServicesTable, serviceRepositoryURL } from "./services-table";
 import { InfrastructureTable } from "./infrastructure-table";
-import { technologyFor } from "@/domain/catalog";
+import { apiDisplayName, technologyFor } from "@/domain/catalog";
 export function CreateComponentButton({
   onSelect,
   servicesOnly = false,
@@ -90,7 +90,7 @@ export function ComponentsPage() {
           ? system === "all" ||
             (isInfrastructure(item) && item.details.technology_name === system)
           : type === "all" || item.type === type) &&
-        `${item.name} ${componentSubtitle(item)} ${item.description || ""} ${serviceRepositoryURL(item)} ${isInfrastructure(item) ? item.details.endpoints.join(" ") + " " + item.apis.map((api) => api.name).join(" ") : ""}`
+        `${item.name} ${componentSubtitle(item)} ${item.description || ""} ${serviceRepositoryURL(item)} ${isInfrastructure(item) ? item.details.endpoints.join(" ") + " " + item.apis.map((api) => apiDisplayName(api)).join(" ") : ""}`
           .toLowerCase()
           .includes(search.toLowerCase()),
     )

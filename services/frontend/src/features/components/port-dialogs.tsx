@@ -22,9 +22,8 @@ import {
   apiLabel,
   apiTypes,
   clientLabel,
-  clientNames,
+  unusedClientNames,
   communicationFor,
-  roles,
   technologyFor,
   titleCase,
 } from "@/domain/catalog";
@@ -53,10 +52,10 @@ export function APIDialog({
     : null;
   const form = useForm<z.input<typeof apiSchema>>({
     resolver: zodResolver(apiSchema),
-    defaultValues: original || {
-      name: "",
-      api_type: system?.apiType || "rest",
-      network_exposure: "internal",
+    defaultValues: {
+      name: original?.name ?? "",
+      api_type: original?.api_type ?? system?.apiType ?? "rest",
+      network_exposure: original?.network_exposure ?? "internal",
     },
   });
   const save = useInventoryMutation<ComponentAPI, APIInput>({
@@ -67,9 +66,7 @@ export function APIDialog({
   });
   const submit = form.handleSubmit(async (value) => {
     try {
-      await save.mutateAsync(
-        makeAPIRequest(value, original?.documentation_url),
-      );
+      await save.mutateAsync(makeAPIRequest(value));
       toast.success(original ? "API updated" : "API added");
       onClose();
     } catch {
@@ -90,17 +87,11 @@ export function APIDialog({
           <FieldGroup>
             <FormField
               id="port-api-name"
-              label={system ? `${system.resource} name` : "Name"}
+              label="API name"
               required
               error={form.formState.errors.name?.message}
             >
-              <Input
-                autoFocus
-                id="port-api-name"
-                maxLength={50}
-                {...form.register("name")}
-                aria-invalid={!!form.formState.errors.name}
-              />
+              <Input id="port-api-name" {...form.register("name")} />
             </FormField>
             {!system ? (
               <FormField id="port-api-type" label="API type" required>
@@ -168,13 +159,17 @@ export function ClientDialog({
   original?: ComponentClient;
   onClose: () => void;
 }) {
+  const allowedClients = unusedClientNames(component, original?.id);
   const form = useForm<ClientDraft, unknown, z.output<typeof clientSchema>>({
     resolver: zodResolver(clientSchema),
-    defaultValues: original || {
-      client_name: "rest-client",
-      role: "caller",
-      secure_connection: false,
-    },
+    defaultValues: original
+      ? original
+      : {
+          client_name: allowedClients.includes("rest-client")
+            ? "rest-client"
+            : allowedClients[0],
+          secure_connection: false,
+        },
   });
   const save = useInventoryMutation<ComponentClient, ClientInput>({
     method: original ? "PUT" : "POST",
@@ -184,6 +179,12 @@ export function ClientDialog({
   });
   const name = form.watch("client_name");
   const submit = form.handleSubmit(async (value) => {
+    if (!allowedClients.includes(value.client_name)) {
+      form.setError("client_name", {
+        message: "This client type already exists on the component.",
+      });
+      return;
+    }
     try {
       await save.mutateAsync(makeClientRequest(value, original));
       toast.success(original ? "Client updated" : "Client added");
@@ -203,7 +204,12 @@ export function ClientDialog({
       <form onSubmit={submit} noValidate>
         <fieldset disabled={save.isPending}>
           <FieldGroup>
-            <FormField id="port-client-name" label="Client name" required>
+            <FormField
+              id="port-client-name"
+              label="Client name"
+              required
+              error={form.formState.errors.client_name?.message}
+            >
               <Controller
                 name="client_name"
                 control={form.control}
@@ -213,7 +219,7 @@ export function ClientDialog({
                     label="Client name"
                     value={field.value}
                     onChange={field.onChange}
-                    options={clientNames.map((value) => ({
+                    options={allowedClients.map((value) => ({
                       value,
                       label: clientLabel(value),
                     }))}
@@ -221,24 +227,7 @@ export function ClientDialog({
                 )}
               />
             </FormField>
-            <FormField id="port-client-role" label="Role" required>
-              <Controller
-                name="role"
-                control={form.control}
-                render={({ field }) => (
-                  <SelectControl
-                    id="port-client-role"
-                    label="Role"
-                    value={field.value}
-                    onChange={field.onChange}
-                    options={roles.map((value) => ({
-                      value,
-                      label: value.toUpperCase(),
-                    }))}
-                  />
-                )}
-              />
-            </FormField>
+
             <FormField
               id="port-client-communication"
               label="Communication"
@@ -254,6 +243,7 @@ export function ClientDialog({
                 )}
               />
             </FormField>
+
             <FormField
               id="port-client-description"
               label="Description"

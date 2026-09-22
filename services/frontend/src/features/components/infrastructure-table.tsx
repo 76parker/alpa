@@ -1,7 +1,7 @@
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, MapPinned } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Component, InfrastructureDetails, Product } from "@/api/types";
-import { apiLabel } from "@/domain/catalog";
+import { apiDisplayName, apiLabel, transportProtocol } from "@/domain/catalog";
 import { ComponentIcon } from "@/domain/visuals";
 import { ImportancyBadge } from "@/components/shared/controls";
 import {
@@ -37,7 +37,7 @@ export function InfrastructureTable({
           <col style={{ width: "18%" }} />
           <col style={{ width: "26%" }} />
           <col style={{ width: "auto" }} />
-          <col style={{ width: 110 }} />
+          <col style={{ width: 150 }} />
         </colgroup>
         <TableHeader>
           <TableRow>
@@ -78,19 +78,24 @@ export function InfrastructureTable({
                         <div
                           className={`infrastructure-api ${api.network_exposure}`}
                           key={api.id}
-                          title={`${api.name} · ${api.network_exposure}`}
+                          title={apiDisplayName(api)}
                         >
                           <span>
-                            {apiLabel(api.api_type)} <small>TCP</small>
+                            {apiLabel(api.api_type)}{" "}
+                            <small>{transportProtocol(api.api_type)}</small>
                           </span>
-                          <span className="resource-name">{api.name}</span>
+                          <span className="resource-name">
+                            {api.name || `API #${api.id}`}
+                          </span>
                         </div>
                       ))
                     : "—"}
                 </div>
               </TableCell>
               <TableCell>
-                <div className="infrastructure-endpoints">
+                <div
+                  className={`infrastructure-endpoints ${!component.details.endpoints.length ? "empty" : ""}`}
+                >
                   {component.details.endpoints.length
                     ? component.details.endpoints.map((endpoint, index) => (
                         <span key={`${endpoint}-${index}`}>{endpoint}</span>
@@ -109,7 +114,7 @@ export function InfrastructureTable({
                   product={product}
                   componentID={component.id}
                 >
-                  Show on map
+                  <MapPinned size={16} /> Show on map
                 </ArchitectureLink>
               </TableCell>
             </TableRow>

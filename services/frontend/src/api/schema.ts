@@ -174,24 +174,53 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  "/v1/components/{component_id}/clients/{id}/bindings": {
+  "/v1/integrations": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Create an integration between a client and an API
+     * @description Creates a directed integration from a component client to an API in another component of the same product.
+     *     A client may have integrations with multiple APIs, but the same `client_id` and `api_id` pair may occur only once.
+     *     The action must match the client communication type: request/response clients use `call`, event clients use
+     *     `produce` or `consume`, and streaming clients use `listen-events`.
+     */
+    post: operations["createIntegration"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/integrations/{id}": {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        component_id: components["parameters"]["ParentComponentID"];
-        id: components["parameters"]["ClientID"];
+        id: components["parameters"]["IntegrationID"];
       };
       cookie?: never;
     };
     get?: never;
     put?: never;
-    /** Bind a component client to an API */
-    post: operations["createClientBinding"];
-    delete?: never;
+    post?: never;
+    /**
+     * Delete an integration
+     * @description Deletes only the integration; the client and API remain unchanged.
+     */
+    delete: operations["deleteIntegration"];
     options?: never;
     head?: never;
-    patch?: never;
+    /**
+     * Update an integration description
+     * @description Updates only the description. Send `null` to clear the current description.
+     */
+    patch: operations["updateIntegrationDescription"];
     trace?: never;
   };
   "/v1/components/{id}": {
@@ -258,7 +287,7 @@ export interface components {
       /** @example name contains unsupported characters */
       message: string;
       /**
-       * @description Business errors include unknown_language, unknown_technology_name, unknown_technology_type, too_many_endpoints, invalid_criticality, invalid_importancy, invalid_product_code, api_limit_exceeded, client_limit_exceeded, client_action_too_large, client_capabilities_too_large, invalid_client_binding, and client_already_bound. Transport errors use invalid_request.
+       * @description Business errors include unknown_language, unknown_technology_name, unknown_technology_type, too_many_endpoints, invalid_criticality, invalid_importancy, invalid_api_name, invalid_product_code, api_limit_exceeded, client_limit_exceeded, client_capabilities_too_large, client_already_exists, invalid_client_action, invalid_integration, integration_already_exists, and incompatible_client_integrations. Transport errors use invalid_request.
        * @example invalid_request
        */
       code: string;
@@ -501,7 +530,7 @@ export interface components {
       description: components["schemas"]["Description"];
       details: components["schemas"]["ComponentDetails"];
       apis: components["schemas"]["ComponentAPI"][];
-      clients: components["schemas"]["ComponentClient"][];
+      clients: components["schemas"]["ComponentClientProjection"][];
     };
     CreateComponentRequest: {
       /** @example 2001 */
@@ -544,29 +573,22 @@ export interface components {
      * @enum {string}
      */
     NetworkExposure: "internal" | "internet";
+    /**
+     * @description Required API name with up to 20 non-whitespace characters; surrounding whitespace is trimmed.
+     * @example Orders REST
+     */
+    APIName: string;
     ComponentAPI: {
       /** @example 4001 */
       id: components["schemas"]["ID"];
-      /** @example Checkout Public API */
-      name: components["schemas"]["Name"];
+      name: components["schemas"]["APIName"];
       api_type: components["schemas"]["APIType"];
       network_exposure: components["schemas"]["NetworkExposure"];
-      /**
-       * Format: uri
-       * @example https://docs.example.com/checkout
-       */
-      documentation_url: string | null;
     };
     CreateAPIRequest: {
-      /** @example Checkout Public API */
-      name: components["schemas"]["Name"];
+      name: components["schemas"]["APIName"];
       api_type: components["schemas"]["APIType"];
       network_exposure: components["schemas"]["NetworkExposure"];
-      /**
-       * Format: uri
-       * @example https://docs.example.com/checkout
-       */
-      documentation_url?: string | null;
     };
     UpdateAPIRequest: components["schemas"]["CreateAPIRequest"];
     /**
@@ -598,10 +620,10 @@ export interface components {
       | "ibm-mq-client"
       | "native-protocol-client";
     /**
-     * @example caller
+     * @example call
      * @enum {string}
      */
-    ClientRole: "listener" | "caller" | "producer" | "consumer";
+    ClientAction: "consume" | "produce" | "call" | "listen-events";
     /**
      * @example request-response
      * @enum {string}
@@ -612,37 +634,46 @@ export interface components {
       /** @example 5001 */
       id: components["schemas"]["ID"];
       client_name: components["schemas"]["ClientName"];
-      role: components["schemas"]["ClientRole"];
       communication_type: components["schemas"]["CommunicationType"];
-      /** @example # Call checkout */
-      action: string | null;
       /** @example read:orders */
       capabilities: string | null;
       /** @example false */
       secure_connection: boolean;
-      /** @example 4001 */
-      api_id: components["schemas"]["ID"] | null;
+    };
+    ComponentClientProjection: components["schemas"]["ComponentClient"] & {
+      integrations: components["schemas"]["Integration"][];
     };
     CreateClientRequest: {
       client_name: components["schemas"]["ClientName"];
-      role: components["schemas"]["ClientRole"];
-      /** @example # Call checkout */
-      action?: string | null;
       /** @example read:orders */
       capabilities?: string | null;
       /** @default false */
       secure_connection: boolean;
     };
     UpdateClientRequest: components["schemas"]["CreateClientRequest"];
-    ClientBinding: {
+    Integration: {
+      /** @example 6001 */
+      id: components["schemas"]["ID"];
       /** @example 5001 */
       client_id: components["schemas"]["ID"];
       /** @example 4001 */
       api_id: components["schemas"]["ID"];
+      action: components["schemas"]["ClientAction"];
+      /** @example Calls the checkout API. */
+      description: components["schemas"]["Description"] | null;
     };
-    CreateClientBindingRequest: {
+    CreateIntegrationRequest: {
+      /** @example 5001 */
+      client_id: components["schemas"]["ID"];
       /** @example 4001 */
       api_id: components["schemas"]["ID"];
+      action: components["schemas"]["ClientAction"];
+      /** @example Calls the checkout API. */
+      description?: components["schemas"]["Description"] | null;
+    };
+    UpdateIntegrationDescriptionRequest: {
+      /** @example Calls checkout with retries. */
+      description: components["schemas"]["Description"] | null;
     };
   };
   responses: {
@@ -673,6 +704,15 @@ export interface components {
         "application/json": components["schemas"]["Error"];
       };
     };
+    /** @description A client with this type already exists for the component */
+    ClientAlreadyExists: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        "application/json": components["schemas"]["Error"];
+      };
+    };
     /** @description Unexpected server error */
     InternalError: {
       headers: {
@@ -690,6 +730,7 @@ export interface components {
     ParentComponentID: components["schemas"]["ID"];
     APIID: components["schemas"]["ID"];
     ClientID: components["schemas"]["ID"];
+    IntegrationID: components["schemas"]["ID"];
     Limit: number;
     Offset: number;
   };
@@ -927,6 +968,7 @@ export interface operations {
       };
       400: components["responses"]["BadRequest"];
       404: components["responses"]["NotFound"];
+      409: components["responses"]["ClientAlreadyExists"];
       500: components["responses"]["InternalError"];
     };
   };
@@ -1039,6 +1081,7 @@ export interface operations {
       };
       400: components["responses"]["BadRequest"];
       404: components["responses"]["NotFound"];
+      409: components["responses"]["ClientAlreadyExists"];
       500: components["responses"]["InternalError"];
     };
   };
@@ -1069,6 +1112,7 @@ export interface operations {
       };
       400: components["responses"]["BadRequest"];
       404: components["responses"]["NotFound"];
+      409: components["responses"]["ClientAlreadyExists"];
       500: components["responses"]["InternalError"];
     };
   };
@@ -1096,34 +1140,83 @@ export interface operations {
       500: components["responses"]["InternalError"];
     };
   };
-  createClientBinding: {
+  createIntegration: {
     parameters: {
       query?: never;
       header?: never;
-      path: {
-        component_id: components["parameters"]["ParentComponentID"];
-        id: components["parameters"]["ClientID"];
-      };
+      path?: never;
       cookie?: never;
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["CreateClientBindingRequest"];
+        "application/json": components["schemas"]["CreateIntegrationRequest"];
       };
     };
     responses: {
-      /** @description Client binding created */
+      /** @description Integration created */
       201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["ClientBinding"];
+          "application/json": components["schemas"]["Integration"];
         };
       };
       400: components["responses"]["BadRequest"];
       404: components["responses"]["NotFound"];
       409: components["responses"]["Conflict"];
+      500: components["responses"]["InternalError"];
+    };
+  };
+  deleteIntegration: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: components["parameters"]["IntegrationID"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Integration deleted */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      400: components["responses"]["BadRequest"];
+      404: components["responses"]["NotFound"];
+      500: components["responses"]["InternalError"];
+    };
+  };
+  updateIntegrationDescription: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: components["parameters"]["IntegrationID"];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateIntegrationDescriptionRequest"];
+      };
+    };
+    responses: {
+      /** @description Integration updated */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Integration"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      404: components["responses"]["NotFound"];
       500: components["responses"]["InternalError"];
     };
   };

@@ -94,7 +94,7 @@ export function useInventoryMutation<T, Variables>({
   body,
 }: {
   path: (variables: Variables) => string;
-  method: "POST" | "PUT" | "DELETE";
+  method: "POST" | "PUT" | "PATCH" | "DELETE";
   body?: (variables: Variables) => unknown;
 }) {
   const client = useQueryClient();

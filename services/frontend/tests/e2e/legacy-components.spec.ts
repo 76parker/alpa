@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { mockInventory } from "./inventory-fixture";
 
-test("legacy API data renders language logos, Infrastructure and Architecture", async ({
+test("legacy component details render with current API and integration projections", async ({
   page,
   context,
 }) => {
@@ -31,7 +31,7 @@ test("legacy API data renders language logos, Infrastructure and Architecture", 
             apis: [
               {
                 id: 1,
-                name: "external REST",
+                name: "Orders",
                 api_type: "rest",
                 network_exposure: "internet",
               },
@@ -40,10 +40,18 @@ test("legacy API data renders language logos, Infrastructure and Architecture", 
               {
                 id: 1,
                 client_name: "kafka-client",
-                role: "producer",
                 communication_type: "events",
-                description: "",
-                api_id: 2,
+                capabilities: null,
+                secure_connection: false,
+                integrations: [
+                  {
+                    id: 6001,
+                    client_id: 1,
+                    api_id: 2,
+                    action: "produce",
+                    description: null,
+                  },
+                ],
               },
             ],
           },
@@ -62,7 +70,7 @@ test("legacy API data renders language logos, Infrastructure and Architecture", 
             apis: [
               {
                 id: 2,
-                name: "orders.event",
+                name: "orders.created",
                 api_type: "topic",
                 network_exposure: "internal",
               },

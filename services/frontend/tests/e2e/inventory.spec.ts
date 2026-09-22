@@ -12,9 +12,11 @@ test.afterEach(() => {
   expect(runtimeErrors, "Unhandled browser errors").toEqual([]);
 });
 
-async function choose(page: Page, label: string, option: string) {
+async function choose(page: Page, label: string, option: string | RegExp) {
   await page.getByRole("combobox", { name: label, exact: true }).click();
-  await page.getByRole("option", { name: option, exact: true }).click();
+  await page
+    .getByRole("option", { name: option, exact: typeof option === "string" })
+    .click();
   await expect(page.getByRole("listbox")).toHaveCount(0);
 }
 async function createFromMenu(page: Page, type: string) {
@@ -131,7 +133,7 @@ test("full inventory flow: create product, service, infrastructure with independ
   await page.locator("#component-name").fill("orders-service");
   await page.getByRole("button", { name: "Add client", exact: true }).click();
   await choose(page, "Client name 1", "Kafka client");
-  await choose(page, "Role 1", "PRODUCER");
+
   await page.getByRole("button", { name: "Create", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "orders-service" }),
@@ -149,11 +151,9 @@ test("full inventory flow: create product, service, infrastructure with independ
   ).toBeVisible();
   await choose(page, "Importancy", "CRITICAL");
   await page.getByRole("button", { name: "Add API", exact: true }).click();
-  await page
-    .getByLabel("Topic name 1", { exact: true })
-    .fill("orders.internal");
   await page.getByRole("button", { name: "Add API", exact: true }).click();
-  await page.getByLabel("Topic name 2", { exact: true }).fill("orders.public");
+  await page.locator("#api-name-0").fill("orders.created");
+  await page.locator("#api-name-1").fill("orders.updated");
   await choose(page, "Exposure 2", "Internet");
   await expect(
     page.getByRole("combobox", { name: "Exposure 1", exact: true }),
@@ -178,30 +178,48 @@ test("full inventory flow: create product, service, infrastructure with independ
   const prod = state.products[0];
   const path = `/workspaces/${prod.workspace_id}/products/${prod.id}`;
   await page.goto(`${path}/components/${source.id}`);
-  await page.getByRole("button", { name: "Connect Kafka client" }).click();
-  await choose(page, "Target API", "Kafka / orders.public");
   await page
-    .getByRole("button", { name: "Create connection", exact: true })
+    .getByRole("button", { name: "client actions Kafka client" })
+    .click();
+  await page.getByRole("menuitem", { name: "Integrate Kafka client" }).click();
+  await choose(page, "Target API", /^Kafka \/ Topic · Internet · #\d+$/);
+  await page
+    .getByRole("button", { name: "Create integration", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "client actions Kafka client" })
     .click();
   await expect(
-    page.getByRole("link", { name: "Kafka · orders.public", exact: true }),
-  ).toBeVisible();
+    page.getByRole("menuitem", { name: "Integrate Kafka client" }),
+  ).toBeEnabled();
+  await page.keyboard.press("Escape");
   await page.reload();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "client actions Kafka client" })
+    .click();
   await expect(
-    page.getByRole("link", { name: "Kafka · orders.public", exact: true }),
-  ).toBeVisible();
+    page.getByRole("menuitem", { name: "Integrate Kafka client" }),
+  ).toBeEnabled();
+  await page.keyboard.press("Escape");
   await page.goto(`${path}/architecture`);
   await expect(page.locator(".react-flow__edge")).toHaveCount(1);
   await page.goto(`${path}/components/${infra.id}`);
-  await page.getByRole("button", { name: "API actions orders.public" }).click();
+  await page
+    .getByRole("button", { name: /^API actions Topic · Internet · #\d+$/ })
+    .click();
   await page.getByRole("menuitem", { name: "Delete API" }).click();
   await page
     .getByRole("alertdialog")
     .getByRole("button", { name: "Delete", exact: true })
     .click();
   await page.goto(`${path}/components/${source.id}`);
+  await page
+    .getByRole("button", { name: "client actions Kafka client" })
+    .click();
   await expect(
-    page.getByRole("button", { name: "Connect Kafka client", exact: true }),
+    page.getByRole("menuitem", { name: "Integrate Kafka client", exact: true }),
   ).toBeVisible();
 });
 test("edits preserve hidden fields, exposure and limits; cancel asks to discard", async ({
@@ -210,25 +228,29 @@ test("edits preserve hidden fields, exposure and limits; cancel asks to discard"
 }) => {
   const state = await mockInventory(context);
   await page.goto(`${base}/components/1`);
-  await page.getByRole("button", { name: "API actions REST API" }).click();
+  await page
+    .getByRole("button", { name: /^API actions REST · Internal · #10$/ })
+    .click();
   await page.getByRole("menuitem", { name: "Edit API" }).click();
   await choose(page, "Exposure", "Internet");
   await page.getByRole("button", { name: "Save changes" }).click();
-  expect(state.components[0].apis[0].documentation_url).toBe(
-    "https://example.com/docs",
-  );
+  expect(state.calls.findLast((call) => call.method === "PUT")?.body).toEqual({
+    name: "Orders",
+    api_type: "rest",
+    network_exposure: "internet",
+  });
   expect(state.components[0].apis[0].network_exposure).toBe("internet");
   await page
     .getByRole("button", { name: "client actions Kafka client" })
     .click();
   await page.getByRole("menuitem", { name: "Edit client" }).click();
-  await choose(page, "Role", "CONSUMER");
+  await choose(page, "Client name", "REST client");
   await page.getByRole("button", { name: "Save changes" }).click();
   expect(state.components[0].clients[0]).toMatchObject({
-    action: "# Keep action",
     capabilities: "write:orders",
     secure_connection: true,
-    role: "consumer",
+    client_name: "rest-client",
+    integrations: [],
   });
   await page.goto(`${base}/components`);
   await createFromMenu(page, "Backend");
@@ -290,17 +312,22 @@ test("binding conflict refreshes client while preserving target selection", asyn
   const state = await mockInventory(context);
   state.conflict = true;
   await page.goto(`${base}/components/1`);
-  await page.getByRole("button", { name: "Connect Kafka client" }).click();
-  await choose(page, "Target API", "Kafka / orders.updated");
-  await page.getByRole("button", { name: "Create connection" }).click();
+  await page
+    .getByRole("button", { name: "client actions Kafka client" })
+    .click();
+  await page.getByRole("menuitem", { name: "Integrate Kafka client" }).click();
+  await choose(page, "Target API", /^Kafka \/ Topic · Internet · #\d+$/);
+  await page.getByRole("button", { name: "Create integration" }).click();
   await expect(
     page.getByRole("combobox", { name: "Target API" }),
-  ).toContainText("Kafka / orders.updated");
+  ).toContainText(/Kafka \/ Topic · Internet · #\d+/);
   await expect(
-    page.getByText("This client is already connected.", { exact: false }),
+    page.getByText("An integration with this API already exists.", {
+      exact: false,
+    }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Create connection" }),
+    page.getByRole("button", { name: "Create integration" }),
   ).toBeDisabled();
 });
 test("legacy and direct links resolve to entities and unavailable sections", async ({
@@ -360,7 +387,6 @@ for (const width of [1440, 1024, 390])
     await createFromMenu(page, "Infrastructure");
     await choose(page, "Importancy", "CRITICAL");
     await page.getByRole("button", { name: "Add API", exact: true }).click();
-    await page.getByLabel("Topic name 1").fill("orders.created");
     await page.screenshot({
       path: `test-results/visual/infrastructure-${width}.png`,
       fullPage: true,
@@ -384,6 +410,9 @@ for (const width of [1440, 1024, 390])
       ),
     ).toBe(true);
     await page
+      .getByRole("button", { name: "Add component", exact: true })
+      .click();
+    await page
       .getByRole("button", { name: "Create backend", exact: true })
       .click();
     await page.locator("#component-name").fill("pricing-service");
@@ -391,11 +420,10 @@ for (const width of [1440, 1024, 390])
       .locator("#component-description")
       .fill("Calculates instrument prices and publishes quote events.");
     await page.getByRole("button", { name: "Add API", exact: true }).click();
-    await page.getByLabel("API name 1", { exact: true }).fill("Pricing REST");
     await page.getByRole("button", { name: "Add client", exact: true }).click();
     await choose(page, "Client name 1", "Kafka client");
-    await choose(page, "Role 1", "PRODUCER");
-    await expect(page.locator("#repository-url")).toBeDisabled();
+
+    await expect(page.locator("#repository-url")).toBeEnabled();
     await page.locator("#component-name").scrollIntoViewIfNeeded();
     await page.screenshot({
       path: `test-results/visual/service-${width}.png`,
@@ -422,7 +450,15 @@ test("map preserves viewport across panels and reload; two tabs synchronize API 
   context,
 }) => {
   const state = await mockInventory(context);
-  state.components[0].clients[0].api_id = 20;
+  state.components[0].clients[0].integrations = [
+    {
+      id: 6001,
+      client_id: 10,
+      api_id: 20,
+      action: "produce",
+      description: null,
+    },
+  ];
   await page.goto(`${base}/architecture`);
   await expect(page.locator(".react-flow__edge")).toHaveCount(1);
   await page.getByRole("button", { name: "Zoom in", exact: true }).click();
@@ -434,12 +470,12 @@ test("map preserves viewport across panels and reload; two tabs synchronize API 
     .getAttribute("style");
   await page
     .getByRole("button", {
-      name: "Connection order-service to Kafka",
+      name: "Integration order-service to Kafka / Topic · Internal · #20",
       exact: true,
     })
     .click();
   await expect(
-    page.getByRole("complementary", { name: "Connection details" }),
+    page.getByRole("complementary", { name: "Integration details" }),
   ).toBeVisible();
   expect(
     await page.locator(".react-flow__viewport").getAttribute("style"),
@@ -456,7 +492,7 @@ test("map preserves viewport across panels and reload; two tabs synchronize API 
   const second = await context.newPage();
   await second.goto(`${base}/components/2`);
   await second
-    .getByRole("button", { name: "API actions orders.created" })
+    .getByRole("button", { name: /^API actions Topic · Internal · #20$/ })
     .click();
   await second.getByRole("menuitem", { name: "Delete API" }).click();
   await second
@@ -466,20 +502,16 @@ test("map preserves viewport across panels and reload; two tabs synchronize API 
   await expect(page.locator(".react-flow__edge")).toHaveCount(0);
   await page
     .getByRole("button", {
-      name: "Connect from client Kafka client",
+      name: "Integrate client Kafka client",
       exact: true,
     })
     .click();
   await expect(
-    page.getByText(
-      "Select an API on another component to connect this client.",
-    ),
+    page.getByText("Select an API on another component for this integration."),
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(
-    page.getByText(
-      "Select an API on another component to connect this client.",
-    ),
+    page.getByText("Select an API on another component for this integration."),
   ).toHaveCount(0);
   await page.getByRole("button", { name: "Auto layout", exact: true }).click();
   await expect(
@@ -494,6 +526,10 @@ test("keyboard navigation, failed component save and back navigation keep drafts
   const state = await mockInventory(context);
   await page.goto(`${base}/components/new`);
   await page.locator("#component-name").fill("frontend-draft");
+  await page.keyboard.press("Tab");
+  await expect(
+    page.getByLabel("Repository URL", { exact: true }),
+  ).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(page.locator("#component-description")).toBeFocused();
   state.failNext = "/components";
@@ -521,7 +557,15 @@ test("map supports dragging, neighbors, full screen overlays and opening in a se
   context,
 }) => {
   const state = await mockInventory(context);
-  state.components[0].clients[0].api_id = 20;
+  state.components[0].clients[0].integrations = [
+    {
+      id: 6001,
+      client_id: 10,
+      api_id: 20,
+      action: "produce",
+      description: null,
+    },
+  ];
   state.components.push(service(3, "unrelated-service"));
   await page.goto(base);
   const [map] = await Promise.all([
@@ -558,18 +602,22 @@ test("map supports dragging, neighbors, full screen overlays and opening in a se
   await map
     .getByRole("button", { name: "Open order-service", exact: true })
     .click();
-  await map.getByRole("button", { name: "Neighborhood", exact: true }).click();
+  await map.getByRole("button", { name: "Filters", exact: true }).click();
+  await map
+    .getByRole("button", { name: "Show only integrated services", exact: true })
+    .click();
   await expect(map.locator(".react-flow__node")).toHaveCount(2);
   await map.getByRole("button", { name: "Close details", exact: true }).click();
   await map.getByRole("button", { name: "Full screen", exact: true }).click();
   await expect
     .poll(() => map.evaluate(() => Boolean(document.fullscreenElement)))
     .toBe(true);
+  await map.getByRole("button", { name: "Add component", exact: true }).click();
   await map
     .getByRole("button", { name: "Create infrastructure", exact: true })
     .click();
   await expect(map.getByRole("dialog")).toBeVisible();
-  await map.getByRole("combobox", { name: "SystemName", exact: true }).click();
+  await map.getByRole("combobox", { name: "System", exact: true }).click();
   await expect(
     map.getByRole("option", { name: "PostgreSQL", exact: true }),
   ).toBeVisible();

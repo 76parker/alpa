@@ -15,12 +15,13 @@ import {
   apiTypes,
   clientLabel,
   clientNames,
+  proxyClientNames,
+  isProxyTechnology,
   communicationFor,
   impact,
   importancies,
   languageLabel,
   languages,
-  roles,
   technologies,
   technologyFor,
   titleCase,
@@ -62,25 +63,28 @@ function previewComponent(draft: ComponentDraft, product: Product): Component {
           version: "",
           endpoints: [],
         }
-      : { language: draft.language },
+      : {
+          language: draft.language,
+          ...(draft.type === "backend-service" && draft.repository_url
+            ? { repository_url: draft.repository_url }
+            : {}),
+        },
     apis: draft.apis.map((api, index) => ({
       ...api,
-      name: api.name || `${infrastructure ? system.resource : "API"} name`,
       api_type: infrastructure ? system.apiType : api.api_type,
       id: -(index + 1),
-      documentation_url: null,
     })),
-    clients: infrastructure
-      ? []
-      : draft.clients.map((client, index) => ({
-          ...client,
-          id: -(index + 1),
-          secure_connection: client.secure_connection || false,
-          api_id: null,
-          communication_type: communicationFor(client.client_name),
-          action: null,
-          capabilities: null,
-        })),
+    clients:
+      infrastructure && !isProxyTechnology(draft.technology)
+        ? []
+        : draft.clients.map((client, index) => ({
+            ...client,
+            id: -(index + 1),
+            secure_connection: client.secure_connection || false,
+            integrations: [],
+            communication_type: communicationFor(client.client_name),
+            capabilities: null,
+          })),
   };
 }
 export function ComponentDialog({
@@ -107,6 +111,14 @@ export function ComponentDialog({
   const draft = form.watch();
   const infrastructure = type === "infrastructure";
   const system = technologyFor(draft.technology);
+  const allowedClients = infrastructure
+    ? isProxyTechnology(draft.technology)
+      ? proxyClientNames
+      : []
+    : clientNames;
+  const unusedClients = allowedClients.filter(
+    (name) => !draft.clients.some((client) => client.client_name === name),
+  );
   const title = infrastructure
     ? "Create infrastructure"
     : type === "frontend-service"
@@ -145,16 +157,24 @@ export function ComponentDialog({
             <FieldGroup>
               {infrastructure ? (
                 <>
-                  <FormField id="system-name" label="SystemName" required>
+                  <FormField id="system-name" label="System" required>
                     <Controller
                       name="technology"
                       control={form.control}
                       render={({ field }) => (
                         <SelectControl
                           id="system-name"
-                          label="SystemName"
+                          label="System"
                           value={field.value}
-                          onChange={field.onChange}
+                          onChange={(value) => {
+                            field.onChange(value);
+                            if (
+                              !isProxyTechnology(
+                                value as ComponentDraft["technology"],
+                              )
+                            )
+                              clients.replace([]);
+                          }}
                           options={technologies.map((item) => ({
                             value: item.name,
                             label: (
@@ -186,7 +206,15 @@ export function ComponentDialog({
                           onChange={field.onChange}
                           options={importancies.map((value) => ({
                             value,
-                            label: value.toUpperCase(),
+                            label: (
+                              <span
+                                className="importancy-option"
+                                data-importancy={value}
+                              >
+                                {value.toUpperCase()}
+                              </span>
+                            ),
+                            text: value.toUpperCase(),
                           }))}
                         />
                       )}
@@ -225,13 +253,27 @@ export function ComponentDialog({
                     <FormField
                       id="repository-url"
                       label="Repository URL"
-                      disabled
-                      hint="Not available in this version."
+                      disabled={type !== "backend-service"}
+                      hint={
+                        type !== "backend-service"
+                          ? "Not available in this version."
+                          : undefined
+                      }
+                      error={form.formState.errors.repository_url?.message}
                     >
                       <Input
                         id="repository-url"
-                        disabled
-                        placeholder="Not available yet"
+                        disabled={type !== "backend-service"}
+                        placeholder={
+                          type === "backend-service"
+                            ? "https://github.com/your-team/service"
+                            : "Not available yet"
+                        }
+                        maxLength={2048}
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        aria-invalid={!!form.formState.errors.repository_url}
+                        {...form.register("repository_url")}
                       />
                     </FormField>
                   </div>
@@ -242,6 +284,7 @@ export function ComponentDialog({
                   >
                     <Textarea
                       id="component-description"
+                      dir="auto"
                       maxLength={1000}
                       {...form.register("description")}
                     />
@@ -280,7 +323,8 @@ export function ComponentDialog({
               <section className="draft-section">
                 <div className="section-heading">
                   <h3>
-                    API <span>{apis.fields.length}/5</span>
+                    {infrastructure ? apiLabel(system.apiType) : "API"}{" "}
+                    <span>{apis.fields.length}/5</span>
                   </h3>
                   <Button
                     type="button"
@@ -306,20 +350,13 @@ export function ComponentDialog({
                   >
                     <FormField
                       id={`api-name-${index}`}
-                      label={
-                        infrastructure ? `${system.resource} name` : "Name"
-                      }
+                      label="API name"
                       required
                       error={form.formState.errors.apis?.[index]?.name?.message}
                     >
                       <Input
                         id={`api-name-${index}`}
-                        aria-label={`${infrastructure ? system.resource : "API"} name ${index + 1}`}
-                        maxLength={50}
                         {...form.register(`apis.${index}.name`)}
-                        aria-invalid={
-                          !!form.formState.errors.apis?.[index]?.name
-                        }
                       />
                     </FormField>
                     {!infrastructure ? (
@@ -381,7 +418,7 @@ export function ComponentDialog({
                   </div>
                 ))}
               </section>
-              {!infrastructure ? (
+              {allowedClients.length > 0 ? (
                 <section className="draft-section">
                   <div className="section-heading">
                     <h3>
@@ -392,11 +429,14 @@ export function ComponentDialog({
                       variant="outline"
                       size="icon-sm"
                       aria-label="Add client"
-                      disabled={clients.fields.length >= 5}
+                      disabled={
+                        clients.fields.length >= 5 || unusedClients.length === 0
+                      }
                       onClick={() =>
                         clients.append({
-                          client_name: "rest-client",
-                          role: "caller",
+                          client_name: unusedClients.includes("rest-client")
+                            ? "rest-client"
+                            : unusedClients[0],
                           secure_connection: false,
                         })
                       }
@@ -410,6 +450,10 @@ export function ComponentDialog({
                         <FormField
                           id={`client-name-${index}`}
                           label="Client name"
+                          error={
+                            form.formState.errors.clients?.[index]?.client_name
+                              ?.message
+                          }
                           required
                         >
                           <Controller
@@ -421,36 +465,24 @@ export function ComponentDialog({
                                 label={`Client name ${index + 1}`}
                                 value={field.value}
                                 onChange={field.onChange}
-                                options={clientNames.map((value) => ({
-                                  value,
-                                  label: clientLabel(value),
-                                }))}
+                                options={allowedClients
+                                  .filter(
+                                    (name) =>
+                                      !draft.clients.some(
+                                        (client, otherIndex) =>
+                                          otherIndex !== index &&
+                                          client.client_name === name,
+                                      ),
+                                  )
+                                  .map((value) => ({
+                                    value,
+                                    label: clientLabel(value),
+                                  }))}
                               />
                             )}
                           />
                         </FormField>
-                        <FormField
-                          id={`client-role-${index}`}
-                          label="Role"
-                          required
-                        >
-                          <Controller
-                            name={`clients.${index}.role`}
-                            control={form.control}
-                            render={({ field }) => (
-                              <SelectControl
-                                id={`client-role-${index}`}
-                                label={`Role ${index + 1}`}
-                                value={field.value}
-                                onChange={field.onChange}
-                                options={roles.map((value) => ({
-                                  value,
-                                  label: value.toUpperCase(),
-                                }))}
-                              />
-                            )}
-                          />
-                        </FormField>
+
                         <FormField
                           id={`client-communication-${index}`}
                           label="Communication"
@@ -477,6 +509,7 @@ export function ComponentDialog({
                           <X />
                         </Button>
                       </div>
+
                       <FormField
                         id={`client-description-${index}`}
                         label={`${clientLabel(draft.clients[index].client_name)} description`}
@@ -492,8 +525,7 @@ export function ComponentDialog({
                     </div>
                   ))}
                   <p className="form-hint">
-                    Clients are created unbound. Connect them to existing API
-                    after saving.
+                    Create integrations with existing APIs after saving.
                   </p>
                 </section>
               ) : null}

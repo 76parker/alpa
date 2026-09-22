@@ -4,7 +4,6 @@ import {
   immediateNeighborhood,
   canBind,
   mergePositions,
-  nearestPortSide,
   readLayout,
   saveLayout,
 } from "./model";
@@ -25,21 +24,25 @@ const first: Component = {
     {
       id: 4,
       client_name: "kafka-client",
-      role: "producer",
       communication_type: "events",
-      action: null,
       capabilities: null,
-      api_id: 5,
+      integrations: [
+        {
+          id: 60,
+          client_id: 4,
+          api_id: 5,
+          action: "produce",
+          description: null,
+        },
+      ],
       secure_connection: true,
     },
     {
       id: 6,
       client_name: "rest-client",
-      role: "caller",
       communication_type: "request-response",
-      action: null,
       capabilities: null,
-      api_id: null,
+      integrations: [],
       secure_connection: false,
     },
   ],
@@ -49,21 +52,14 @@ const second: Component = {
   apis: [
     {
       id: 5,
-      name: "orders.created",
+      name: "Orders",
       api_type: "topic",
       network_exposure: "internal",
-      documentation_url: null,
     },
   ],
 };
 describe("architecture graph", () => {
   afterEach(() => vi.unstubAllGlobals());
-  it("chooses only left, right or bottom for dropped ports", () => {
-    expect(nearestPortSide(2, 120, 350, 200)).toBe("left");
-    expect(nearestPortSide(348, 120, 350, 200)).toBe("right");
-    expect(nearestPortSide(175, 198, 350, 200)).toBe("bottom");
-    expect(nearestPortSide(175, -10, 350, 200)).toBe("left");
-  });
   it("persists port sides per product and discards invalid stored sides", () => {
     const storage = new Map<string, string>();
     vi.stubGlobal("localStorage", {
@@ -98,13 +94,49 @@ describe("architecture graph", () => {
     const edges = graphEdges([first, second]);
     expect(edges).toHaveLength(1);
     expect(edges[0]).toMatchObject({
-      id: "client-4",
+      id: "integration-60",
       source: "1",
       target: "2",
       sourceHandle: "client-4",
       targetHandle: "api-5",
-      label: "PRODUCE",
+      label: "produce",
     });
+  });
+  it("draws independent edges for every integration of one client", () => {
+    const source = {
+      ...first,
+      clients: [
+        {
+          ...first.clients[0],
+          integrations: [
+            first.clients[0].integrations[0],
+            {
+              id: 61,
+              client_id: 4,
+              api_id: 7,
+              action: "consume" as const,
+              description: "Updates",
+            },
+          ],
+        },
+      ],
+    };
+    const target = {
+      ...second,
+      apis: [...second.apis, { ...second.apis[0], id: 7 }],
+    };
+    expect(
+      graphEdges([source, target]).map((edge) => [
+        edge.id,
+        edge.targetHandle,
+        edge.label,
+      ]),
+    ).toEqual([
+      ["integration-60", "api-5", "produce"],
+      ["integration-61", "api-7", "consume"],
+    ]);
+    expect(canBind(first, first.clients[0], target, 7)).toBe(true);
+    expect(canBind(first, first.clients[0], target, 8)).toBe(false);
   });
   it("removes an edge when its API is removed without hiding the unbound client", () => {
     expect(graphEdges([first, service(2)])).toEqual([]);
@@ -115,8 +147,8 @@ describe("architecture graph", () => {
       [...immediateNeighborhood([first, second, service(3)], 1)].sort(),
     ).toEqual([1, 2]);
   });
-  it("rejects bound clients, self-bindings and cross-product targets", () => {
-    expect(canBind(first, first.clients[0], second)).toBe(false);
+  it("rejects duplicate pairs, self-integrations and cross-product targets", () => {
+    expect(canBind(first, first.clients[0], second, 5)).toBe(false);
     expect(canBind(first, first.clients[1], first)).toBe(false);
     expect(canBind(first, first.clients[1], { ...second, product_id: 2 })).toBe(
       false,

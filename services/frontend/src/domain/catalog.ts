@@ -1,7 +1,9 @@
 import type {
   APIType,
+  ComponentAPI,
+  Component,
   ClientName,
-  ClientRole,
+  ClientAction,
   CommunicationType,
   Criticality,
   Importancy,
@@ -9,19 +11,50 @@ import type {
   TechnologyName,
   TechnologyType,
 } from "@/api/types";
-import { apiTypes, clientNames, languages } from "./enums";
-export { apiTypes, clientNames, languages };
+import {
+  apiTypes,
+  clientNames as generatedClientNames,
+  languages,
+} from "./enums";
+export { apiTypes, languages };
+export const proxyClientNames = [
+  "http-proxy-client",
+  "grpc-proxy-client",
+] as const;
+export const clientNames = [
+  ...generatedClientNames,
+  ...proxyClientNames,
+] as const;
+export const isProxyClient = (name: ClientName) =>
+  proxyClientNames.some((value) => value === name);
+export const isProxyTechnology = (name: TechnologyName) =>
+  technologyFor(name).type === "proxy/load-balancer";
+export function availableClientNames(
+  component: Pick<Component, "type" | "details">,
+): readonly ClientName[] {
+  if (component.type !== "infrastructure") return clientNames;
+  return "technology_name" in component.details &&
+    (component.details.technology_type === "proxy/load-balancer" ||
+      isProxyTechnology(component.details.technology_name))
+    ? proxyClientNames
+    : [];
+}
+export function unusedClientNames(
+  component: Component,
+  editingID?: number,
+): readonly ClientName[] {
+  return availableClientNames(component).filter(
+    (name) =>
+      !component.clients.some(
+        (client) => client.id !== editingID && client.client_name === name,
+      ),
+  );
+}
 export const criticalities: Criticality[] = [
   "mission-critical",
   "business-critical",
   "business-operational",
   "office-productivity",
-];
-export const roles: ClientRole[] = [
-  "caller",
-  "producer",
-  "consumer",
-  "listener",
 ];
 export const importancies: Importancy[] = [
   "critical",
@@ -32,18 +65,22 @@ export const titleCase = (value: string) =>
   value.replaceAll("-", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 export const criticalityLabel = (value: string) =>
   value.replaceAll("-", " ").toUpperCase();
-export const roleAction: Record<ClientRole, string> = {
-  caller: "call",
-  producer: "produce",
-  consumer: "consume",
-  listener: "listen",
-};
+export function integrationActions(
+  communication: CommunicationType,
+  clientName?: ClientName,
+): ClientAction[] {
+  if (clientName && isProxyClient(clientName)) return ["proxy"];
+  if (communication === "events") return ["produce", "consume"];
+  if (communication === "stream") return ["listen-events"];
+  return ["call"];
+}
 const streaming: ClientName[] = [
   "websocket-client",
   "sse-client",
   "grpc-streaming-client",
 ];
 const synchronous: ClientName[] = [
+  ...proxyClientNames,
   "s3-client",
   "rest-client",
   "graphql-client",
@@ -71,10 +108,30 @@ const apiLabels: Partial<Record<APIType, string>> = {
   sse: "SSE",
 };
 export const apiLabel = (type: APIType) => apiLabels[type] || titleCase(type);
+// Mirrors inventory.resolveTransportProtocol until the API projection exposes transport.
+export const transportProtocol = (type: APIType) =>
+  type === "native-protocol" ? "TCP/UDP" : "TCP";
+export const apiDisplayName = (
+  api: Pick<ComponentAPI, "id" | "api_type" | "network_exposure">,
+) =>
+  `${apiLabel(api.api_type)} · ${titleCase(api.network_exposure)} · #${api.id}`;
+const apiCollectionLabels: Partial<Record<APIType, string>> = {
+  database: "Databases",
+  topic: "Topics",
+  exchange: "Exchanges",
+  subject: "Subjects",
+};
+export const apiCollectionLabel = (type: APIType) =>
+  apiCollectionLabels[type] || apiLabel(type);
+
 export const clientLabel = (name: ClientName) =>
-  name === "native-protocol-client"
-    ? "Native protocol client"
-    : `${apiLabels[name.replace(/-client$/, "") as APIType] || titleCase(name.replace(/-client$/, ""))} client`;
+  name === "http-proxy-client"
+    ? "HTTP proxy client"
+    : name === "grpc-proxy-client"
+      ? "gRPC proxy client"
+      : name === "native-protocol-client"
+        ? "Native protocol client"
+        : `${apiLabels[name.replace(/-client$/, "") as APIType] || titleCase(name.replace(/-client$/, ""))} client`;
 const languageLabels: Partial<Record<Language, string>> = {
   go: "Go",
   javascript: "Node.js",
@@ -94,17 +151,17 @@ export const impact: Record<
 > = {
   critical: {
     description:
-      "Core product flow becomes unavailable and no viable workaround exists.",
+      "Product cannot perform core business functionality without this infrastructure component. There is no viable workaround.",
     example: "The primary database required to complete key operations.",
   },
   important: {
     description:
-      "Core flows remain available, but features are limited or performance degrades.",
+      "Core business functionality remains, but some features are unavailable or performance is degraded.",
     example: "A cache failure with a tested database fallback.",
   },
   supporting: {
     description:
-      "Core product flows remain available. Supporting operations are affected.",
+      "All business functionality works, but product support is deteriorating.",
     example: "A monitoring dashboard that does not affect request processing.",
   },
 };
@@ -137,11 +194,11 @@ const systems: Record<TechnologyName, [string, TechnologyType, APIType]> = {
   temporal: ["Temporal", "workflow-engine", "grpc"],
   airflow: ["Airflow", "workflow-engine", "rest"],
   "argo-workflows": ["Argo Workflows", "workflow-engine", "rest"],
-  nginx: ["Nginx", "load-balancer", "rest"],
-  envoy: ["Envoy", "service-mesh", "grpc"],
+  nginx: ["Nginx", "proxy/load-balancer", "rest"],
+  envoy: ["Envoy", "proxy/load-balancer", "grpc"],
   kong: ["Kong", "api-gateway", "rest"],
-  traefik: ["Traefik", "api-gateway", "rest"],
-  haproxy: ["HAProxy", "load-balancer", "rest"],
+  traefik: ["Traefik", "proxy/load-balancer", "rest"],
+  haproxy: ["HAProxy", "proxy/load-balancer", "rest"],
   prometheus: ["Prometheus", "monitoring", "rest"],
   grafana: ["Grafana", "monitoring", "rest"],
   zabbix: ["Zabbix", "monitoring", "json-rpc"],
@@ -166,4 +223,27 @@ export const technologies: Technology[] = Object.entries(systems).map(
 );
 export function technologyFor(name: TechnologyName): Technology {
   return technologies.find((technology) => technology.name === name)!;
+}
+
+const technologyTypeLabels: Record<TechnologyType, string> = {
+  "proxy/load-balancer": "Proxy / LB",
+  "sql-database": "SQL Database",
+  "nosql-database": "NoSQL Database",
+  cache: "Cache",
+  "message-broker": "Message Broker",
+  "search-engine": "Search Engine",
+  "object-storage": "Object Storage",
+  "workflow-engine": "Workflow Engine",
+  "service-mesh": "Service Mesh",
+  "api-gateway": "API Gateway",
+  "load-balancer": "Load Balancer",
+  monitoring: "Monitoring",
+  logging: "Logging",
+  tracing: "Tracing",
+  "identity-provider": "Identity Provider",
+  "secret-storage": "Secret Storage",
+};
+
+export function technologySubtitle(name: TechnologyName): string {
+  return technologyTypeLabels[technologyFor(name).type];
 }

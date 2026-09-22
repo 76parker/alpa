@@ -10,7 +10,13 @@ import {
   EdgeLabelRenderer,
   ReactFlow,
   ReactFlowProvider,
+  SelectionMode,
   getBezierPath,
+  getSmoothStepPath,
+  getStraightPath,
+  MarkerType,
+  Position,
+  useInternalNode,
   useNodesState,
   useReactFlow,
   type Connection,
@@ -20,12 +26,17 @@ import {
 import "@xyflow/react/dist/style.css";
 import { CircleHelp, Minus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import type { ComponentType } from "@/api/types";
-import { APIError } from "@/api/client";
+import type { Component, ComponentType } from "@/api/types";
+import { APIError, errorMessage } from "@/api/client";
 import { useComponents, useInventoryMutation, useProduct } from "@/api/queries";
 import { useWorkspace } from "@/app/workspace-context";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
+import {
+  connectionStyleEvent,
+  defaultConnectionStyle,
+  readConnectionStyles,
+} from "./connection-style";
 import {
   ConfirmDialog,
   CriticalityBadge,
@@ -33,18 +44,18 @@ import {
   ErrorNotice,
   Loading,
   NotFound,
-  SelectControl,
   useTitle,
 } from "@/components/shared/controls";
 import { CreateComponentButton } from "@/features/components/components-page";
 import { ComponentDialog } from "@/features/components/component-dialog";
+import { IntegrationDetails } from "@/features/components/integration-details";
 import { ComponentDetails } from "@/features/components/component-details";
 import {
   BindingDialog,
   type BindingSelection,
 } from "@/features/components/binding-dialog";
 import { productPath } from "@/features/products/product-layout";
-import { clientLabel, roleAction } from "@/domain/catalog";
+import { apiDisplayName, clientLabel } from "@/domain/catalog";
 import {
   GraphComponentNode,
   type ArchitectureNode,
@@ -58,11 +69,69 @@ import {
   readLayout,
   saveLayout,
   type BindingEdge,
-  type PortSide,
 } from "./model";
+import { MapTools, type MapTool } from "./map-tools";
 const nodeTypes = { component: GraphComponentNode };
+function targetAPIName(
+  component: Component | undefined,
+  apiID: number | undefined,
+) {
+  const api = component?.apis.find((candidate) => candidate.id === apiID);
+  return api ? apiDisplayName(api) : "API";
+}
 function BindingLine(props: EdgeProps<BindingEdge>) {
-  const [path, x, y] = getBezierPath(props);
+  const source = useInternalNode(props.source);
+  const target = useInternalNode(props.target);
+  const preferences = props.data?.connectionStyle || defaultConnectionStyle;
+  const endpoint = {
+    sourceX: props.sourceX,
+    sourceY: props.sourceY,
+    sourcePosition: props.sourcePosition,
+    targetX: props.targetX,
+    targetY: props.targetY,
+    targetPosition: props.targetPosition,
+  };
+  if (source && target && props.data) {
+    const sourceRight =
+      source.internals.positionAbsolute.x +
+        (source.measured.width || 350) / 2 >=
+      target.internals.positionAbsolute.x + (target.measured.width || 350) / 2;
+    // Resolve both ends from the actual squares, including connections sharing a port.
+    for (const [kind, node, portID, position] of [
+      [
+        "source",
+        source,
+        `client-${props.data.client.id}`,
+        sourceRight ? Position.Left : Position.Right,
+      ],
+      [
+        "target",
+        target,
+        `api-${props.data.apiID}`,
+        sourceRight ? Position.Right : Position.Left,
+      ],
+    ] as const) {
+      const handle = node.internals.handleBounds?.[kind]?.find(
+        (candidate) =>
+          candidate.position === position &&
+          (candidate.id === portID || candidate.id === `${portID}-alternate`),
+      );
+      if (handle) {
+        endpoint[`${kind}X`] =
+          node.internals.positionAbsolute.x + handle.x + handle.width / 2;
+        endpoint[`${kind}Y`] =
+          node.internals.positionAbsolute.y + handle.y + handle.height / 2;
+        endpoint[`${kind}Position`] = position;
+      }
+    }
+  }
+  const pathOptions = { ...props, ...endpoint };
+  const [path, x, y] =
+    preferences.shape === "straight"
+      ? getStraightPath(pathOptions)
+      : preferences.shape === "smoothstep"
+        ? getSmoothStepPath({ ...pathOptions, borderRadius: 12 })
+        : getBezierPath(pathOptions);
   return (
     <>
       <BaseEdge
@@ -79,7 +148,7 @@ function BindingLine(props: EdgeProps<BindingEdge>) {
             transform: `translate(-50%, -50%) translate(${x}px,${y}px)`,
           }}
           onClick={() => props.data?.onSelect?.()}
-          aria-label={`Connection ${props.data?.sourceComponent.name} to ${props.data?.targetComponent.name}`}
+          aria-label={`Integration ${props.data?.sourceComponent.name} to ${props.data?.targetComponent.name} / ${targetAPIName(props.data?.targetComponent, props.data?.apiID)}`}
         >
           {props.label}
         </button>
@@ -109,9 +178,92 @@ function ArchitectureCanvas() {
   const [selectedID, setSelectedID] = useState<number | null>(
     () => Number(params.get("component")) || null,
   );
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [bulkTargets, setBulkTargets] = useState<number[] | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkError, setBulkError] = useState<Error | null>(null);
+  const selectedNodes = nodes.filter((node) => node.selected && !node.hidden);
+  const removeComponent = useInventoryMutation<void, number>({
+    method: "DELETE",
+    path: (componentID) => `/v1/components/${componentID}`,
+  });
+  const clearSelection = useCallback(() => {
+    setNodes((current) =>
+      current.map((node) => ({ ...node, selected: false })),
+    );
+  }, [setNodes]);
+  const deleteSelected = async () => {
+    if (!bulkTargets || bulkBusy) return;
+    setBulkBusy(true);
+    setBulkError(null);
+    const failed: number[] = [];
+    const failures: string[] = [];
+    for (const componentID of bulkTargets) {
+      try {
+        await removeComponent.mutateAsync(componentID);
+      } catch (error) {
+        if (error instanceof APIError && error.status === 404) continue;
+        failed.push(componentID);
+        failures.push(errorMessage(error));
+      }
+    }
+    setBulkBusy(false);
+    if (failed.length) {
+      setBulkTargets(failed);
+      setBulkError(
+        new APIError(
+          `${failed.length} ${failed.length === 1 ? "component" : "components"} could not be deleted. ${failures[0]} Retry to delete the remaining selection.`,
+          "partial_delete",
+          500,
+        ),
+      );
+      setNodes((current) =>
+        current.map((node) => ({
+          ...node,
+          selected: failed.includes(Number(node.id)),
+        })),
+      );
+    } else {
+      setBulkTargets(null);
+      clearSelection();
+      toast.success("Selected components deleted");
+    }
+  };
   const [edgeID, setEdgeID] = useState<string | null>(null);
   const [pending, setPending] = useState<BindingSelection | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [openTool, setOpenTool] = useState<MapTool | null>(null);
+  const [newConnectionStyle, setNewConnectionStyle] = useState(
+    defaultConnectionStyle,
+  );
+  const activateTool = (tool: MapTool) => {
+    setOpenTool(openTool === tool ? null : tool);
+    if (openTool === tool) {
+      if (tool === "select") {
+        setSelectionMode(false);
+        clearSelection();
+      }
+      if (tool === "connect") {
+        setConnecting(false);
+        setPending(null);
+      }
+      return;
+    }
+    if (
+      (tool === "select" && selectionMode) ||
+      (tool === "connect" && (connecting || pending))
+    )
+      return;
+    setPending(null);
+    setConnecting(tool === "connect");
+    if (tool !== "filter") {
+      clearSelection();
+      setSelectedID(null);
+      setEdgeID(null);
+      setNeighborsOnly(false);
+    }
+    setSelectionMode(tool === "select");
+  };
   const [isFullscreen, setFullscreen] = useState(false);
   const [binding, setBinding] = useState<BindingSelection | null>(null);
   const [creating, setCreating] = useState<ComponentType | null>(null);
@@ -121,13 +273,67 @@ function ArchitectureCanvas() {
   const [layoutBusy, setLayoutBusy] = useState(false);
   const [zoom, setZoom] = useState(0.8);
   const initialLayout = useMemo(() => readLayout(id), [id]);
-  const [portSides, setPortSides] = useState(initialLayout.portSides || {});
-  const portSidesRef = useRef(portSides);
+  const [connectionStyles, setConnectionStyles] = useState(() =>
+    readConnectionStyles(id),
+  );
+  useEffect(() => {
+    const update = (event: Event) => {
+      if (event instanceof CustomEvent && event.detail.productID === id)
+        setConnectionStyles(event.detail.styles);
+      else if (event instanceof StorageEvent)
+        setConnectionStyles(readConnectionStyles(id));
+    };
+    window.addEventListener(connectionStyleEvent, update);
+    window.addEventListener("storage", update);
+    return () => {
+      window.removeEventListener(connectionStyleEvent, update);
+      window.removeEventListener("storage", update);
+    };
+  }, [id]);
   const positions = useRef(initialLayout.positions);
   const viewport = useRef(initialLayout.viewport);
   const mapRoot = useRef<HTMLDivElement>(null);
   const components = useMemo(() => inventory.data || [], [inventory.data]);
   const edges = useMemo(() => graphEdges(components), [components]);
+  const renderedNodes = useMemo(() => {
+    const centers = new Map(
+      nodes.map((node) => [
+        node.id,
+        node.position.x + (node.measured?.width || 350) / 2,
+      ]),
+    );
+    return nodes.map((node) => {
+      const positions: Record<string, { x: number; y: number }> = {};
+      const center = centers.get(node.id)!;
+      for (const [kind, ports] of [
+        ["api", node.data.component.apis],
+        ["client", node.data.component.clients],
+      ] as const) {
+        for (const port of ports) {
+          const peers = edges
+            .filter((edge) =>
+              kind === "api"
+                ? edge.target === node.id && edge.data?.apiID === port.id
+                : edge.source === node.id && edge.data?.client.id === port.id,
+            )
+            .map((edge) =>
+              centers.get(kind === "api" ? edge.source : edge.target)!,
+            )
+            .filter((value) => value !== undefined);
+          positions[`${node.id}:${kind}-${port.id}`] = {
+            x: peers.length
+              ? Number(
+                  peers.reduce((sum, value) => sum + value, 0) / peers.length >=
+                    center,
+                )
+              : Number(kind === "client"),
+            y: 0.5,
+          };
+        }
+      }
+      return { ...node, data: { ...node.data, portPositions: positions } };
+    });
+  }, [nodes, edges]);
   const neighbors = useMemo(
     () => (selectedID ? immediateNeighborhood(components, selectedID) : null),
     [components, selectedID],
@@ -151,11 +357,6 @@ function ArchitectureCanvas() {
   const onPort = useCallback(
     (selection: PortSelection) => {
       if (selection.kind === "client") {
-        if (selection.port.api_id !== null) {
-          setEdgeID(`client-${selection.port.id}`);
-          setSelectedID(null);
-          return;
-        }
         setConnecting(false);
         setPending({
           sourceID: selection.component.id,
@@ -173,7 +374,19 @@ function ArchitectureCanvas() {
       const client = source?.clients.find(
         (item) => item.id === pending.clientID,
       );
-      if (!source || !client || !canBind(source, client, selection.component)) {
+      if (
+        client?.integrations.some((item) => item.api_id === selection.port.id)
+      ) {
+        toast.error(
+          "An integration with this API already exists. Choose another API.",
+        );
+        return;
+      }
+      if (
+        !source ||
+        !client ||
+        !canBind(source, client, selection.component, selection.port.id)
+      ) {
         toast.error("Choose an API on another component in this product.");
         return;
       }
@@ -181,19 +394,6 @@ function ArchitectureCanvas() {
       setPending(null);
     },
     [pending, components],
-  );
-  const movePort = useCallback(
-    (key: string, side: PortSide) => {
-      const next = { ...portSidesRef.current, [key]: side };
-      portSidesRef.current = next;
-      setPortSides(next);
-      saveLayout(id, {
-        positions: positions.current,
-        viewport: viewport.current,
-        portSides: next,
-      });
-    },
-    [id],
   );
   useEffect(() => {
     if (!inventory.isSuccess) return;
@@ -204,10 +404,18 @@ function ArchitectureCanvas() {
       };
       positions.current = mergePositions(components, stored);
       return components.map((component) => ({
+        ...previous.find((node) => node.id === String(component.id)),
         id: String(component.id),
         type: "component",
+        ariaLabel: component.name,
         position: positions.current[String(component.id)],
-        selected: component.id === selectedID,
+        selected: selectionMode
+          ? !!previous.find((node) => node.id === String(component.id))
+              ?.selected &&
+            (filter === "all" ||
+              (filter === "infrastructure") ===
+                (component.type === "infrastructure"))
+          : component.id === selectedID,
         hidden:
           (filter === "services" && component.type === "infrastructure") ||
           (filter === "infrastructure" &&
@@ -215,8 +423,7 @@ function ArchitectureCanvas() {
           !!(neighborsOnly && neighbors && !neighbors.has(component.id)),
         data: {
           component,
-          portSides,
-          onMovePort: movePort,
+          interactionsDisabled: selectionMode,
           dimmed: !!(neighbors && !neighbors.has(component.id)),
           pendingClientID: pending?.clientID,
           onPort,
@@ -233,6 +440,7 @@ function ArchitectureCanvas() {
     });
   }, [
     inventory.isSuccess,
+    selectionMode,
     components,
     selectedID,
     neighbors,
@@ -242,12 +450,29 @@ function ArchitectureCanvas() {
     onPort,
     setNodes,
     resetRemove,
-    portSides,
-    movePort,
   ]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (
+        (event.target as HTMLElement)?.closest?.(
+          '[role="dialog"], [role="alertdialog"], input, textarea, [contenteditable="true"]',
+        )
+      )
+        return;
+      if (bulkTargets || binding || creating || deleting) return;
+      // A focused tool's tooltip may consume Escape; it must not block canvas cancellation.
+      const toolFocused = (event.target as HTMLElement)?.closest?.(
+        ".map-tool-rail",
+      );
+      if (event.key === "Escape" && (!event.defaultPrevented || toolFocused)) {
+        if (openTool) {
+          mapRoot.current
+            ?.querySelector<HTMLButtonElement>(`[data-tool="${openTool}"]`)
+            ?.focus();
+          setOpenTool(null);
+          return;
+        }
+        if (selectionMode) clearSelection();
         setPending(null);
         setConnecting(false);
         if (!binding && !creating && !deleting) {
@@ -258,7 +483,15 @@ function ArchitectureCanvas() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [binding, creating, deleting]);
+  }, [
+    binding,
+    creating,
+    deleting,
+    bulkTargets,
+    selectionMode,
+    clearSelection,
+    openTool,
+  ]);
   const persist = useCallback(
     (nextViewport?: Viewport, movedNodes: ArchitectureNode[] = []) => {
       positions.current = Object.fromEntries(
@@ -274,7 +507,6 @@ function ArchitectureCanvas() {
       saveLayout(id, {
         positions: positions.current,
         viewport: viewport.current,
-        portSides: portSidesRef.current,
       });
     },
     [flow, id],
@@ -287,12 +519,22 @@ function ArchitectureCanvas() {
       (item) => String(item.id) === connection.target,
     );
     const client = source?.clients.find(
-      (item) => `client-${item.id}` === connection.sourceHandle,
+      (item) =>
+        `client-${item.id}` ===
+        connection.sourceHandle?.replace(/-alternate$/, ""),
     );
     const api = target?.apis.find(
-      (item) => `api-${item.id}` === connection.targetHandle,
+      (item) =>
+        `api-${item.id}` ===
+        connection.targetHandle?.replace(/-alternate$/, ""),
     );
-    if (source && target && client && api && canBind(source, client, target)) {
+    if (
+      source &&
+      target &&
+      client &&
+      api &&
+      canBind(source, client, target, api.id)
+    ) {
       setBinding({
         sourceID: source.id,
         clientID: client.id,
@@ -339,7 +581,9 @@ function ArchitectureCanvas() {
           position: next[node.id] || node.position,
         })),
       );
-      saveLayout(id, { positions: next, portSides: portSidesRef.current });
+      saveLayout(id, {
+        positions: next,
+      });
       requestAnimationFrame(() => {
         void flow.fitView({ padding: 0.18, duration: 350 });
       });
@@ -409,7 +653,10 @@ function ArchitectureCanvas() {
     nodes.filter((node) => !node.hidden).map((node) => node.id),
   );
   return (
-    <div className="architecture-page" ref={mapRoot}>
+    <div
+      className={`architecture-page ${selectionMode ? "map-selection-mode" : ""}`}
+      ref={mapRoot}
+    >
       <header className="architecture-header">
         <h1>Architecture</h1>
         <span className="muted">/</span>
@@ -422,63 +669,48 @@ function ArchitectureCanvas() {
           Close window
         </Button>
       </header>
-      <div className="map-toolbar">
-        <SelectControl
-          label="Show components"
-          value={filter}
-          onChange={setFilter}
-          options={[
-            { value: "all", label: "All components" },
-            { value: "services", label: "Services" },
-            { value: "infrastructure", label: "Infrastructure" },
-          ]}
-          className="map-filter"
-        />
-        <Button
-          variant={neighborsOnly ? "secondary" : "outline"}
-          disabled={!selectedID}
-          onClick={() => setNeighborsOnly(!neighborsOnly)}
-        >
-          Neighborhood
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => {
-            setConnecting(true);
-            setPending(null);
-            setSelectedID(null);
-            setEdgeID(null);
-          }}
-        >
-          Connect
-        </Button>
-        <div className="map-create-actions">
-          <Button
-            variant="outline"
-            onClick={() => setCreating("backend-service")}
-          >
-            <img src="/assets/3a0e0.svg" alt="" />
-            Create backend
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setCreating("frontend-service")}
-          >
-            <img src="/assets/10c79.svg" alt="" />
-            Create frontend
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setCreating("infrastructure")}
-          >
-            <img src="/assets/a01a7.svg" alt="" />
-            Create infrastructure
-          </Button>
-        </div>
-      </div>
       <div className="map-canvas">
+        <MapTools
+          open={openTool}
+          onTool={activateTool}
+          onClose={() => setOpenTool(null)}
+          selectionMode={selectionMode}
+          connecting={connecting || !!pending}
+          pending={!!pending}
+          count={selectedNodes.length}
+          busy={layoutBusy || bulkBusy}
+          onSelectAll={() =>
+            setNodes((current) =>
+              current.map((node) => ({ ...node, selected: !node.hidden })),
+            )
+          }
+          onClear={clearSelection}
+          onDelete={() => {
+            setBulkError(null);
+            setBulkTargets(selectedNodes.map((node) => Number(node.id)));
+          }}
+          onCancelConnection={() => {
+            setPending(null);
+            setConnecting(false);
+            setOpenTool(null);
+          }}
+          onCreate={(type) => {
+            setOpenTool(null);
+            setCreating(type);
+          }}
+          filter={filter}
+          onFilter={(value) => {
+            clearSelection();
+            setFilter(value);
+          }}
+          neighborsOnly={neighborsOnly}
+          hasSelected={!!selectedID}
+          onNeighbors={() => setNeighborsOnly(!neighborsOnly)}
+          connectionStyle={newConnectionStyle}
+          onConnectionStyle={setNewConnectionStyle}
+        />
         <ReactFlow
-          nodes={nodes}
+          nodes={renderedNodes}
           edges={edges
             .filter(
               (edge) =>
@@ -487,15 +719,47 @@ function ArchitectureCanvas() {
             .map((edge) => ({
               ...edge,
               selected: edge.id === edgeID,
+              markerEnd:
+                (
+                  connectionStyles[edge.data!.integration.id] ||
+                  defaultConnectionStyle
+                ).arrow === "none"
+                  ? undefined
+                  : {
+                      type:
+                        (
+                          connectionStyles[edge.data!.integration.id] ||
+                          defaultConnectionStyle
+                        ).arrow === "open"
+                          ? MarkerType.Arrow
+                          : MarkerType.ArrowClosed,
+                      color: edge.style?.stroke as string,
+                      width: 16,
+                      height: 16,
+                    },
               data: {
                 ...edge.data!,
+                connectionStyle:
+                  connectionStyles[edge.data!.integration.id] ||
+                  defaultConnectionStyle,
                 onSelect: () => {
+                  if (selectionMode) return;
                   setEdgeID(edge.id);
                   setSelectedID(null);
                 },
               },
               style: {
                 ...edge.style,
+                strokeDasharray: {
+                  solid: undefined,
+                  dashed: "8 5",
+                  dotted: "2 5",
+                }[
+                  (
+                    connectionStyles[edge.data!.integration.id] ||
+                    defaultConnectionStyle
+                  ).stroke
+                ],
                 opacity:
                   neighbors &&
                   (!neighbors.has(Number(edge.source)) ||
@@ -508,17 +772,36 @@ function ArchitectureCanvas() {
           edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
           onNodeClick={(_, node) => {
+            if (selectionMode) return;
             setSelectedID(Number(node.id));
             setEdgeID(null);
           }}
           onEdgeClick={(_, edge) => {
+            if (selectionMode) return;
             setEdgeID(edge.id);
             setSelectedID(null);
           }}
           onPaneClick={() => {
+            if (openTool) {
+              mapRoot.current
+                ?.querySelector<HTMLButtonElement>(`[data-tool="${openTool}"]`)
+                ?.focus();
+              setOpenTool(null);
+              return;
+            }
+            if (selectionMode) clearSelection();
             setSelectedID(null);
             setEdgeID(null);
           }}
+          selectionOnDrag={selectionMode}
+          selectionMode={SelectionMode.Partial}
+          selectionKeyCode={null}
+          multiSelectionKeyCode={selectionMode ? "Shift" : null}
+          panOnDrag={selectionMode ? [1, 2] : true}
+          edgesFocusable={!selectionMode}
+          onSelectionDragStop={(_, movedNodes) =>
+            persist(undefined, movedNodes)
+          }
           onConnect={connect}
           onNodeDragStop={(_, node, draggedNodes) =>
             persist(undefined, draggedNodes.length ? draggedNodes : [node])
@@ -533,7 +816,7 @@ function ArchitectureCanvas() {
           fitView={!initialLayout.viewport}
           fitViewOptions={{ padding: 0.15, maxZoom: 0.8 }}
           deleteKeyCode={null}
-          nodesConnectable
+          nodesConnectable={!selectionMode}
           onInit={() => {
             const target = Number(params.get("component"));
             if (target) requestAnimationFrame(() => focusNode(target));
@@ -545,18 +828,18 @@ function ArchitectureCanvas() {
           <div className="map-empty">
             <EmptyState
               title="Your architecture starts here"
-              description="Create services and infrastructure, then connect their clients and APIs."
+              description="Create services and infrastructure, then integrate their clients and APIs."
             >
               <CreateComponentButton onSelect={setCreating} />
             </EmptyState>
           </div>
         ) : null}
-        {pending || connecting ? (
+        {(pending || connecting) && openTool !== "connect" ? (
           <div className="connection-hint">
             <span>
               {pending
-                ? "Select an API on another component to connect this client."
-                : "Select a free client to start a connection."}
+                ? "Select an API on another component for this integration."
+                : "Select a client to create an integration."}
             </span>
             {pending ? (
               <Button
@@ -573,7 +856,7 @@ function ArchitectureCanvas() {
             <Button
               size="icon-sm"
               variant="ghost"
-              aria-label="Cancel connection"
+              aria-label="Cancel integration"
               onClick={() => {
                 setPending(null);
                 setConnecting(false);
@@ -631,11 +914,11 @@ function ArchitectureCanvas() {
         {selected || selectedEdge ? (
           <aside
             className="map-details-panel"
-            aria-label={selected ? "Component details" : "Connection details"}
+            aria-label={selected ? "Component details" : "Integration details"}
           >
             {!selected ? (
               <div className="panel-top">
-                <span>{selected ? "Component" : "Connection"}</span>
+                <span>{selected ? "Component" : "Integration"}</span>
                 <Button
                   variant="ghost"
                   size="icon-sm"
@@ -659,16 +942,14 @@ function ArchitectureCanvas() {
                   setSelectedID(null);
                   setEdgeID(null);
                 }}
-                onNeighborhood={() => setNeighborsOnly(!neighborsOnly)}
-                neighborsOnly={neighborsOnly}
                 onDeleted={() => setSelectedID(null)}
               />
             ) : selectedEdge?.data ? (
               <div className="connection-details">
-                <h2>Connection</h2>
-                <Badge>
-                  {roleAction[selectedEdge.data.client.role].toUpperCase()}
-                </Badge>
+                <h2>Integration</h2>
+                <span className="connection-action">
+                  {selectedEdge.data.integration.action}
+                </span>
                 <dl>
                   <div>
                     <dt>Source component</dt>
@@ -701,11 +982,10 @@ function ArchitectureCanvas() {
                   <div>
                     <dt>Target API</dt>
                     <dd>
-                      {
-                        selectedEdge.data.targetComponent.apis.find(
-                          (api) => api.id === selectedEdge.data!.apiID,
-                        )?.name
-                      }
+                      {targetAPIName(
+                        selectedEdge.data.targetComponent,
+                        selectedEdge.data.apiID,
+                      )}
                     </dd>
                   </div>
                   <div>
@@ -713,7 +993,7 @@ function ArchitectureCanvas() {
                     <dd>{selectedEdge.data.client.communication_type}</dd>
                   </div>
                   <div>
-                    <dt>Secure connection</dt>
+                    <dt>Secure integration</dt>
                     <dd>
                       {selectedEdge.data.client.secure_connection
                         ? "Yes"
@@ -721,6 +1001,11 @@ function ArchitectureCanvas() {
                     </dd>
                   </div>
                 </dl>
+                <IntegrationDetails
+                  key={selectedEdge.data.integration.id}
+                  integration={selectedEdge.data.integration}
+                  onDeleted={() => setEdgeID(null)}
+                />
               </div>
             ) : null}
           </aside>
@@ -728,11 +1013,10 @@ function ArchitectureCanvas() {
       </div>
       <footer className="map-status">
         <span>
-          {components.length} components · {edges.length} connections
-        </span>
-        <span>
           <CircleHelp size={13} />
-          Drag to move · Scroll to zoom · Esc to cancel
+          {selectionMode
+            ? "Drag a box to select · Shift-click to add · Drag selection to move · Esc to clear"
+            : "Drag to move · Scroll to zoom · Esc to cancel"}
         </span>
         <span>Saved locally</span>
       </footer>
@@ -751,16 +1035,29 @@ function ArchitectureCanvas() {
         <BindingDialog
           productID={id}
           selection={binding}
+          connectionStyle={newConnectionStyle}
           onClose={() => setBinding(null)}
         />
       ) : null}
+      <ConfirmDialog
+        open={bulkTargets !== null}
+        title={`Delete ${bulkTargets?.length || 0} selected ${bulkTargets?.length === 1 ? "component" : "components"}?`}
+        description="The selected components, their APIs, clients and related integrations will be permanently deleted. This cannot be undone."
+        label="Delete selected"
+        busy={bulkBusy}
+        error={bulkError}
+        onCancel={() => {
+          if (!bulkBusy) setBulkTargets(null);
+        }}
+        onConfirm={() => void deleteSelected()}
+      />
       <ConfirmDialog
         open={!!deleting}
         title={`Delete ${deleting?.kind === "api" ? "API" : "client"}?`}
         description={
           deleting?.kind === "api"
-            ? "Clients connected to this API will become unbound. This cannot be undone."
-            : "This client and its connection will be removed. This cannot be undone."
+            ? "Integrations using this API will be removed. This cannot be undone."
+            : "This client and its integrations will be removed. This cannot be undone."
         }
         onCancel={() => setDeleting(null)}
         onConfirm={() => {

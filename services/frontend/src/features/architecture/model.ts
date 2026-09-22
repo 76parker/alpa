@@ -1,12 +1,15 @@
 import { MarkerType, type Edge, type XYPosition } from "@xyflow/react";
-import type { Component, ComponentClient } from "@/api/types";
-import { roleAction } from "@/domain/catalog";
+import { validPortPosition, type PortPosition } from "./geometry";
+import type { ConnectionStyle } from "./connection-style";
+import type { Component, ComponentClient, Integration } from "@/api/types";
 export type BindingEdge = Edge<{
   client: ComponentClient;
   sourceComponent: Component;
   targetComponent: Component;
   apiID: number;
+  integration: Integration;
   onSelect?: () => void;
+  connectionStyle?: ConnectionStyle;
 }>;
 export function graphEdges(components: Component[]): BindingEdge[] {
   const apis = new Map(
@@ -15,39 +18,41 @@ export function graphEdges(components: Component[]): BindingEdge[] {
     ),
   );
   return components.flatMap((source) =>
-    source.clients.flatMap((client) => {
-      const target =
-        client.api_id === null ? undefined : apis.get(client.api_id);
-      if (!target || client.api_id === null) return [];
-      return [
-        {
-          id: `client-${client.id}`,
-          source: String(source.id),
-          target: String(target.id),
-          sourceHandle: `client-${client.id}`,
-          targetHandle: `api-${client.api_id}`,
-          type: "binding",
-          label: roleAction[client.role].toUpperCase(),
-          data: {
-            client,
-            sourceComponent: source,
-            targetComponent: target,
-            apiID: client.api_id,
+    source.clients.flatMap((client) =>
+      client.integrations.flatMap((integration) => {
+        const target = apis.get(integration.api_id);
+        if (!target) return [];
+        return [
+          {
+            id: `integration-${integration.id}`,
+            source: String(source.id),
+            target: String(target.id),
+            sourceHandle: `client-${client.id}`,
+            targetHandle: `api-${integration.api_id}`,
+            type: "binding",
+            label: integration.action,
+            data: {
+              client,
+              sourceComponent: source,
+              targetComponent: target,
+              apiID: integration.api_id,
+              integration,
+            },
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              color: client.secure_connection ? "#21b8ff" : "#737b90",
+              width: 16,
+              height: 16,
+            },
+            style: {
+              stroke: client.secure_connection ? "#21b8ff" : "#737b90",
+              strokeWidth: client.secure_connection ? 2 : 1.5,
+              strokeDasharray: client.secure_connection ? undefined : "6 5",
+            },
           },
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            color: client.secure_connection ? "#21b8ff" : "#737b90",
-            width: 16,
-            height: 16,
-          },
-          style: {
-            stroke: client.secure_connection ? "#21b8ff" : "#737b90",
-            strokeWidth: client.secure_connection ? 2 : 1.5,
-            strokeDasharray: client.secure_connection ? undefined : "6 5",
-          },
-        },
-      ];
-    }),
+        ];
+      }),
+    ),
   );
 }
 export function immediateNeighborhood(
@@ -69,9 +74,11 @@ export function canBind(
   source: Component,
   client: ComponentClient,
   target: Component,
+  apiID?: number,
 ): boolean {
   return (
-    client.api_id === null &&
+    !client.integrations.some((integration) => integration.api_id === apiID) &&
+    (apiID === undefined || target.apis.some((api) => api.id === apiID)) &&
     source.id !== target.id &&
     source.product_id === target.product_id
   );
@@ -100,28 +107,43 @@ export function mergePositions(
 export type LayoutSnapshot = {
   positions: Record<string, XYPosition>;
   viewport?: { x: number; y: number; zoom: number };
+  portPositions?: Record<string, PortPosition>;
   portSides?: Record<string, PortSide>;
 };
 export type PortSide = "left" | "right" | "bottom";
-export function nearestPortSide(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-): PortSide {
-  const distances: [PortSide, number][] = [
-    ["left", Math.abs(x)],
-    ["right", Math.abs(width - x)],
-    ["bottom", Math.abs(height - y)],
-  ];
-  return distances.sort((a, b) => a[1] - b[1])[0][0];
-}
 export function readLayout(productID: number): LayoutSnapshot {
   try {
     const value = JSON.parse(
       localStorage.getItem(`alpa:map:v1:${productID}`) || "{}",
     );
+    const legacySides =
+      value.portSides && typeof value.portSides === "object"
+        ? value.portSides
+        : {};
+    const legacyPositions = Object.fromEntries(
+      Object.entries(legacySides).flatMap(([key, side]) => {
+        if (!/^\d+:(api|client)-\d+$/.test(key)) return [];
+        const point =
+          side === "left"
+            ? { x: 0, y: 0.65 }
+            : side === "right"
+              ? { x: 1, y: 0.65 }
+              : side === "bottom"
+                ? { x: 0.5, y: 1 }
+                : null;
+        return point ? [[key, point]] : [];
+      }),
+    );
     return {
+      portPositions: {
+        ...legacyPositions,
+        ...Object.fromEntries(
+          Object.entries(value.portPositions || {}).filter(
+            ([key, point]) =>
+              /^\d+:(api|client)-\d+$/.test(key) && validPortPosition(point),
+          ),
+        ),
+      } as Record<string, PortPosition>,
       portSides:
         value.portSides && typeof value.portSides === "object"
           ? (Object.fromEntries(

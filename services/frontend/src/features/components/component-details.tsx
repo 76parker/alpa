@@ -1,3 +1,4 @@
+import { HoverCard } from "radix-ui";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Ellipsis, Minus, Plus, Trash2 } from "lucide-react";
@@ -9,13 +10,17 @@ import type {
   Product,
 } from "@/api/types";
 import { isInfrastructure } from "@/api/types";
-import { useComponents, useInventoryMutation } from "@/api/queries";
+import { useInventoryMutation } from "@/api/queries";
 import {
+  apiDisplayName,
   apiLabel,
+  availableClientNames,
+  unusedClientNames,
+  apiCollectionLabel,
+  technologyFor,
   clientLabel,
   languageLabel,
   titleCase,
-  roleAction,
 } from "@/domain/catalog";
 import { ComponentIcon, componentSubtitle, TypeIcon } from "@/domain/visuals";
 import { Button } from "@/components/ui/button";
@@ -23,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -49,16 +55,12 @@ export function ComponentDetails({
   onDeleted,
   map = false,
   onClosePanel,
-  onNeighborhood,
-  neighborsOnly = false,
 }: {
   component: Component;
   product: Product;
   onDeleted: () => void;
   map?: boolean;
   onClosePanel?: () => void;
-  onNeighborhood?: () => void;
-  neighborsOnly?: boolean;
 }) {
   const [apiEditor, setAPIEditor] = useState<ComponentAPI | "new" | null>(null);
   const [clientEditor, setClientEditor] = useState<
@@ -77,8 +79,11 @@ export function ComponentDetails({
         ? `/v1/components/${item.id}`
         : `/v1/components/${component.id}/${item.kind === "api" ? "apis" : "clients"}/${item.id}`,
   });
-  const inventory = useComponents(product.id);
   const infrastructure = isInfrastructure(component);
+  const supportsClients = availableClientNames(component).length > 0;
+  const system = infrastructure
+    ? technologyFor(component.details.technology_name)
+    : null;
   const confirmDelete = async () => {
     if (!deleting || remove.isPending) return;
     try {
@@ -118,6 +123,7 @@ export function ComponentDetails({
   return (
     <div
       className={`component-details ${map ? "map-component-details" : "component-overview-details"}`}
+      data-component-type={component.type}
     >
       {map ? (
         <>
@@ -162,7 +168,8 @@ export function ComponentDetails({
           <section className="detail-section">
             <div className="section-heading">
               <h3>
-                API <span>{component.apis.length}/5</span>
+                {system ? apiCollectionLabel(system.apiType) : "API"}{" "}
+                <span>{component.apis.length}/5</span>
               </h3>
               <Button
                 variant="outline"
@@ -176,20 +183,18 @@ export function ComponentDetails({
             </div>
             {component.apis.map((api) => (
               <div className="map-port-row" key={api.id}>
-                <button
-                  className="map-api-badge"
-                  onClick={() => setAPIEditor(api)}
-                  aria-label={`Edit API ${api.name}`}
-                >
-                  {api.name}
-                </button>
+                <APIDetailsBadge api={api} onEdit={() => setAPIEditor(api)} />
                 <Button
                   variant="outline"
                   size="icon-sm"
-                  aria-label={`Delete API ${api.name}`}
+                  aria-label={`Delete API ${apiDisplayName(api)}`}
                   onClick={() => {
                     remove.reset();
-                    setDeleting({ kind: "api", id: api.id, name: api.name });
+                    setDeleting({
+                      kind: "api",
+                      id: api.id,
+                      name: apiDisplayName(api),
+                    });
                   }}
                 >
                   <Minus />
@@ -200,18 +205,21 @@ export function ComponentDetails({
               <p className="detail-empty">No APIs yet</p>
             ) : null}
           </section>
-          {!infrastructure || component.clients.length > 0 ? (
+          {supportsClients || component.clients.length > 0 ? (
             <section className="detail-section">
               <div className="section-heading">
                 <h3>
                   Clients <span>{component.clients.length}/5</span>
                 </h3>
-                {!infrastructure ? (
+                {supportsClients ? (
                   <Button
                     variant="outline"
                     size="icon-sm"
                     aria-label="Add client"
-                    disabled={component.clients.length >= 5}
+                    disabled={
+                      component.clients.length >= 5 ||
+                      unusedClientNames(component).length === 0
+                    }
                     onClick={() => setClientEditor("new")}
                   >
                     <Plus />
@@ -227,9 +235,9 @@ export function ComponentDetails({
                   >
                     <span>{clientLabel(client.client_name)}</span>
                     <span className="map-client-metadata">
-                      <span>{client.role.toUpperCase()}</span>
+                      <span>{client.integrations.length} integrations</span>
                       <span data-secure={client.secure_connection}>
-                        {client.secure_connection ? "SECURE" : "INSECURE"}
+                        {client.secure_connection ? "secure" : "insecure"}
                       </span>
                     </span>
                   </button>
@@ -255,45 +263,6 @@ export function ComponentDetails({
               ) : null}
             </section>
           ) : null}
-          <div className="map-component-actions">
-            {!infrastructure ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    disabled={
-                      !component.clients.some(
-                        (client) => client.api_id === null,
-                      )
-                    }
-                  >
-                    Connect client
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {component.clients
-                    .filter((client) => client.api_id === null)
-                    .map((client) => (
-                      <DropdownMenuItem
-                        key={client.id}
-                        onSelect={() =>
-                          setBinding({
-                            sourceID: component.id,
-                            clientID: client.id,
-                          })
-                        }
-                      >
-                        {clientLabel(client.client_name)} · {client.role}
-                      </DropdownMenuItem>
-                    ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
-            <Button variant="outline" onClick={onNeighborhood}>
-              {neighborsOnly
-                ? "Show all components"
-                : "Show immediate neighborhood"}
-            </Button>
-          </div>
           <div className="map-component-footer">
             <Link to={`${productPath(product)}/components/${component.id}`}>
               Open details <ArrowUpRight size={12} />
@@ -305,7 +274,6 @@ export function ComponentDetails({
         <ComponentOverviewContent
           component={component}
           product={product}
-          inventory={inventory.data || []}
           actions={actions}
           onAddAPI={() => setAPIEditor("new")}
           onAddClient={() => setClientEditor("new")}
@@ -316,7 +284,11 @@ export function ComponentDetails({
           }
           onDeleteAPI={(api) => {
             remove.reset();
-            setDeleting({ kind: "api", id: api.id, name: api.name });
+            setDeleting({
+              kind: "api",
+              id: api.id,
+              name: apiDisplayName(api),
+            });
           }}
           onDeleteClient={(client) => {
             remove.reset();
@@ -352,7 +324,7 @@ export function ComponentDetails({
       <ConfirmDialog
         open={!!deleting}
         title={`Delete ${deleting?.kind === "api" ? "API" : deleting?.kind || "component"}?`}
-        description={`Delete “${deleting?.name || ""}”? ${deleting?.kind === "api" ? "Clients connected to this API will become unbound." : deleting?.kind === "component" ? "Its APIs, clients and connections will be removed." : "Its connection will also be removed."} This cannot be undone.`}
+        description={`Delete “${deleting?.name || ""}”? ${deleting?.kind === "api" ? "Integrations using this API will be removed." : deleting?.kind === "component" ? "Its APIs, clients and integrations will be removed." : "Its integrations will also be removed."} This cannot be undone.`}
         onCancel={() => setDeleting(null)}
         onConfirm={() => void confirmDelete()}
         busy={remove.isPending}
@@ -361,22 +333,9 @@ export function ComponentDetails({
     </div>
   );
 }
-function ComponentOverviewContent({
-  component,
-  product,
-  inventory,
-  actions,
-  onAddAPI,
-  onAddClient,
-  onEditAPI,
-  onEditClient,
-  onDeleteAPI,
-  onDeleteClient,
-  onConnect,
-}: {
+type ComponentOverviewProps = {
   component: Component;
   product: Product;
-  inventory: Component[];
   actions: ReactNode;
   onAddAPI: () => void;
   onAddClient: () => void;
@@ -385,28 +344,39 @@ function ComponentOverviewContent({
   onEditClient: (client: ComponentClient) => void;
   onDeleteClient: (client: ComponentClient) => void;
   onConnect: (client: ComponentClient) => void;
-}) {
+};
+
+function ComponentOverviewContent(props: ComponentOverviewProps) {
+  if (!isInfrastructure(props.component)) return <ServiceOverview {...props} />;
+  return <InfrastructureOverview {...props} />;
+}
+
+function InfrastructureOverview({
+  component,
+  product,
+  actions,
+  onAddAPI,
+  onAddClient,
+  onEditAPI,
+  onEditClient,
+  onDeleteAPI,
+  onDeleteClient,
+  onConnect,
+}: ComponentOverviewProps) {
   const infrastructure = isInfrastructure(component);
+  const supportsClients = availableClientNames(component).length > 0;
+  const system = infrastructure
+    ? technologyFor(component.details.technology_name)
+    : null;
   const repository = serviceRepositoryURL(component);
-  const targetFor = (id: number | null) => {
-    const target = inventory.find((item) =>
-      item.apis.some((api) => api.id === id),
-    );
-    return target
-      ? { component: target, api: target.apis.find((api) => api.id === id)! }
-      : null;
-  };
-  const incoming = inventory.flatMap((source) =>
-    source.clients.flatMap((client) => {
-      const api = component.apis.find((api) => api.id === client.api_id);
-      return api ? [{ source, client, api }] : [];
-    }),
-  );
   return (
     <>
       <div className="component-overview-top">
         <div className="component-summary">
           <div className="component-summary-heading">
+            {infrastructure ? (
+              <ComponentIcon component={component} size={32} />
+            ) : null}
             <h1>{component.name}</h1>
             {actions}
           </div>
@@ -436,13 +406,6 @@ function ComponentOverviewContent({
           <dl className="component-facts">
             {infrastructure ? (
               <>
-                <div>
-                  <dt>SystemName</dt>
-                  <dd className="component-language">
-                    <ComponentIcon component={component} size={28} />
-                    {component.name}
-                  </dd>
-                </div>
                 <div>
                   <dt>Importancy</dt>
                   <dd>
@@ -476,7 +439,8 @@ function ComponentOverviewContent({
       >
         <div className="section-heading">
           <h3 id="component-apis-heading">
-            API <span>{component.apis.length}/5</span>
+            {system ? apiCollectionLabel(system.apiType) : "API"}{" "}
+            <span>{component.apis.length}/5</span>
           </h3>
           <Button
             aria-label="Add API"
@@ -492,13 +456,11 @@ function ComponentOverviewContent({
         {component.apis.length ? (
           <Table className="component-api-table component-port-table">
             <colgroup>
-              <col style={{ width: "42%" }} />
-              <col style={{ width: "29%" }} />
-              <col style={{ width: "29%" }} />
+              <col style={{ width: "60%" }} />
+              <col style={{ width: "40%" }} />
             </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
                 <TableHead>API type</TableHead>
                 <TableHead>Network exposure</TableHead>
               </TableRow>
@@ -506,14 +468,15 @@ function ComponentOverviewContent({
             <TableBody>
               {component.apis.map((api) => (
                 <TableRow key={api.id}>
-                  <TableCell>{api.name}</TableCell>
-                  <TableCell>{apiLabel(api.api_type)}</TableCell>
+                  <TableCell>
+                    {apiLabel(api.api_type)} <small>#{api.id}</small>
+                  </TableCell>
                   <TableCell>
                     <div className="port-value-actions">
                       <span>{titleCase(api.network_exposure)}</span>
                       <PortMenu
                         kind="API"
-                        name={api.name}
+                        name={apiDisplayName(api)}
                         onEdit={() => onEditAPI(api)}
                         onDelete={() => onDeleteAPI(api)}
                       />
@@ -527,7 +490,7 @@ function ComponentOverviewContent({
           <p className="detail-empty">No APIs yet</p>
         )}
       </section>
-      {!infrastructure || component.clients.length ? (
+      {supportsClients || component.clients.length ? (
         <section
           className="detail-section"
           aria-labelledby="component-clients-heading"
@@ -536,13 +499,16 @@ function ComponentOverviewContent({
             <h3 id="component-clients-heading">
               Clients <span>{component.clients.length}/5</span>
             </h3>
-            {!infrastructure ? (
+            {supportsClients ? (
               <Button
                 aria-label="Add client"
                 title="Add client"
                 variant="outline"
                 size="icon-sm"
-                disabled={component.clients.length >= 5}
+                disabled={
+                  component.clients.length >= 5 ||
+                  unusedClientNames(component).length === 0
+                }
                 onClick={onAddClient}
               >
                 <Plus />
@@ -552,71 +518,40 @@ function ComponentOverviewContent({
           {component.clients.length ? (
             <Table className="component-client-table component-port-table">
               <colgroup>
-                <col style={{ width: "23%" }} />
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "22%" }} />
-                <col style={{ width: "41%" }} />
+                <col style={{ width: "36%" }} />
+                <col style={{ width: "24%" }} />
+                <col style={{ width: "40%" }} />
               </colgroup>
               <TableHeader>
                 <TableRow>
                   <TableHead>Client name</TableHead>
-                  <TableHead>Role</TableHead>
+                  <TableHead>Integrations</TableHead>
                   <TableHead>Communication</TableHead>
-                  <TableHead>Bound API</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {component.clients.map((client) => {
-                  const target = targetFor(client.api_id);
-                  return (
-                    <TableRow key={client.id}>
-                      <TableCell>{clientLabel(client.client_name)}</TableCell>
-                      <TableCell>
-                        <span className={`client-role role-${client.role}`}>
-                          {client.role.toUpperCase()}
+                {component.clients.map((client) => (
+                  <TableRow key={client.id}>
+                    <TableCell>{clientLabel(client.client_name)}</TableCell>
+                    <TableCell>{client.integrations.length}</TableCell>
+                    <TableCell>
+                      <div className="port-value-actions">
+                        <span>
+                          {client.communication_type === "request-response"
+                            ? "Request-response"
+                            : titleCase(client.communication_type)}
                         </span>
-                      </TableCell>
-                      <TableCell>
-                        {client.communication_type === "request-response"
-                          ? "Request-response"
-                          : titleCase(client.communication_type)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="port-value-actions">
-                          <div>
-                            {client.api_id === null ? (
-                              <>
-                                <span className="muted">Unbound · </span>
-                                <button
-                                  className="connect-client-link"
-                                  aria-label={`Connect ${clientLabel(client.client_name)}`}
-                                  onClick={() => onConnect(client)}
-                                >
-                                  Connect
-                                </button>
-                              </>
-                            ) : target ? (
-                              <Link
-                                className="bound-api-link"
-                                to={`${productPath(product)}/components/${target.component.id}`}
-                              >
-                                {target.component.name} · {target.api.name}
-                              </Link>
-                            ) : (
-                              `API #${client.api_id}`
-                            )}
-                          </div>
-                          <PortMenu
-                            kind="client"
-                            name={clientLabel(client.client_name)}
-                            onEdit={() => onEditClient(client)}
-                            onDelete={() => onDeleteClient(client)}
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                        <PortMenu
+                          kind="client"
+                          name={clientLabel(client.client_name)}
+                          onEdit={() => onEditClient(client)}
+                          onDelete={() => onDeleteClient(client)}
+                          onConnect={() => onConnect(client)}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           ) : (
@@ -624,62 +559,234 @@ function ComponentOverviewContent({
           )}
         </section>
       ) : null}
-      <section className="component-dependencies">
-        <h3>Dependencies</h3>
-        {component.clients.some((client) => client.api_id !== null) ? (
-          component.clients
-            .filter((client) => client.api_id !== null)
-            .map((client) => {
-              const target = targetFor(client.api_id);
-              return (
-                <p key={client.id}>
-                  <span>Outgoing · </span>
-                  {target?.component.name || `API #${client.api_id}`} —{" "}
-                  {roleAction[client.role]} →{" "}
-                  {target?.api.name || `API #${client.api_id}`}
-                </p>
-              );
-            })
-        ) : (
-          <p>Outgoing · None</p>
-        )}
-        {incoming.length ? (
-          incoming.map(({ source, client, api }) => (
-            <p key={`${source.id}-${client.id}`}>
-              <span>Incoming · </span>
-              {source.name} — {roleAction[client.role]} → {api.name}
-            </p>
-          ))
-        ) : (
-          <p>Incoming · None</p>
-        )}
-      </section>
       <div className="component-footer-actions">
         <Button variant="outline" className="detail-architecture" asChild>
           <ArchitectureLink product={product} componentID={component.id}>
             Open in architecture <ArrowUpRight />
           </ArchitectureLink>
-        </Button>{" "}
-        <Link
-          className="component-security-link"
-          to={`${productPath(product)}/components/${component.id}/security-checks`}
-        >
-          Security checks <ArrowUpRight size={12} />
-        </Link>
+        </Button>
       </div>
     </>
   );
 }
+function ServiceOverview({
+  component,
+  product,
+  actions,
+  onAddAPI,
+  onAddClient,
+  onEditAPI,
+  onEditClient,
+  onDeleteAPI,
+  onDeleteClient,
+  onConnect,
+}: ComponentOverviewProps) {
+  const repository = serviceRepositoryURL(component);
+  const integrationCount = component.clients.reduce(
+    (total, client) => total + client.integrations.length,
+    0,
+  );
+  return (
+    <div className="service-overview">
+      <header className="service-overview-header">
+        <div className="service-overview-title-row">
+          <div className="service-overview-identity">
+            <div className="component-summary-heading">
+              <ComponentIcon component={component} size={42} />
+              <h1>{component.name}</h1>
+            </div>
+            <Badge variant="secondary" className="component-type-badge">
+              {"language" in component.details
+                ? `${languageLabel(component.details.language)} `
+                : ""}
+              {component.type === "frontend-service"
+                ? "Frontend service"
+                : "Backend service"}
+            </Badge>
+          </div>
+          <div className="service-overview-actions">
+            <Button asChild>
+              <ArchitectureLink product={product} componentID={component.id}>
+                Open in architecture <ArrowUpRight data-icon="inline-end" />
+              </ArchitectureLink>
+            </Button>
+            {actions}
+          </div>
+        </div>
+        <dl className="service-overview-metadata">
+          <div>
+            <dt>Repository URL</dt>
+            <dd>
+              {/^https?:\/\//i.test(repository) ? (
+                <a href={repository} target="_blank" rel="noopener noreferrer">
+                  {repository}
+                </a>
+              ) : (
+                repository || "Repository not configured"
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Description</dt>
+            <dd>{component.description || "No description provided."}</dd>
+          </div>
+        </dl>
+      </header>
+      <section aria-label="Component inventory">
+        <dl className="service-inventory-summary">
+          {[
+            { label: "API", count: component.apis.length },
+            { label: "Clients", count: component.clients.length },
+            { label: "Integrations", count: integrationCount },
+          ].map(({ label, count }) => (
+            <div key={label}>
+              <dt>{label}</dt>
+              <dd aria-label={`${label} count`}>{count}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+      <div className="service-overview-tables">
+        <section aria-labelledby="component-apis-heading">
+          <div className="section-heading">
+            <h3 id="component-apis-heading">API {component.apis.length} / 5</h3>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Add API"
+              title="Add API"
+              disabled={component.apis.length >= 5}
+              onClick={onAddAPI}
+            >
+              <Plus />
+            </Button>
+          </div>
+          {component.apis.length ? (
+            <Table
+              aria-label="Component APIs"
+              className="component-api-table service-port-table"
+            >
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead className="service-api-exposure">
+                    Network exposure
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {component.apis.map((api) => (
+                  <TableRow key={api.id}>
+                    <TableCell className="service-port-id">{api.id}</TableCell>
+                    <TableCell>{apiLabel(api.api_type)}</TableCell>
+                    <TableCell className="service-api-exposure">
+                      <div className="port-value-actions">
+                        <span>{titleCase(api.network_exposure)}</span>
+                        <PortMenu
+                          kind="API"
+                          name={apiDisplayName(api)}
+                          onEdit={() => onEditAPI(api)}
+                          onDelete={() => onDeleteAPI(api)}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="detail-empty">No APIs yet</p>
+          )}
+        </section>
+        <section aria-labelledby="component-clients-heading">
+          <div className="section-heading">
+            <h3 id="component-clients-heading">
+              Clients {component.clients.length} / 5
+            </h3>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              aria-label="Add client"
+              title="Add client"
+              disabled={
+                component.clients.length >= 5 ||
+                unusedClientNames(component).length === 0
+              }
+              onClick={onAddClient}
+            >
+              <Plus />
+            </Button>
+          </div>
+          {component.clients.length ? (
+            <Table
+              aria-label="Component clients"
+              className="component-client-table service-port-table"
+            >
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="service-client-integrations">
+                    Integrations
+                  </TableHead>
+                  <TableHead>TLS/SSL</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {component.clients.map((client) => (
+                  <TableRow key={client.id}>
+                    <TableCell className="service-port-id">
+                      {client.id}
+                    </TableCell>
+                    <TableCell>
+                      <div className="port-value-actions">
+                        <span>{clientLabel(client.client_name)}</span>
+                        <PortMenu
+                          kind="client"
+                          name={clientLabel(client.client_name)}
+                          onEdit={() => onEditClient(client)}
+                          onDelete={() => onDeleteClient(client)}
+                          onConnect={() => onConnect(client)}
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="service-client-integrations">
+                      {client.integrations.length}
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className="service-tls-status"
+                        data-secure={client.secure_connection}
+                      >
+                        {client.secure_connection ? "Enabled" : "Disabled"}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="detail-empty">No clients yet</p>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
 function PortMenu({
   kind,
   name,
   onEdit,
   onDelete,
+  onConnect,
 }: {
   kind: string;
   name: string;
   onEdit: () => void;
   onDelete: () => void;
+  onConnect?: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -693,11 +800,67 @@ function PortMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={onEdit}>Edit {kind}</DropdownMenuItem>
-        <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-          Delete {kind}
-        </DropdownMenuItem>
+        <DropdownMenuGroup>
+          <DropdownMenuItem onSelect={onEdit}>Edit {kind}</DropdownMenuItem>
+          {onConnect ? (
+            <DropdownMenuItem onSelect={onConnect}>
+              Integrate {name}
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+            Delete {kind}
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function APIDetailsBadge({
+  api,
+  onEdit,
+}: {
+  api: ComponentAPI;
+  onEdit: () => void;
+}) {
+  return (
+    <HoverCard.Root openDelay={200} closeDelay={150}>
+      <HoverCard.Trigger asChild>
+        <button
+          className="map-api-badge"
+          onClick={onEdit}
+          aria-label={`Edit API ${apiDisplayName(api)}`}
+        >
+          {apiLabel(api.api_type)}
+        </button>
+      </HoverCard.Trigger>
+      <HoverCard.Portal
+        container={
+          typeof document === "undefined"
+            ? undefined
+            : document.fullscreenElement || undefined
+        }
+      >
+        <HoverCard.Content
+          className="api-details-hover"
+          side="left"
+          align="start"
+          sideOffset={8}
+          collisionPadding={12}
+        >
+          <h4>{apiDisplayName(api)}</h4>
+          <dl>
+            <div>
+              <dt>API type</dt>
+              <dd>{apiLabel(api.api_type)}</dd>
+            </div>
+            <div>
+              <dt>Network exposure</dt>
+              <dd>{titleCase(api.network_exposure)}</dd>
+            </div>
+          </dl>
+        </HoverCard.Content>
+      </HoverCard.Portal>
+    </HoverCard.Root>
   );
 }

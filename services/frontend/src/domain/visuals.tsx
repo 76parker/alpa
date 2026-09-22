@@ -4,7 +4,7 @@ import { isInfrastructure } from "@/api/types";
 import {
   languageLabel,
   technologyFor,
-  titleCase,
+  technologySubtitle,
   technologies,
 } from "./catalog";
 const icons: Record<string, string> = {
@@ -167,7 +167,7 @@ export function TypeIcon({ type }: { type: Component["type"] }) {
 }
 export function componentSubtitle(component: Component) {
   return isInfrastructure(component)
-    ? titleCase(component.details.technology_type)
+    ? technologySubtitle(component.details.technology_name)
     : `${"language" in component.details ? languageLabel(component.details.language as Language) : ""} ${component.type === "frontend-service" ? "Frontend Service" : "Backend Service"}`;
 }
 export function componentSystem(component: Component) {

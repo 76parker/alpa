@@ -1,5 +1,5 @@
 import type { components } from "./schema";
-import type { Component } from "./types";
+import type { Component, InfrastructureDetails } from "./types";
 import { languages, technologies } from "@/domain/catalog";
 import { APIError } from "./client";
 
@@ -9,12 +9,9 @@ type LegacyInfrastructureDetails = {
   version?: string;
   network_address?: string[];
 };
-export type ComponentResponse = Omit<
-  components["schemas"]["Component"],
-  "details"
-> & {
+export type ComponentResponse = Omit<Component, "details"> & {
   details:
-    | components["schemas"]["InfrastructureDetails"]
+    | InfrastructureDetails
     | LegacyInfrastructureDetails
     | (Omit<components["schemas"]["BackendServiceDetails"], "language"> & {
         language: string;

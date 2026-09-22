@@ -3,9 +3,11 @@ test.skip(
   !process.env.ALPA_REAL_API,
   "Run only against the disposable local API and database.",
 );
-async function choose(page: Page, label: string, option: string) {
+async function choose(page: Page, label: string, option: string | RegExp) {
   await page.getByRole("combobox", { name: label, exact: true }).click();
-  await page.getByRole("option", { name: option, exact: true }).click();
+  await page
+    .getByRole("option", { name: option, exact: typeof option === "string" })
+    .click();
 }
 test("real API: workspace, product, service, mixed exposure, connection, reload and cleanup", async ({
   page,
@@ -51,7 +53,7 @@ test("real API: workspace, product, service, mixed exposure, connection, reload 
     await page.locator("#component-name").fill("order-service");
     await page.getByRole("button", { name: "Add client", exact: true }).click();
     await choose(page, "Client name 1", "Kafka client");
-    await choose(page, "Role 1", "PRODUCER");
+
     await page.getByRole("button", { name: "Create", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: "order-service" }),
@@ -69,9 +71,9 @@ test("real API: workspace, product, service, mixed exposure, connection, reload 
       .click();
     await choose(page, "Importancy", "CRITICAL");
     await page.getByRole("button", { name: "Add API", exact: true }).click();
-    await page.getByLabel("Topic name 1").fill("orders.internal");
     await page.getByRole("button", { name: "Add API", exact: true }).click();
-    await page.getByLabel("Topic name 2").fill("orders.public");
+    await page.locator("#api-name-0").fill("orders.created");
+    await page.locator("#api-name-1").fill("orders.updated");
     await choose(page, "Exposure 2", "Internet");
     await page
       .getByRole("dialog")
@@ -95,16 +97,31 @@ test("real API: workspace, product, service, mixed exposure, connection, reload 
       ),
     ).toEqual(["internal", "internet"]);
     await page.goto(sourceURL);
-    await page.getByRole("button", { name: "Connect Kafka client" }).click();
-    await choose(page, "Target API", "Kafka / orders.public");
-    await page.getByRole("button", { name: "Create connection" }).click();
+    await page
+      .getByRole("button", { name: "client actions Kafka client" })
+      .click();
+    await page
+      .getByRole("menuitem", { name: "Integrate Kafka client" })
+      .click();
+    await choose(page, "Target API", /^Kafka \/ Topic · Internet · #\d+$/);
+    await page.getByRole("button", { name: "Create integration" }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "client actions Kafka client" })
+      .click();
     await expect(
-      page.getByRole("link", { name: "Kafka · orders.public", exact: true }),
-    ).toBeVisible();
+      page.getByRole("menuitem", { name: "Integrate Kafka client" }),
+    ).toBeEnabled();
+    await page.keyboard.press("Escape");
     await page.reload();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "client actions Kafka client" })
+      .click();
     await expect(
-      page.getByRole("link", { name: "Kafka · orders.public", exact: true }),
-    ).toBeVisible();
+      page.getByRole("menuitem", { name: "Integrate Kafka client" }),
+    ).toBeEnabled();
+    await page.keyboard.press("Escape");
     await page.goto(`${productURL}/architecture`);
     await expect(page.locator(".react-flow__edge")).toHaveCount(1);
     await page.screenshot({
@@ -112,7 +129,7 @@ test("real API: workspace, product, service, mixed exposure, connection, reload 
     });
     await page.goto(infraURL);
     await page
-      .getByRole("button", { name: "API actions orders.public" })
+      .getByRole("button", { name: /^API actions Topic · Internet · #\d+$/ })
       .click();
     await page.getByRole("menuitem", { name: "Delete API" }).click();
     await page
@@ -120,8 +137,14 @@ test("real API: workspace, product, service, mixed exposure, connection, reload 
       .getByRole("button", { name: "Delete", exact: true })
       .click();
     await page.goto(sourceURL);
+    await page
+      .getByRole("button", { name: "client actions Kafka client" })
+      .click();
     await expect(
-      page.getByRole("button", { name: "Connect Kafka client", exact: true }),
+      page.getByRole("menuitem", {
+        name: "Integrate Kafka client",
+        exact: true,
+      }),
     ).toBeVisible();
   } finally {
     if (workspaceID) {

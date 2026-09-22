@@ -67,8 +67,8 @@ describe("API boundary", () => {
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
-            code: "client_already_bound",
-            message: "client is already bound",
+            code: "integration_already_exists",
+            message: "integration already exists",
             status: 409,
           }),
           { status: 409 },
@@ -76,10 +76,13 @@ describe("API boundary", () => {
       ),
     );
     await expect(
-      apiRequest("/v1/components/1/clients/2/bindings", {
+      apiRequest("/v1/integrations", {
         method: "POST",
-        body: JSON.stringify({ api_id: 3 }),
+        body: JSON.stringify({ client_id: 2, api_id: 3, action: "call" }),
       }),
-    ).rejects.toMatchObject({ code: "client_already_bound", status: 409 });
+    ).rejects.toMatchObject({
+      code: "integration_already_exists",
+      status: 409,
+    });
   });
 });

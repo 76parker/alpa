@@ -27,22 +27,19 @@ export function service(id = 1, name = "order-service"): Component {
     apis: [
       {
         id: id * 10,
-        name: "REST API",
+        name: "Orders",
         api_type: "rest",
         network_exposure: "internal",
-        documentation_url: "https://example.com/docs",
       },
     ],
     clients: [
       {
         id: id * 10,
         client_name: "kafka-client",
-        role: "producer",
         communication_type: "events",
-        action: "# Keep action",
         capabilities: "write:orders",
         secure_connection: true,
-        api_id: null,
+        integrations: [],
       },
     ],
   };
@@ -64,17 +61,15 @@ export function infrastructure(id = 2): Component {
     apis: [
       {
         id: id * 10,
-        name: "orders.created",
+        name: "Orders",
         api_type: "topic",
         network_exposure: "internal",
-        documentation_url: null,
       },
       {
         id: id * 10 + 1,
-        name: "orders.updated",
+        name: "Orders",
         api_type: "topic",
         network_exposure: "internet",
-        documentation_url: null,
       },
     ],
     clients: [],
@@ -226,21 +221,18 @@ export async function mockInventory(
       name: body.name!,
       api_type: body.api_type!,
       network_exposure: body.network_exposure!,
-      documentation_url: body.documentation_url || null,
     });
     const createClient = (body: Partial<ComponentClient>): ComponentClient => ({
       id: next++,
       client_name: body.client_name!,
-      role: body.role!,
       communication_type: ["kafka-client", "rabbitmq-client"].includes(
         body.client_name!,
       )
         ? "events"
         : "request-response",
-      action: body.action || null,
       capabilities: body.capabilities || null,
       secure_connection: body.secure_connection || false,
-      api_id: null,
+      integrations: [],
     });
     if (path === "/v1/components" && method === "POST") {
       const item: Component = {
@@ -253,8 +245,64 @@ export async function mockInventory(
       state.components.push(item);
       return respond(route, item, 201);
     }
+    if (path === "/v1/integrations" && method === "POST") {
+      const client = state.components
+        .flatMap((item) => item.clients)
+        .find((item) => item.id === body.client_id);
+      if (!client) return respond(route, { message: "Client not found" }, 404);
+      if (
+        state.conflict ||
+        client.integrations.some((item) => item.api_id === body.api_id)
+      ) {
+        if (state.conflict) {
+          client.integrations.push({
+            ...body,
+            id: next++,
+            description: body.description || null,
+          });
+          state.conflict = false;
+        }
+        return respond(
+          route,
+          {
+            message: "Integration already exists",
+            code: "integration_already_exists",
+          },
+          409,
+        );
+      }
+      const integration = {
+        ...body,
+        id: next++,
+        description: body.description || null,
+      };
+      client.integrations.push(integration);
+      return respond(route, integration, 201);
+    }
+    const integrationPath = path.match(/^\/v1\/integrations\/(\d+)$/);
+    if (integrationPath) {
+      const id = Number(integrationPath[1]);
+      const client = state.components
+        .flatMap((item) => item.clients)
+        .find((item) =>
+          item.integrations.some((integration) => integration.id === id),
+        );
+      const integration = client?.integrations.find((item) => item.id === id);
+      if (!client || !integration)
+        return respond(route, { message: "Integration not found" }, 404);
+      if (method === "DELETE") {
+        client.integrations = client.integrations.filter(
+          (item) => item.id !== id,
+        );
+        return respond(route, null, 204);
+      }
+      if (method === "PATCH") {
+        integration.description = body.description;
+        return respond(route, integration);
+      }
+    }
     const parts = path.match(
-      /^\/v1\/components\/(\d+)(?:\/(apis|clients)(?:\/(\d+)(?:\/(bindings))?)?)?$/,
+      /^\/v1\/components\/(\d+)(?:\/(apis|clients)(?:\/(\d+))?)?$/,
     );
     if (parts) {
       const component = state.components.find(
@@ -270,33 +318,14 @@ export async function mockInventory(
         );
         return respond(route, null, 204);
       }
-      if (parts[4]) {
-        const client = component.clients.find((item) => item.id === portID)!;
-        if (state.conflict || client.api_id !== null) {
-          client.api_id =
-            state.components.flatMap((item) => item.apis)[0]?.id || 10;
-          return respond(
-            route,
-            {
-              message: "Client is already bound",
-              code: "client_already_bound",
-            },
-            409,
-          );
-        }
-        client.api_id = body.api_id;
-        return respond(
-          route,
-          { client_id: client.id, api_id: body.api_id },
-          201,
-        );
-      }
       if (parts[2] === "apis") {
         if (method === "DELETE") {
           component.apis = component.apis.filter((api) => api.id !== portID);
           state.components.forEach((item) =>
             item.clients.forEach((client) => {
-              if (client.api_id === portID) client.api_id = null;
+              client.integrations = client.integrations.filter(
+                (integration) => integration.api_id !== portID,
+              );
             }),
           );
           return respond(route, null, 204);
