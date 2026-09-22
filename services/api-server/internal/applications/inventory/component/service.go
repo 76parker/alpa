@@ -52,7 +52,20 @@ func (s *service) create(ctx context.Context, command CreateCommand) (inventory.
 	if err != nil {
 		return inventory.Component{}, fmt.Errorf("creating component clients: %w", err)
 	}
-
+	if component.Type() == inventory.Infrastructure {
+		details := component.Details().(inventory.InfrastructureComponentDetails)
+		// Only proxy/load-balancer infrastructure components can have clients
+		if details.TechnologyType != inventory.ProxyLB && len(command.Clients) > 0 {
+			return inventory.Component{}, inventory.ErrInfrastructureCannotHaveClient
+		}
+		for _, c := range clients {
+			clientName := c.Type().ClientName()
+			// For proxy/load-balancer infra, only http-proxy-client and grpc-proxy-client are allowed
+			if clientName != inventory.HTTPProxyClient && clientName != inventory.GRPCProxyClient {
+				return inventory.Component{}, inventory.ErrProxyLBTechnologyCanHaveOnlyProxyClients
+			}
+		}
+	}
 	var created inventory.Component
 	err = s.txManager.ExecuteWriteComponentTx(ctx, func(stores TxStores) error {
 		createdComponent, err := stores.Components.Create(ctx, component)
@@ -81,7 +94,7 @@ func (s *service) create(ctx context.Context, command CreateCommand) (inventory.
 func newDomainAPIs(commands []CreateAPICommand) ([]inventory.ComponentAPI, error) {
 	apis := make([]inventory.ComponentAPI, 0, len(commands))
 	for _, command := range commands {
-		api, err := inventory.NewComponentAPI(command.Name, command.APIType, command.NetworkExposure, command.DocumentationURL)
+		api, err := inventory.NewComponentAPI(command.Name, command.APIType, command.NetworkExposure)
 		if err != nil {
 			return nil, err
 		}
@@ -95,8 +108,6 @@ func newDomainClients(commands []CreateClientCommand) ([]inventory.ComponentClie
 	for _, command := range commands {
 		client, err := inventory.NewComponentClient(
 			command.ClientName,
-			command.Role,
-			command.Action,
 			command.Capabilities,
 			command.SecureConnection,
 		)
@@ -126,6 +137,9 @@ func (s *service) get(ctx context.Context, id int64) (inventory.Component, error
 		loadedClients, err := stores.Clients.ListByComponentIDs(ctx, []int64{componentID})
 		if err != nil {
 			return fmt.Errorf("getting component clients in tx: %w", err)
+		}
+		if err := attachIntegrations(ctx, stores.Integrations, loadedClients); err != nil {
+			return fmt.Errorf("getting component integrations in tx: %w", err)
 		}
 		loadedComponent.WithAPIs(loadedAPIs[componentID])
 		loadedComponent.WithClients(loadedClients[componentID])
@@ -168,6 +182,9 @@ func (s *service) listByProduct(
 		if err != nil {
 			return fmt.Errorf("listing clients in tx: %w", err)
 		}
+		if err := attachIntegrations(ctx, stores.Integrations, loadedClients); err != nil {
+			return fmt.Errorf("listing integrations in tx: %w", err)
+		}
 		for _, component := range loadedComponents {
 			component.WithAPIs(loadedAPIs[component.ID()])
 			component.WithClients(loadedClients[component.ID()])
@@ -180,6 +197,30 @@ func (s *service) listByProduct(
 		return nil, fmt.Errorf("listing components tx: %w", err)
 	}
 	return components, nil
+}
+
+func attachIntegrations(
+	ctx context.Context,
+	store IntegrationStore,
+	clientsByComponentID map[int64][]inventory.ComponentClient,
+) error {
+	clientIDs := make([]int64, 0)
+	for _, clients := range clientsByComponentID {
+		for _, client := range clients {
+			clientIDs = append(clientIDs, client.ID())
+		}
+	}
+	integrationsByClientID, err := store.ListByClientIDs(ctx, clientIDs)
+	if err != nil {
+		return err
+	}
+	for componentID, clients := range clientsByComponentID {
+		for index := range clients {
+			clients[index].WithIntegrations(integrationsByClientID[clients[index].ID()])
+		}
+		clientsByComponentID[componentID] = clients
+	}
+	return nil
 }
 
 func (s *service) delete(ctx context.Context, id int64) error {

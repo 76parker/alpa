@@ -40,11 +40,10 @@ func (h *Handler) Create(c *gin.Context) {
 	}
 
 	created, err := h.application.Create(c.Request.Context(), appapis.CreateCommand{
-		ComponentID:      componentID,
-		Name:             request.Name,
-		APIType:          request.APIType,
-		NetworkExposure:  request.NetworkExposure,
-		DocumentationURL: request.DocumentationURL,
+		ComponentID:     componentID,
+		Name:            request.Name,
+		APIType:         request.APIType,
+		NetworkExposure: request.NetworkExposure,
 	})
 	if err != nil {
 		httputil.FailRequest(c, err)
@@ -71,12 +70,11 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 	updated, err := h.application.Update(c.Request.Context(), appapis.UpdateCommand{
-		ComponentID:      componentID,
-		APIID:            apiID,
-		Name:             request.Name,
-		APIType:          request.APIType,
-		NetworkExposure:  request.NetworkExposure,
-		DocumentationURL: request.DocumentationURL,
+		ComponentID:     componentID,
+		APIID:           apiID,
+		Name:            request.Name,
+		APIType:         request.APIType,
+		NetworkExposure: request.NetworkExposure,
 	})
 	if err != nil {
 		httputil.FailRequest(c, err)

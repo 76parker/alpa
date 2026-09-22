@@ -60,7 +60,6 @@
     "version": {
       "type": "string",
       "minLength": 1,
-      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$",
       "maxLength": 50
     },
     "endpoints": {
@@ -69,8 +68,7 @@
       "items": {
         "type": "string",
         "minLength": 1,
-        "maxLength": 50,
-        "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"
+        "maxLength": 50
       }
     },
     "technology_type": {

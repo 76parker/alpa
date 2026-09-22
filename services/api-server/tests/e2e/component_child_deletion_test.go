@@ -7,6 +7,8 @@ import (
 
 	"github.com/76parker/alpa/internal/domain/inventory"
 	httpapis "github.com/76parker/alpa/internal/httpapi/apis"
+	httpclients "github.com/76parker/alpa/internal/httpapi/clients"
+	httpintegrations "github.com/76parker/alpa/internal/httpapi/integrations"
 	"github.com/ozontech/testo"
 	allure "github.com/ozontech/testo-allure"
 )
@@ -14,7 +16,7 @@ import (
 func TestComponentChildDeletionE2E(t *testing.T) {
 	client := environment.server.Client()
 
-	// An API deletion removes only the API and unbinds clients that referenced it.
+	// An API deletion removes only the API and cascades its integrations.
 	t.Run("DeleteAPI", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("API")
@@ -24,16 +26,21 @@ func TestComponentChildDeletionE2E(t *testing.T) {
 		t.Title("Delete an API owned by a component")
 		resetDatabase(t)
 
-		_, sourceComponentID, targetComponentID := createBindingComponents(t, client)
+		_, sourceComponentID, targetComponentID := createIntegrationComponents(t, client)
 		componentClient, statusCode := createTestClient(t, client, sourceComponentID, testRESTClientRequest())
 		t.Require().Equal(http.StatusCreated, statusCode)
 		api, statusCode := createTestAPI(t, client, targetComponentID, httpapis.CreateRequestV1{
-			Name:            "target",
+			Name:            "Target API",
 			APIType:         inventory.REST,
 			NetworkExposure: inventory.InternalExposure,
 		})
 		t.Require().Equal(http.StatusCreated, statusCode)
-		t.Require().Equal(http.StatusCreated, createTestBinding(t, client, sourceComponentID, componentClient.ID, api.ID).Status)
+		created := createTestIntegration(t, client, httpintegrations.CreateRequestV1{
+			ClientID: componentClient.ID,
+			APIID:    api.ID,
+			Action:   inventory.Call,
+		})
+		t.Require().Equal(http.StatusCreated, created.Status)
 
 		statusCode = deleteTestAPI(t, client, targetComponentID, api.ID)
 		t.Require().Equal(http.StatusNoContent, statusCode)
@@ -44,7 +51,7 @@ func TestComponentChildDeletionE2E(t *testing.T) {
 		source, statusCode := getTestComponent(t, client, sourceComponentID)
 		t.Require().Equal(http.StatusOK, statusCode)
 		t.Require().Len(source.Clients, 1)
-		t.Assert().Nil(source.Clients[0].APIID)
+		t.Assert().Empty(source.Clients[0].Integrations)
 	}, allureArtifactsDir))
 
 	// A client deletion removes only the selected client from its owning component.
@@ -62,7 +69,9 @@ func TestComponentChildDeletionE2E(t *testing.T) {
 		t.Require().Equal(http.StatusCreated, statusCode)
 		firstClient, statusCode := createTestClient(t, client, component.ID, testRESTClientRequest())
 		t.Require().Equal(http.StatusCreated, statusCode)
-		secondClient, statusCode := createTestClient(t, client, component.ID, testRESTClientRequest())
+		secondClient, statusCode := createTestClient(t, client, component.ID, httpclients.CreateRequestV1{
+			ClientName: inventory.GraphQLClient,
+		})
 		t.Require().Equal(http.StatusCreated, statusCode)
 
 		statusCode = deleteTestClient(t, client, component.ID, firstClient.ID)
@@ -83,7 +92,7 @@ func TestComponentChildDeletionE2E(t *testing.T) {
 		second, statusCode := createTestComponent(t, client, testBackendComponentRequest(product.ID, "Second"))
 		t.Require().Equal(http.StatusCreated, statusCode)
 		api, statusCode := createTestAPI(t, client, first.ID, httpapis.CreateRequestV1{
-			Name:            "first",
+			Name:            "First API",
 			APIType:         inventory.REST,
 			NetworkExposure: inventory.InternalExposure,
 		})

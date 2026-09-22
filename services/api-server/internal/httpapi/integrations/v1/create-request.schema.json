@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["client_id", "api_id", "action"],
+  "properties": {
+    "client_id": { "type": "integer", "minimum": 1 },
+    "api_id": { "type": "integer", "minimum": 1 },
+    "action": { "type": "string", "enum": ["consume", "produce", "call", "listen-events"] },
+    "description": { "type": ["string", "null"], "minLength": 1, "maxLength": 1000 }
+  }
+}

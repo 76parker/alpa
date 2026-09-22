@@ -14,7 +14,6 @@ import (
 type application interface {
 	Create(ctx context.Context, command appclients.CreateCommand) (inventory.ComponentClient, error)
 	Update(ctx context.Context, command appclients.UpdateCommand) (inventory.ComponentClient, error)
-	BindAPI(ctx context.Context, command appclients.BindAPICommand) (inventory.ComponentClient, error)
 	Delete(ctx context.Context, componentID int64, clientID int64) error
 }
 type Handler struct {
@@ -24,35 +23,6 @@ type Handler struct {
 
 func NewHandler(application application, validate *validator.Validate) *Handler {
 	return &Handler{application: application, validator: validate}
-}
-
-func (h *Handler) BindAPI(c *gin.Context) {
-	componentID, err := httputil.ParseID(c, "component_id")
-	if err != nil {
-		httputil.FailRequest(c, err)
-		return
-	}
-	clientID, err := httputil.ParseID(c, "id")
-	if err != nil {
-		httputil.FailRequest(c, err)
-		return
-	}
-	request, err := httputil.DecodeAndValidateJSON[BindAPIRequestV1](c, h.validator)
-	if err != nil {
-		httputil.FailRequest(c, err)
-		return
-	}
-
-	updated, err := h.application.BindAPI(c.Request.Context(), appclients.BindAPICommand{
-		ComponentID: componentID,
-		ClientID:    clientID,
-		APIID:       request.APIID,
-	})
-	if err != nil {
-		httputil.FailRequest(c, err)
-		return
-	}
-	c.JSON(http.StatusCreated, NewBindAPIResponseV1(updated))
 }
 
 func (h *Handler) Create(c *gin.Context) {
@@ -71,8 +41,6 @@ func (h *Handler) Create(c *gin.Context) {
 	created, err := h.application.Create(c.Request.Context(), appclients.CreateCommand{
 		ComponentID:      componentID,
 		ClientName:       request.ClientName,
-		Role:             request.Role,
-		Action:           request.Action,
 		Capabilities:     request.Capabilities,
 		SecureConnection: request.SecureConnection,
 	})
@@ -104,8 +72,6 @@ func (h *Handler) Update(c *gin.Context) {
 		ComponentID:      componentID,
 		ClientID:         clientID,
 		ClientName:       request.ClientName,
-		Role:             request.Role,
-		Action:           request.Action,
 		Capabilities:     request.Capabilities,
 		SecureConnection: request.SecureConnection,
 	})

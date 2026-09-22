@@ -18,22 +18,27 @@ type ResponseV1 struct {
 }
 
 type APIResponseV1 struct {
-	ID               int64                     `json:"id"`
-	Name             string                    `json:"name"`
-	APIType          inventory.APIType         `json:"api_type"`
-	NetworkExposure  inventory.NetworkExposure `json:"network_exposure"`
-	DocumentationURL *string                   `json:"documentation_url"`
+	ID              int64                     `json:"id"`
+	Name            string                    `json:"name"`
+	APIType         inventory.APIType         `json:"api_type"`
+	NetworkExposure inventory.NetworkExposure `json:"network_exposure"`
 }
 
 type ClientResponseV1 struct {
 	ID                int64                         `json:"id"`
 	ClientName        inventory.ComponentClientName `json:"client_name"`
-	Role              inventory.ComponentClientRole `json:"role"`
 	CommunicationType inventory.CommunicationType   `json:"communication_type"`
-	Action            *string                       `json:"action"`
 	Capabilities      *string                       `json:"capabilities"`
 	SecureConnection  bool                          `json:"secure_connection"`
-	APIID             *int64                        `json:"api_id"`
+	Integrations      []IntegrationResponseV1       `json:"integrations"`
+}
+
+type IntegrationResponseV1 struct {
+	ID          int64                  `json:"id"`
+	ClientID    int64                  `json:"client_id"`
+	APIID       int64                  `json:"api_id"`
+	Action      inventory.ClientAction `json:"action"`
+	Description *string                `json:"description"`
 }
 
 type BackendServiceDetailsResponseV1 struct {
@@ -64,26 +69,32 @@ func NewResponseV1(component inventory.Component) (ResponseV1, error) {
 	apis := make([]APIResponseV1, 0, len(componentAPIs))
 	for _, componentAPI := range componentAPIs {
 		apis = append(apis, APIResponseV1{
-			ID:               componentAPI.ID(),
-			Name:             componentAPI.Name(),
-			APIType:          componentAPI.APIType(),
-			NetworkExposure:  componentAPI.Exposure(),
-			DocumentationURL: componentAPI.DocumentationURL(),
+			ID:              componentAPI.ID(),
+			Name:            componentAPI.Name(),
+			APIType:         componentAPI.APIType(),
+			NetworkExposure: componentAPI.Exposure(),
 		})
 	}
 	clients := make([]ClientResponseV1, 0, len(component.Clients()))
 	for _, componentClient := range component.Clients() {
+		componentIntegrations := componentClient.Integrations()
+		integrations := make([]IntegrationResponseV1, 0, len(componentIntegrations))
+		for _, integration := range componentIntegrations {
+			integrations = append(integrations, IntegrationResponseV1{
+				ID:          integration.ID(),
+				ClientID:    integration.ClientID(),
+				APIID:       integration.APIID(),
+				Action:      integration.Action(),
+				Description: integration.Description(),
+			})
+		}
 		response := ClientResponseV1{
 			ID:                componentClient.ID(),
 			ClientName:        componentClient.Type().ClientName(),
-			Role:              componentClient.Type().Role(),
 			CommunicationType: componentClient.Type().CommunicationType(),
-			Action:            componentClient.Action(),
 			Capabilities:      componentClient.Capabilities(),
 			SecureConnection:  componentClient.SecureConnection(),
-		}
-		if apiID := componentClient.APIID(); apiID != nil {
-			response.APIID = apiID
+			Integrations:      integrations,
 		}
 		clients = append(clients, response)
 	}

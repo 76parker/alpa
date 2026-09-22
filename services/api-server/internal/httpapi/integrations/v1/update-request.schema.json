@@ -2,13 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "api_id"
-  ],
+  "required": ["description"],
   "properties": {
-    "api_id": {
-      "type": "integer",
-      "minimum": 1
-    }
+    "description": { "type": ["string", "null"], "minLength": 1, "maxLength": 1000 }
   }
 }

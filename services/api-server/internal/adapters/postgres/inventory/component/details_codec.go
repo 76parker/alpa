@@ -78,7 +78,7 @@ func Decode(
 	}
 
 	switch componentType {
-	case inventory.ComponentTypeBackend:
+	case inventory.Backend:
 		var payload BackendServiceDetailsV1
 		if err := json.Unmarshal(raw, &payload); err != nil {
 			return nil, fmt.Errorf("%w: decode backend service v1: %w", errInvalidDetails, err)
@@ -95,7 +95,7 @@ func Decode(
 			return nil, fmt.Errorf("%w: restore backend service v1: %w", errInvalidDetails, err)
 		}
 		return details, nil
-	case inventory.ComponentTypeFrontend:
+	case inventory.Frontend:
 		var payload FrontendServiceDetailsV1
 		if err := json.Unmarshal(raw, &payload); err != nil {
 			return nil, fmt.Errorf("%w: decode frontend service v1: %w", errInvalidDetails, err)
@@ -113,7 +113,7 @@ func Decode(
 			return nil, fmt.Errorf("%w: restore frontend service v1: %w", errInvalidDetails, err)
 		}
 		return details, nil
-	case inventory.ComponentTypeInfrastructure:
+	case inventory.Infrastructure:
 		var payload InfrastructureDetailsV1
 		if err := json.Unmarshal(raw, &payload); err != nil {
 			return nil, fmt.Errorf("%w: decode infrastructure v1: %w", errInvalidDetails, err)

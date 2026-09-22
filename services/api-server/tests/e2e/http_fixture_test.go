@@ -16,13 +16,16 @@ import (
 	repoapis "github.com/76parker/alpa/internal/adapters/postgres/inventory/apis"
 	repoclients "github.com/76parker/alpa/internal/adapters/postgres/inventory/client"
 	repocomponent "github.com/76parker/alpa/internal/adapters/postgres/inventory/component"
+	repointegration "github.com/76parker/alpa/internal/adapters/postgres/inventory/integration"
 	"github.com/76parker/alpa/internal/adapters/postgres/tx"
 	appapis "github.com/76parker/alpa/internal/applications/inventory/apis"
 	appclients "github.com/76parker/alpa/internal/applications/inventory/client"
 	appcomponent "github.com/76parker/alpa/internal/applications/inventory/component"
+	appintegration "github.com/76parker/alpa/internal/applications/inventory/integration"
 	httpapis "github.com/76parker/alpa/internal/httpapi/apis"
 	httpclients "github.com/76parker/alpa/internal/httpapi/clients"
 	httpcomponent "github.com/76parker/alpa/internal/httpapi/component"
+	httpintegrations "github.com/76parker/alpa/internal/httpapi/integrations"
 
 	repoproduct "github.com/76parker/alpa/internal/adapters/postgres/inventory/product"
 	appproduct "github.com/76parker/alpa/internal/applications/inventory/product"
@@ -47,6 +50,9 @@ func newTestHTTPServer(pool *pgxpool.Pool) (*httptest.Server, error) {
 	clientRepository := repoclients.NewRepository(pool)
 	clientApplication := appclients.NewApplication(clientRepository, txManager)
 	clientHandler := httpclients.NewHandler(clientApplication, validate)
+	integrationRepository := repointegration.NewRepository(pool)
+	integrationApplication := appintegration.NewApplication(integrationRepository, txManager)
+	integrationHandler := httpintegrations.NewHandler(integrationApplication, validate)
 
 	componentRepository := repocomponent.NewRepository(pool)
 	componentApplication := appcomponent.NewApplication(componentRepository, txManager)
@@ -64,11 +70,12 @@ func newTestHTTPServer(pool *pgxpool.Pool) (*httptest.Server, error) {
 		MaxHeaderBytes:    1024 * 1024,
 	}
 	handlers := httpapi.Handlers{
-		Workspace: workspaceHandler,
-		Product:   productHandler,
-		Component: componentHandler,
-		APIs:      apiHandler,
-		Clients:   clientHandler,
+		Workspace:    workspaceHandler,
+		Product:      productHandler,
+		Component:    componentHandler,
+		APIs:         apiHandler,
+		Clients:      clientHandler,
+		Integrations: integrationHandler,
 	}
 
 	server := httpapi.NewServer(context.Background(), testCfg, logger.NewMockLogger(), handlers)

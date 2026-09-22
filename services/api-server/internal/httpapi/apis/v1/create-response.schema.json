@@ -2,12 +2,28 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "name", "api_type", "network_exposure", "documentation_url"],
+  "required": [
+    "name",
+    "id",
+    "api_type",
+    "network_exposure"
+  ],
   "properties": {
-    "id": { "type": "integer", "minimum": 1 },
-    "name": { "type": "string" },
-    "api_type": { "type": "string" },
-    "network_exposure": { "type": "string" },
-    "documentation_url": { "type": ["string", "null"], "format": "uri", "maxLength": 2048 }
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Required API name with up to 20 non-whitespace characters; surrounding whitespace is trimmed.",
+      "pattern": "^(?=\\s*\\S)(?:\\s*\\S){1,20}\\s*$"
+    },
+    "id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "api_type": {
+      "type": "string"
+    },
+    "network_exposure": {
+      "type": "string"
+    }
   }
 }

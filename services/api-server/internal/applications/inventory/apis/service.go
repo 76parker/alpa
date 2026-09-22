@@ -32,7 +32,7 @@ func (s *service) create(ctx context.Context, command CreateCommand) (inventory.
 		return inventory.ComponentAPI{}, inventory.ErrNegativeID
 	}
 
-	api, err := inventory.NewComponentAPI(command.Name, command.APIType, command.NetworkExposure, command.DocumentationURL)
+	api, err := inventory.NewComponentAPI(command.Name, command.APIType, command.NetworkExposure)
 	if err != nil {
 		return inventory.ComponentAPI{}, fmt.Errorf("create domain api: %w", err)
 	}
@@ -62,7 +62,7 @@ func (s *service) update(ctx context.Context, command UpdateCommand) (inventory.
 	if command.ComponentID <= 0 || command.APIID <= 0 {
 		return inventory.ComponentAPI{}, inventory.ErrNegativeID
 	}
-	api, err := inventory.NewComponentAPI(command.Name, command.APIType, command.NetworkExposure, command.DocumentationURL)
+	api, err := inventory.NewComponentAPI(command.Name, command.APIType, command.NetworkExposure)
 	if err != nil {
 		return inventory.ComponentAPI{}, fmt.Errorf("update domain api: %w", err)
 	}

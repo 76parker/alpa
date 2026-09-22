@@ -38,6 +38,23 @@ func TestWorkspaceE2E(t *testing.T) {
 		})
 	}, allureArtifactsDir))
 
+	t.Run("CreateWorkspaceWithUnicodeAndMarkdownName", testo.Test(func(t T) {
+		t.Epic("Inventory")
+		t.Feature("Workspace")
+		t.Story("Create workspace")
+		t.Tags("e2e", "positive")
+		t.Severity(allure.SeverityCritical)
+		t.Title("Create workspace with Unicode and Markdown symbols in its name")
+		resetDatabase(t)
+
+		expectedName := "Продукт\n# *важный* `код` > [x] ~ | \\"
+		createdWorkspace, statusCode := createTestWorkspace(t, serverURL, client, expectedName)
+		allure.Step(t, "verify Unicode and Markdown workspace name", func(t T) {
+			t.Require().Equal(http.StatusCreated, statusCode, "workspace creation accepts Unicode and Markdown text")
+			t.Assert().Equal(expectedName, createdWorkspace.Name, "workspace preserves Unicode and Markdown text")
+		})
+	}, allureArtifactsDir))
+
 	t.Run("InvalidCreateRequest", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Workspace")

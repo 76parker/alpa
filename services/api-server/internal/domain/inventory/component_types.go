@@ -3,9 +3,9 @@ package inventory
 type ComponentType string
 
 const (
-	ComponentTypeFrontend       ComponentType = "frontend-service"
-	ComponentTypeBackend        ComponentType = "backend-service"
-	ComponentTypeInfrastructure ComponentType = "infrastructure"
+	Frontend       ComponentType = "frontend-service"
+	Backend        ComponentType = "backend-service"
+	Infrastructure ComponentType = "infrastructure"
 )
 
 type TechnologyName string
@@ -81,7 +81,7 @@ const (
 	WorkflowEngine TechnologyType = "workflow-engine"
 	ServiceMesh    TechnologyType = "service-mesh"
 	APIGateway     TechnologyType = "api-gateway"
-	LoadBalancer   TechnologyType = "load-balancer"
+	ProxyLB        TechnologyType = "proxy/load-balancer"
 
 	IdentityProvider TechnologyType = "identity-provider"
 	SecretStorage    TechnologyType = "secret-storage"

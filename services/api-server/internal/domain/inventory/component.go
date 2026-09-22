@@ -17,6 +17,7 @@ var (
 	ErrInvalidDescription               = errors.New("invalid component description")
 	ErrInvalidInfrastructureCriticality = errors.New("invalid infrastructure criticality")
 	ErrTechnologyTypeMismatch           = errors.New("technology type and technology name mismatch")
+	ErrInfrastructureCannotHaveClient   = errors.New("only proxy/load-balancer technology types can have clients")
 )
 
 type ComponentDetails interface {
@@ -72,9 +73,9 @@ func NewComponent(
 
 func isValidComponentType(componentType ComponentType) bool {
 	switch componentType {
-	case ComponentTypeBackend,
-		ComponentTypeFrontend,
-		ComponentTypeInfrastructure:
+	case Backend,
+		Frontend,
+		Infrastructure:
 		return true
 	default:
 		return false

@@ -8,6 +8,7 @@ import (
 	"github.com/76parker/alpa/internal/httpapi/apis"
 	"github.com/76parker/alpa/internal/httpapi/clients"
 	"github.com/76parker/alpa/internal/httpapi/component"
+	"github.com/76parker/alpa/internal/httpapi/integrations"
 	"github.com/76parker/alpa/internal/httpapi/product"
 	"github.com/76parker/alpa/internal/httpapi/workspace"
 	"github.com/76parker/alpa/internal/observability/logger"
@@ -16,12 +17,13 @@ import (
 )
 
 type Handlers struct {
-	UI        http.Handler
-	Workspace *workspace.Handler
-	Product   *product.Handler
-	Component *component.Handler
-	APIs      *apis.Handler
-	Clients   *clients.Handler
+	UI           http.Handler
+	Workspace    *workspace.Handler
+	Product      *product.Handler
+	Component    *component.Handler
+	APIs         *apis.Handler
+	Clients      *clients.Handler
+	Integrations *integrations.Handler
 }
 
 func newRouter(log logger.Logger, handlers Handlers) *gin.Engine {
@@ -37,6 +39,7 @@ func newRouter(log logger.Logger, handlers Handlers) *gin.Engine {
 	initComponentRoutes(v1, &handlers)
 	initAPIRoutes(v1, &handlers)
 	initClientRoutes(v1, &handlers)
+	initIntegrationRoutes(v1, &handlers)
 	if handlers.UI != nil {
 		router.NoRoute(func(c *gin.Context) {
 			first := strings.SplitN(strings.TrimPrefix(c.Request.URL.Path, "/"), "/", 2)[0]
@@ -91,11 +94,12 @@ func initClientRoutes(group *gin.RouterGroup, handlers *Handlers) {
 	group.POST("/components/:component_id/clients", handlerName("client.create"), handlers.Clients.Create)
 	group.PUT("/components/:component_id/clients/:id", handlerName("client.update"), handlers.Clients.Update)
 	group.DELETE("/components/:component_id/clients/:id", handlerName("client.delete"), handlers.Clients.Delete)
-	group.POST(
-		"/components/:component_id/clients/:id/bindings",
-		handlerName("client_binding.create"),
-		handlers.Clients.BindAPI,
-	)
+}
+
+func initIntegrationRoutes(group *gin.RouterGroup, handlers *Handlers) {
+	group.POST("/integrations", handlerName("integration.create"), handlers.Integrations.Create)
+	group.PATCH("/integrations/:id", handlerName("integration.update_description"), handlers.Integrations.UpdateDescription)
+	group.DELETE("/integrations/:id", handlerName("integration.delete"), handlers.Integrations.Delete)
 }
 
 func initProductRoutes(group *gin.RouterGroup, handlers *Handlers) {

@@ -28,11 +28,10 @@ func (r *Repository) Create(
 	api inventory.ComponentAPI,
 ) (inventory.ComponentAPI, error) {
 	row, err := r.queries.CreateAPI(ctx, sqlc.CreateAPIParams{
-		ComponentID:      componentID,
-		Name:             api.Name(),
-		ApiType:          string(api.APIType()),
-		NetworkExposure:  sqlc.InventoryNetworkExposure(api.Exposure()),
-		DocumentationUrl: api.DocumentationURL(),
+		ComponentID:     componentID,
+		Name:            api.Name(),
+		ApiType:         string(api.APIType()),
+		NetworkExposure: sqlc.InventoryNetworkExposure(api.Exposure()),
 	})
 	if err != nil {
 		return inventory.ComponentAPI{}, fmt.Errorf("create api: %w", mapCreateError(err))
@@ -43,23 +42,21 @@ func (r *Repository) Create(
 		row.Name,
 		inventory.NetworkExposure(row.NetworkExposure),
 		inventory.APIType(row.ApiType),
-		row.DocumentationUrl,
 	), nil
 }
 
 func (r *Repository) Update(ctx context.Context, componentID, apiID int64, api inventory.ComponentAPI) (inventory.ComponentAPI, error) {
 	row, err := r.queries.UpdateAPI(ctx, sqlc.UpdateAPIParams{
-		Name:             api.Name(),
-		ApiType:          string(api.APIType()),
-		NetworkExposure:  sqlc.InventoryNetworkExposure(api.Exposure()),
-		DocumentationUrl: api.DocumentationURL(),
-		ApiID:            apiID,
-		ComponentID:      componentID,
+		Name:            api.Name(),
+		ApiType:         string(api.APIType()),
+		NetworkExposure: sqlc.InventoryNetworkExposure(api.Exposure()),
+		ApiID:           apiID,
+		ComponentID:     componentID,
 	})
 	if err != nil {
 		return inventory.ComponentAPI{}, fmt.Errorf("update api: %w", postgres.MapDatabaseError(err))
 	}
-	return inventory.RestoreAPI(row.ID, row.Name, inventory.NetworkExposure(row.NetworkExposure), inventory.APIType(row.ApiType), row.DocumentationUrl), nil
+	return inventory.RestoreAPI(row.ID, row.Name, inventory.NetworkExposure(row.NetworkExposure), inventory.APIType(row.ApiType)), nil
 }
 
 func (r *Repository) BatchCreate(
@@ -73,21 +70,15 @@ func (r *Repository) BatchCreate(
 	}
 
 	params := sqlc.BatchCreateAPIsParams{
-		ComponentID:       componentID,
-		Names:             make([]string, 0, len(apis)),
-		ApiTypes:          make([]string, 0, len(apis)),
-		NetworkExposures:  make([]string, 0, len(apis)),
-		DocumentationUrls: make([]string, 0, len(apis)),
+		ComponentID:      componentID,
+		Names:            make([]string, 0, len(apis)),
+		ApiTypes:         make([]string, 0, len(apis)),
+		NetworkExposures: make([]string, 0, len(apis)),
 	}
 	for _, api := range apis {
 		params.Names = append(params.Names, api.Name())
 		params.ApiTypes = append(params.ApiTypes, string(api.APIType()))
 		params.NetworkExposures = append(params.NetworkExposures, string(api.Exposure()))
-		if documentationURL := api.DocumentationURL(); documentationURL != nil {
-			params.DocumentationUrls = append(params.DocumentationUrls, *documentationURL)
-		} else {
-			params.DocumentationUrls = append(params.DocumentationUrls, "")
-		}
 	}
 
 	rows, err := r.queries.BatchCreateAPIs(ctx, params)
@@ -100,7 +91,6 @@ func (r *Repository) BatchCreate(
 			row.Name,
 			inventory.NetworkExposure(row.NetworkExposure),
 			inventory.APIType(row.ApiType),
-			row.DocumentationUrl,
 		))
 	}
 	sort.Slice(created, func(i, j int) bool { return created[i].ID() < created[j].ID() })
@@ -146,7 +136,6 @@ func (r *Repository) ListByComponentIDs(
 				row.Name,
 				inventory.NetworkExposure(row.NetworkExposure),
 				inventory.APIType(row.ApiType),
-				row.DocumentationUrl,
 			),
 		)
 	}

@@ -42,16 +42,13 @@ type CreateCommand struct {
 }
 
 type CreateAPICommand struct {
-	Name             string
-	APIType          inventory.APIType
-	NetworkExposure  inventory.NetworkExposure
-	DocumentationURL *string
+	Name            string
+	APIType         inventory.APIType
+	NetworkExposure inventory.NetworkExposure
 }
 
 type CreateClientCommand struct {
 	ClientName       inventory.ComponentClientName
-	Role             inventory.ComponentClientRole
-	Action           *string
 	Capabilities     *string
 	SecureConnection bool
 }

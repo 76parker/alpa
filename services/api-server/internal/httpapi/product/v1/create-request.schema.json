@@ -29,14 +29,12 @@
     "string": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 50,
-      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"
+      "maxLength": 50
     },
     "description": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1000,
-      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"
+      "maxLength": 1000
     }
   }
 }

@@ -5,12 +5,9 @@
   "required": [
     "id",
     "client_name",
-    "role",
     "communication_type",
-    "action",
     "capabilities",
-    "secure_connection",
-    "api_id"
+    "secure_connection"
   ],
   "properties": {
     "id": {
@@ -46,19 +43,10 @@
         "native-protocol-client"
       ]
     },
-    "role": {
-      "type": "string",
-      "maxLength": 50,
-      "enum": ["listener", "caller", "producer", "consumer"]
-    },
     "communication_type": {
       "type": "string",
       "maxLength": 50,
       "enum": ["request-response", "polling", "long-polling", "events", "stream"]
-    },
-    "action": {
-      "type": ["string", "null"],
-      "maxLength": 2097152
     },
     "capabilities": {
       "type": ["string", "null"],
@@ -66,17 +54,6 @@
     },
     "secure_connection": {
       "type": "boolean"
-    },
-    "api_id": {
-      "oneOf": [
-        {
-          "type": "null"
-        },
-        {
-          "type": "integer",
-          "minimum": 1
-        }
-      ]
     }
   }
 }

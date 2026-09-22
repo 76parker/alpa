@@ -48,6 +48,38 @@ func TestProductE2E(t *testing.T) {
 		})
 
 	}, allureArtifactsDir))
+
+	t.Run("CreateProductWithUnicodeAndMarkdownText", testo.Test(func(t T) {
+		t.Epic("Inventory")
+		t.Feature("Product")
+		t.Story("Create product")
+		t.Severity(allure.SeverityCritical)
+		t.Tags("e2e", "positive")
+		t.Title("Create product with Unicode and Markdown in text fields")
+		resetDatabase(t)
+
+		workspace, statusCode := createTestWorkspace(t, environment.server.URL, client, "Тестовое пространство")
+		allure.Step(t, "verify Unicode workspace prerequisite", func(t T) {
+			t.Require().Equal(http.StatusCreated, statusCode, "workspace creation accepts Unicode text")
+		})
+
+		description := "Описание:\n# Заголовок\n* пункт * `код` > цитата [ссылка](https://example.com) ~~черновик~~ | \\"
+		testRequest := product.CreateRequestV1{
+			Name:         "Продукт *API*",
+			Criticality:  inventory.CriticalityMissionCritical,
+			OwningTeamID: nil,
+			Description:  &description,
+			ProductCode:  "MD",
+		}
+		createdProduct, statusCode := createTestProduct(t, client, workspace.ID, testRequest)
+		allure.Step(t, "verify Unicode and Markdown product fields", func(t T) {
+			t.Require().Equal(http.StatusCreated, statusCode, "product creation accepts Unicode and Markdown text")
+			t.Assert().Equal(testRequest.Name, createdProduct.Name, "product preserves Unicode and Markdown name")
+			t.Require().NotNil(createdProduct.Description, "product preserves its description")
+			t.Assert().Equal(description, *createdProduct.Description, "product preserves Unicode and Markdown description")
+		})
+	}, allureArtifactsDir))
+
 	t.Run("CreateProductWithInvalidCriticality", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Product")
@@ -98,21 +130,21 @@ func TestProductE2E(t *testing.T) {
 		t.Story("Create product")
 		t.Severity(allure.SeverityCritical)
 		t.Tags("e2e", "negative")
-		t.Title("Reject create product with invalid name")
+		t.Title("Reject create product with an empty name")
 		resetDatabase(t)
 		workspace, statusCode := createTestWorkspace(t, environment.server.URL, client, "Test Workspace")
 		allure.Step(t, "verify prerequisite workspace", func(t T) {
 			t.Require().Equal(http.StatusCreated, statusCode, "workspace creation returns 201 Created")
 		})
 		testRequest := product.CreateRequestV1{
-			Name:         "<><f1ffsdf!,.<",
+			Name:         "",
 			Criticality:  inventory.CriticalityMissionCritical,
 			OwningTeamID: nil,
 			Description:  nil,
 			ProductCode:  "TP",
 		}
 		_, statusCode = createTestProduct(t, client, workspace.ID, testRequest)
-		allure.Step(t, "verify rejection for invalid product name", func(t T) {
+		allure.Step(t, "verify rejection for empty product name", func(t T) {
 			t.Require().Equal(http.StatusBadRequest, statusCode, "product creation with an invalid name returns 400 Bad Request")
 		})
 	}, allureArtifactsDir))

@@ -1,13 +1,18 @@
 package inventory
 
-import "errors"
+import (
+	"errors"
+	"unicode"
+)
 
 var (
-	ErrInvalidAPIName   = errors.New("invalid api name")
 	ErrUnknownAPIType   = errors.New("unknown component api type")
 	ErrInvalidExposure  = errors.New("unknown network exposure: available exposures: 'internal', 'internet'")
 	ErrAPILimitExceeded = errors.New("api limit exceeded: max is 5")
+	ErrInvalidAPIName   = errors.New("invalid api name")
 )
+
+const maxAPINameLength = 20
 
 type ComponentAPI struct {
 	id                int64
@@ -15,16 +20,14 @@ type ComponentAPI struct {
 	exposure          NetworkExposure
 	apiType           APIType
 	transportProtocol TransportProtocol
-	documentationURL  *string
 }
 
 func NewComponentAPI(
 	name string,
 	apiType APIType,
 	exposure NetworkExposure,
-	documentationURL *string,
 ) (ComponentAPI, error) {
-	if name == "" {
+	if !isValidAPIName(name) {
 		return ComponentAPI{}, ErrInvalidAPIName
 	}
 	if !isValidAPIType(apiType) {
@@ -40,13 +43,27 @@ func NewComponentAPI(
 		apiType:           apiType,
 		transportProtocol: transportProtocol,
 		exposure:          exposure,
-		documentationURL:  cloneStringPointer(documentationURL),
 	}, nil
+}
+
+func isValidAPIName(name string) bool {
+	characterCount := 0
+	for _, character := range name {
+		if unicode.IsSpace(character) {
+			continue
+		}
+		characterCount++
+		if characterCount > maxAPINameLength {
+			return false
+		}
+	}
+	return characterCount > 0
 }
 
 func (a *ComponentAPI) ID() int64 {
 	return a.id
 }
+
 func (a *ComponentAPI) Name() string {
 	return a.name
 }
@@ -55,10 +72,6 @@ func (a *ComponentAPI) Exposure() NetworkExposure {
 }
 func (a *ComponentAPI) APIType() APIType {
 	return a.apiType
-}
-
-func (a *ComponentAPI) DocumentationURL() *string {
-	return a.documentationURL
 }
 
 func (a *ComponentAPI) TransportProtocol() TransportProtocol {
@@ -93,14 +106,12 @@ func RestoreAPI(
 	name string,
 	exposure NetworkExposure,
 	apiType APIType,
-	documentationURL *string,
 ) ComponentAPI {
 	return ComponentAPI{
-		id:               id,
-		name:             name,
-		exposure:         exposure,
-		apiType:          apiType,
-		documentationURL: cloneStringPointer(documentationURL),
+		id:       id,
+		name:     name,
+		exposure: exposure,
+		apiType:  apiType,
 	}
 }
 

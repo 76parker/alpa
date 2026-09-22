@@ -42,7 +42,6 @@ func TestDecodeAndValidateJSONBytes(t *testing.T) {
 		{name: "unknown top-level field", body: `{"name":"Checkout API","product_code":"PAY","unknown":true}`, wantJSONError: true},
 		{name: "trailing JSON value", body: `{"name":"Checkout API","product_code":"PAY"} {}`, wantJSONError: true},
 		{name: "missing field passes to domain", body: `{"product_code":"PAY"}`, want: validationRequest{ProductCode: "PAY"}},
-		{name: "invalid allowed text", body: `{"name":"Продукт","product_code":"PAY"}`, wantField: "name", wantTag: "allowed_text"},
 		{name: "product code format passes to domain", body: `{"name":"Checkout API","product_code":"pay"}`, want: validationRequest{Name: "Checkout API", ProductCode: "pay"}},
 		{name: "empty optional description", body: `{"name":"Checkout API","product_code":"PAY","description":""}`, wantField: "description", wantTag: "min"},
 	}

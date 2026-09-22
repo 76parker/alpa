@@ -14,43 +14,39 @@ import (
 type Code string
 
 const (
-	CodeUnknownTechnologyName                      Code = "unknown_technology_name"
-	CodeUnknownLanguage                            Code = "unknown_language"
-	CodeUnknownTechnologyType                      Code = "unknown_technology_type"
-	CodeTooManyEndpoints                           Code = "too_many_endpoints"
-	CodeInvalidProductCode                         Code = "invalid_product_code"
-	CodeInvalidID                                  Code = "invalid_id"
-	CodeInvalidWorkspaceName                       Code = "invalid_workspace_name"
-	CodeInvalidProductName                         Code = "invalid_product_name"
-	CodeInvalidCriticality                         Code = "invalid_criticality"
-	CodeInvalidImportancy                          Code = "invalid_importancy"
-	CodeInvalidComponentName                       Code = "invalid_component_name"
-	CodeUnknownComponentType                       Code = "unknown_component_type"
-	CodeEmptyComponentDetails                      Code = "empty_component_details"
-	CodeInvalidComponentDetails                    Code = "invalid_component_details"
-	CodeComponentDetailsTypeMismatch               Code = "component_details_type_mismatch"
-	CodeInvalidComponentDescription                Code = "invalid_component_description"
-	CodeInvalidAPIName                             Code = "invalid_api_name"
-	CodeUnknownAPIType                             Code = "unknown_api_type"
-	CodeInvalidNetworkExposure                     Code = "invalid_network_exposure"
-	CodeAPILimitExceeded                           Code = "api_limit_exceeded"
-	CodeInvalidClientType                          Code = "invalid_client_type"
-	CodeAsyncClientCannotBeCallerRole              Code = "async_client_cannot_be_caller_role"
-	CodeAsyncClientInvalidCommunicationType        Code = "async_client_invalid_communication_type"
-	CodeStreamingClientCanBeOnlyListener           Code = "streaming_client_can_be_only_listener"
-	CodeStreamingClientInvalidCommunicationType    Code = "streaming_client_invalid_communication_type"
-	CodeSyncClientCanBeOnlyCallerRole              Code = "sync_client_can_be_only_caller_role"
-	CodeSyncCallerCannotHaveEventCommunicationType Code = "sync_caller_cannot_have_event_communication_type"
-	CodeInvalidClientBinding                       Code = "invalid_client_binding"
-	CodeClientAlreadyBound                         Code = "client_already_bound"
-	CodeClientLimitExceeded                        Code = "client_limit_exceeded"
-	CodeClientActionTooLarge                       Code = "client_action_too_large"
-	CodeClientCapabilitiesTooLarge                 Code = "client_capabilities_too_large"
-	CodeInvalidRequest                             Code = "invalid_request"
-	CodeInvalidPagination                          Code = "invalid_pagination"
-	CodeNotFound                                   Code = "not_found"
-	CodeInternal                                   Code = "internal"
-	CodeAlreadyExists                              Code = "resource_already_exists"
+	CodeUnknownTechnologyName          Code = "unknown_technology_name"
+	CodeUnknownLanguage                Code = "unknown_language"
+	CodeUnknownTechnologyType          Code = "unknown_technology_type"
+	CodeTooManyEndpoints               Code = "too_many_endpoints"
+	CodeInvalidProductCode             Code = "invalid_product_code"
+	CodeInvalidID                      Code = "invalid_id"
+	CodeInvalidWorkspaceName           Code = "invalid_workspace_name"
+	CodeInvalidProductName             Code = "invalid_product_name"
+	CodeInvalidCriticality             Code = "invalid_criticality"
+	CodeInvalidImportancy              Code = "invalid_importancy"
+	CodeInvalidComponentName           Code = "invalid_component_name"
+	CodeUnknownComponentType           Code = "unknown_component_type"
+	CodeEmptyComponentDetails          Code = "empty_component_details"
+	CodeInvalidComponentDetails        Code = "invalid_component_details"
+	CodeComponentDetailsTypeMismatch   Code = "component_details_type_mismatch"
+	CodeInvalidComponentDescription    Code = "invalid_component_description"
+	CodeUnknownAPIType                 Code = "unknown_api_type"
+	CodeInvalidAPIName                 Code = "invalid_api_name"
+	CodeInvalidNetworkExposure         Code = "invalid_network_exposure"
+	CodeAPILimitExceeded               Code = "api_limit_exceeded"
+	CodeInvalidClientType              Code = "invalid_client_type"
+	CodeClientLimitExceeded            Code = "client_limit_exceeded"
+	CodeClientCapabilitiesTooLarge     Code = "client_capabilities_too_large"
+	CodeInvalidClientAction            Code = "invalid_client_action"
+	CodeInvalidIntegration             Code = "invalid_integration"
+	CodeIntegrationAlreadyExists       Code = "integration_already_exists"
+	CodeClientAlreadyExists            Code = "client_already_exists"
+	CodeIncompatibleClientIntegrations Code = "incompatible_client_integrations"
+	CodeInvalidRequest                 Code = "invalid_request"
+	CodeInvalidPagination              Code = "invalid_pagination"
+	CodeNotFound                       Code = "not_found"
+	CodeInternal                       Code = "internal"
+	CodeAlreadyExists                  Code = "resource_already_exists"
 )
 
 var (
@@ -105,38 +101,36 @@ func Resolve(err error) (Error, bool) {
 		return newBadRequest(CodeComponentDetailsTypeMismatch, inventory.ErrComponentDetailsTypeMismatch.Error()), true
 	case errors.Is(err, inventory.ErrInvalidDescription):
 		return newBadRequest(CodeInvalidComponentDescription, "invalid component description"), true
-	case errors.Is(err, inventory.ErrInvalidAPIName):
-		return newBadRequest(CodeInvalidAPIName, "invalid api name"), true
 	case errors.Is(err, inventory.ErrUnknownAPIType):
 		return newBadRequest(CodeUnknownAPIType, "unknown api type"), true
+	case errors.Is(err, inventory.ErrInvalidAPIName):
+		return newBadRequest(CodeInvalidAPIName, "invalid api name"), true
 	case errors.Is(err, inventory.ErrInvalidExposure):
 		return newBadRequest(CodeInvalidNetworkExposure, "invalid network exposure"), true
 	case errors.Is(err, inventory.ErrAPILimitExceeded):
 		return newBadRequest(CodeAPILimitExceeded, inventory.ErrAPILimitExceeded.Error()), true
 	case errors.Is(err, inventory.ErrInvalidClientType):
 		return newBadRequest(CodeInvalidClientType, "invalid client type"), true
-	case errors.Is(err, inventory.ErrAsyncClientCannotBeCallerRole):
-		return newBadRequest(CodeAsyncClientCannotBeCallerRole, inventory.ErrAsyncClientCannotBeCallerRole.Error()), true
-	case errors.Is(err, inventory.ErrAsyncClientInvalidCommunicationType):
-		return newBadRequest(CodeAsyncClientInvalidCommunicationType, inventory.ErrAsyncClientInvalidCommunicationType.Error()), true
-	case errors.Is(err, inventory.ErrStreamingClientCanBeOnlyListener):
-		return newBadRequest(CodeStreamingClientCanBeOnlyListener, inventory.ErrStreamingClientCanBeOnlyListener.Error()), true
-	case errors.Is(err, inventory.ErrStreamingClientInvalidCommunicationType):
-		return newBadRequest(CodeStreamingClientInvalidCommunicationType, inventory.ErrStreamingClientInvalidCommunicationType.Error()), true
-	case errors.Is(err, inventory.ErrSyncClientCanBeOnlyCallerRole):
-		return newBadRequest(CodeSyncClientCanBeOnlyCallerRole, inventory.ErrSyncClientCanBeOnlyCallerRole.Error()), true
-	case errors.Is(err, inventory.ErrSyncCallerCannotHaveEventCommunicationType):
-		return newBadRequest(CodeSyncCallerCannotHaveEventCommunicationType, inventory.ErrSyncCallerCannotHaveEventCommunicationType.Error()), true
-	case errors.Is(err, inventory.ErrInvalidClientBinding):
-		return newBadRequest(CodeInvalidClientBinding, "invalid client binding"), true
-	case errors.Is(err, inventory.ErrClientAlreadyBound):
-		return newError("client is already bound", CodeClientAlreadyBound, http.StatusConflict), true
 	case errors.Is(err, inventory.ErrClientLimitExceeded):
 		return newBadRequest(CodeClientLimitExceeded, inventory.ErrClientLimitExceeded.Error()), true
-	case errors.Is(err, inventory.ErrActionTooLarge):
-		return newBadRequest(CodeClientActionTooLarge, "client action must be at most 2 MiB in UTF-8"), true
 	case errors.Is(err, inventory.ErrCapabilitiesTooLarge):
 		return newBadRequest(CodeClientCapabilitiesTooLarge, "client capabilities must be at most 2 MiB in UTF-8"), true
+	case errors.Is(err, inventory.ErrInvalidClientAction):
+		return newBadRequest(CodeInvalidClientAction, "invalid client action"), true
+	case errors.Is(err, inventory.ErrInvalidIntegration):
+		return newBadRequest(CodeInvalidIntegration, "invalid integration"), true
+	case errors.Is(err, inventory.ErrInvalidIntegrationDescription):
+		return newBadRequest(CodeInvalidRequest, "invalid integration description"), true
+	case errors.Is(err, inventory.ErrClientAlreadyExists):
+		return newError("client type already exists for component", CodeClientAlreadyExists, http.StatusConflict), true
+	case errors.Is(err, inventory.ErrIntegrationAlreadyExists):
+		return newError("integration already exists", CodeIntegrationAlreadyExists, http.StatusConflict), true
+	case errors.Is(err, inventory.ErrIncompatibleClientIntegrations):
+		return newError(
+			"client type is incompatible with existing integrations",
+			CodeIncompatibleClientIntegrations,
+			http.StatusConflict,
+		), true
 	case errors.Is(err, postgres.ErrNotFound):
 		return newError("resource not found", CodeNotFound, http.StatusNotFound), true
 	case errors.Is(err, postgres.ErrUniqueViolation):
@@ -191,6 +185,8 @@ func validationErrorMessage(fieldError validator.FieldError) string {
 			fieldError.Param(),
 			characterUnit(fieldError.Param()),
 		)
+	case "max_non_whitespace":
+		return fmt.Sprintf("%s must be at most %s non-whitespace characters long", field, fieldError.Param())
 	case "allowed_text":
 		return fmt.Sprintf("%s contains unsupported characters", field)
 	default:

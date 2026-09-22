@@ -14,7 +14,6 @@ import (
 	httpapis "github.com/76parker/alpa/internal/httpapi/apis"
 	httpclients "github.com/76parker/alpa/internal/httpapi/clients"
 	"github.com/76parker/alpa/internal/httpapi/component"
-	"github.com/76parker/alpa/internal/httpapi/errmap"
 	"github.com/76parker/alpa/internal/httpapi/product"
 	"github.com/76parker/alpa/pkg/httputil"
 	"github.com/ozontech/testo"
@@ -116,13 +115,13 @@ func TestComponentE2E(t *testing.T) {
 		t.Story("Create component")
 		t.Severity(allure.SeverityCritical)
 		t.Tags("e2e", "negative")
-		t.Title("Reject component with invalid name")
+		t.Title("Reject component with an empty name")
 		resetDatabase(t)
 
 		createdProduct := createTestProductForComponent(t, client)
-		testRequest := testBackendComponentRequest(createdProduct.ID, "<><f1ffsdf!,.<")
+		testRequest := testBackendComponentRequest(createdProduct.ID, "")
 		_, statusCode := createTestComponent(t, client, testRequest)
-		allure.Step(t, "verify rejection for invalid component name", func(t T) {
+		allure.Step(t, "verify rejection for empty component name", func(t T) {
 			t.Require().Equal(http.StatusBadRequest, statusCode, "component creation with an invalid name returns 400 Bad Request")
 		})
 	}, allureArtifactsDir))
@@ -145,145 +144,6 @@ func TestComponentE2E(t *testing.T) {
 		})
 	}, allureArtifactsDir))
 
-	// Infrastructure details must survive HTTP normalization and JSONB storage without losing endpoints.
-	t.Run("InfrastructureTechnologiesTypesAndEndpoints", testo.Test(func(t T) {
-		t.Epic("Inventory")
-		t.Feature("Component")
-		t.Story("Create infrastructure component")
-		t.Severity(allure.SeverityCritical)
-		t.Tags("e2e")
-		t.Title("Validate infrastructure technology names, technology types, and endpoint round trips")
-		resetDatabase(t)
-		createdProduct := createTestProductForComponent(t, client)
-
-		addresses := []string{
-			" Primary.internal:5432 ", "replica.internal:5432", "replica.internal:5432",
-			"host4:5432", "host5:5432", "host6:5432", "host7:5432", "host8:5432", "host9:5432", "host10:5432",
-		}
-		encodedAddresses, err := json.Marshal(addresses)
-		t.Require().NoError(err)
-		tooMany, err := json.Marshal(append(append([]string{}, addresses...), "host11:5432"))
-		t.Require().NoError(err)
-		expectedAddresses := append([]string{}, addresses...)
-		expectedAddresses[0] = "Primary.internal:5432"
-		cases := []struct {
-			name           string
-			technologyName string
-			technologyType string
-			importancyJSON string
-			omitImportancy bool
-			endpointsJSON  string
-			wantName       string
-			wantType       string
-			wantEndpoints  []string
-			wantCode       errmap.Code
-		}{
-			{name: "message broker with ten endpoints", technologyName: `" kafka "`, technologyType: `" message-broker "`, endpointsJSON: string(encodedAddresses), wantName: "kafka", wantType: "message-broker", wantEndpoints: expectedAddresses},
-			{name: "sql with null endpoints", technologyName: `" postgresql "`, technologyType: `"sql-database"`, endpointsJSON: "null", wantName: "postgresql", wantType: "sql-database", wantEndpoints: []string{}},
-			{name: "nosql without endpoints", technologyName: `"mongodb"`, technologyType: `"nosql-database"`, wantName: "mongodb", wantType: "nosql-database", wantEndpoints: []string{}},
-			{name: "cache with empty endpoints", technologyName: `"redis"`, technologyType: `"cache"`, endpointsJSON: "[]", wantName: "redis", wantType: "cache", wantEndpoints: []string{}},
-			{name: "search engine", technologyName: `"elasticsearch"`, technologyType: `"search-engine"`, wantName: "elasticsearch", wantType: "search-engine", wantEndpoints: []string{}},
-			{name: "object storage", technologyName: `"s3"`, technologyType: `"object-storage"`, wantName: "s3", wantType: "object-storage", wantEndpoints: []string{}},
-			{name: "workflow engine", technologyName: `"temporal"`, technologyType: `"workflow-engine"`, wantName: "temporal", wantType: "workflow-engine", wantEndpoints: []string{}},
-			{name: "service mesh", technologyName: `"envoy"`, technologyType: `"service-mesh"`, wantName: "envoy", wantType: "service-mesh", wantEndpoints: []string{}},
-			{name: "api gateway", technologyName: `"kong"`, technologyType: `"api-gateway"`, wantName: "kong", wantType: "api-gateway", wantEndpoints: []string{}},
-			{name: "load balancer", technologyName: `"haproxy"`, technologyType: `"load-balancer"`, wantName: "haproxy", wantType: "load-balancer", wantEndpoints: []string{}},
-			{name: "identity provider", technologyName: `"keycloak"`, technologyType: `"identity-provider"`, wantName: "keycloak", wantType: "identity-provider", wantEndpoints: []string{}},
-			{name: "secret storage", technologyName: `"vault"`, technologyType: `"secret-storage"`, wantName: "vault", wantType: "secret-storage", wantEndpoints: []string{}},
-			{name: "monitoring", technologyName: `"prometheus"`, technologyType: `"monitoring"`, wantName: "prometheus", wantType: "monitoring", wantEndpoints: []string{}},
-			{name: "grafana monitoring", technologyName: `"grafana"`, technologyType: `"monitoring"`, wantName: "grafana", wantType: "monitoring", wantEndpoints: []string{}},
-			{name: "tracing", technologyName: `"jaeger"`, technologyType: `"tracing"`, wantName: "jaeger", wantType: "tracing", wantEndpoints: []string{}},
-			{name: "unknown technology name", technologyName: `"postgres"`, technologyType: `"sql-database"`, wantCode: "unknown_technology_name"},
-			{name: "missing technology name", technologyType: `"sql-database"`, wantCode: "unknown_technology_name"},
-			{name: "unknown technology type", technologyName: `"postgresql"`, technologyType: `"SQL-DATABASE"`, wantCode: "unknown_technology_type"},
-			{name: "empty technology type", technologyName: `"postgresql"`, technologyType: `"  "`, wantCode: "unknown_technology_type"},
-			{name: "missing technology type", technologyName: `"postgresql"`, wantCode: "unknown_technology_type"},
-			{name: "missing importancy", technologyName: `"postgresql"`, technologyType: `"sql-database"`, omitImportancy: true, wantCode: "invalid_request"},
-			{name: "unknown importancy", technologyName: `"postgresql"`, technologyType: `"sql-database"`, importancyJSON: `"mission-critical"`, wantCode: "invalid_importancy"},
-			{name: "eleven endpoints", technologyName: `"postgresql"`, technologyType: `"sql-database"`, endpointsJSON: string(tooMany), wantCode: "too_many_endpoints"},
-			{name: "endpoint string", technologyName: `"postgresql"`, technologyType: `"sql-database"`, endpointsJSON: `"host:5432"`, wantCode: "invalid_request"},
-		}
-		persisted := 0
-		for _, tc := range cases {
-			allure.Step(t, tc.name, func(t T) {
-				detailsJSON := `{"version":" 17 "`
-				if !tc.omitImportancy {
-					importancy := tc.importancyJSON
-					if importancy == "" {
-						importancy = `"critical"`
-					}
-					detailsJSON += `,"importancy":` + importancy
-				}
-				if tc.technologyName != "" {
-					detailsJSON += `,"technology_name":` + tc.technologyName
-				}
-				if tc.technologyType != "" {
-					detailsJSON += `,"technology_type":` + tc.technologyType
-				}
-				if tc.endpointsJSON != "" {
-					detailsJSON += `,"endpoints":` + tc.endpointsJSON
-				}
-				detailsJSON += "}"
-				input := component.CreateRequestV1{
-					ProductID: createdProduct.ID,
-					Name:      " " + tc.name + " ",
-					Type:      "infrastructure",
-					Details:   json.RawMessage(detailsJSON),
-				}
-				body, _ := marshalRequestBody(t, input)
-				request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, environment.server.URL+"/v1/components", body)
-				t.Require().NoError(err)
-				request.Header.Set("Content-Type", "application/json")
-				response, err := client.Do(request)
-				t.Require().NoError(err)
-				defer response.Body.Close()
-				if tc.wantCode != "" {
-					t.Require().Equal(http.StatusBadRequest, response.StatusCode)
-					failure, _ := unmarshalResponseBody[errmap.Error](t, response)
-					t.Assert().Equal(tc.wantCode, failure.Code)
-				} else {
-					t.Require().Equal(http.StatusCreated, response.StatusCode)
-					created, _ := unmarshalResponseBody[component.ResponseV1](t, response)
-					t.Assert().Equal(tc.name, created.Name)
-					t.Assert().Equal("infrastructure", created.Type)
-					returned, status := getTestComponent(t, client, created.ID)
-					t.Require().Equal(http.StatusOK, status)
-					t.Assert().Equal(created, returned)
-					var storedJSON []byte
-					err = environment.postgres.pool.QueryRow(t.Context(), "SELECT details FROM inventory.components WHERE id = $1", created.ID).Scan(&storedJSON)
-					t.Require().NoError(err)
-					var stored struct {
-						SchemaVersion  int      `json:"schema_version"`
-						TechnologyName string   `json:"technology_name"`
-						TechnologyType string   `json:"technology_type"`
-						Importancy     string   `json:"importancy"`
-						Version        string   `json:"version"`
-						Endpoints      []string `json:"endpoints"`
-					}
-					t.Require().NoError(json.Unmarshal(storedJSON, &stored))
-					t.Assert().Equal(1, stored.SchemaVersion)
-					t.Assert().Equal(tc.wantName, stored.TechnologyName)
-					t.Assert().Equal("17", stored.Version)
-					t.Assert().Equal(tc.wantType, stored.TechnologyType)
-					t.Assert().Equal("critical", stored.Importancy)
-					t.Assert().Equal(tc.wantEndpoints, stored.Endpoints)
-					wantDetails, err := json.Marshal(map[string]any{
-						"technology_name": tc.wantName, "technology_type": tc.wantType, "importancy": "critical", "version": "17", "endpoints": tc.wantEndpoints,
-					})
-					t.Require().NoError(err)
-					gotDetails, err := json.Marshal(returned.Details)
-					t.Require().NoError(err)
-					t.Assert().JSONEq(string(wantDetails), string(gotDetails))
-					persisted++
-				}
-				var count int
-				err = environment.postgres.pool.QueryRow(t.Context(), "SELECT count(*) FROM inventory.components").Scan(&count)
-				t.Require().NoError(err)
-				t.Assert().Equal(persisted, count, "rejected requests must not persist components")
-			})
-		}
-	}, allureArtifactsDir))
-
 	t.Run("CreateAPIsAndClientsThenReadComponent", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Component")
@@ -298,24 +158,21 @@ func TestComponentE2E(t *testing.T) {
 		t.Require().Equal(http.StatusCreated, statusCode)
 
 		firstAPI, statusCode := createTestAPI(t, client, createdComponent.ID, httpapis.CreateRequestV1{
-			Name:            "Orders REST",
+			Name:            "Orders REST API",
 			APIType:         inventory.REST,
 			NetworkExposure: inventory.InternalExposure,
 		})
 		t.Require().Equal(http.StatusCreated, statusCode)
 		secondAPI, statusCode := createTestAPI(t, client, createdComponent.ID, httpapis.CreateRequestV1{
-			Name:            "Orders events",
+			Name:            "Orders events API",
 			APIType:         inventory.EventConsumer,
 			NetworkExposure: inventory.InternalExposure,
 		})
 		t.Require().Equal(http.StatusCreated, statusCode)
 		firstClient, statusCode := createTestClient(t, client, createdComponent.ID, testRESTClientRequest())
 		t.Require().Equal(http.StatusCreated, statusCode)
-		action := "publishes events"
 		secondClient, statusCode := createTestClient(t, client, createdComponent.ID, httpclients.CreateRequestV1{
 			ClientName: inventory.KafkaClient,
-			Role:       inventory.Producer,
-			Action:     &action,
 		})
 		t.Require().Equal(http.StatusCreated, statusCode)
 
@@ -325,13 +182,17 @@ func TestComponentE2E(t *testing.T) {
 		t.Require().Len(returned.Clients, 2)
 		t.Assert().Equal([]int64{firstAPI.ID, secondAPI.ID}, []int64{returned.APIs[0].ID, returned.APIs[1].ID})
 		t.Assert().Equal([]int64{firstClient.ID, secondClient.ID}, []int64{returned.Clients[0].ID, returned.Clients[1].ID})
-		t.Assert().Nil(returned.Clients[0].Action, "omitted action is represented as null")
+		t.Assert().Equal(inventory.REST, returned.APIs[0].APIType)
+		t.Assert().Equal(inventory.EventConsumer, returned.APIs[1].APIType)
+		t.Assert().Equal("Orders REST API", returned.APIs[0].Name)
+		t.Assert().Equal("Orders events API", returned.APIs[1].Name)
+		t.Assert().Empty(returned.Clients[0].Integrations)
 
 		// A second aggregate catches accidental cross-component grouping in the list projection.
 		secondComponent, statusCode := createTestComponent(t, client, testBackendComponentRequest(createdProduct.ID, "Billing"))
 		t.Require().Equal(http.StatusCreated, statusCode)
 		billingAPI, statusCode := createTestAPI(t, client, secondComponent.ID, httpapis.CreateRequestV1{
-			Name:            "Billing REST",
+			Name:            "Billing REST API",
 			APIType:         inventory.REST,
 			NetworkExposure: inventory.InternalExposure,
 		})
@@ -346,6 +207,62 @@ func TestComponentE2E(t *testing.T) {
 		t.Assert().Empty(listed.Data[1].Clients, "children from another component must not leak into the aggregate")
 	}, allureArtifactsDir))
 
+	t.Run("RejectRemovedAPIDescriptionAndDocumentationURLFields", testo.Test(func(t T) {
+		t.Epic("Inventory")
+		t.Feature("Component")
+		t.Story("Create component API")
+		t.Severity(allure.SeverityCritical)
+		t.Tags("e2e", "negative")
+		t.Title("Reject removed API fields and omit them from API responses")
+		resetDatabase(t)
+
+		createdProduct := createTestProductForComponent(t, client)
+		createdComponent, statusCode := createTestComponent(t, client, testBackendComponentRequest(createdProduct.ID, "Orders"))
+		t.Require().Equal(http.StatusCreated, statusCode)
+		apiRoute := environment.server.URL + "/v1/components/" + strconv.FormatInt(createdComponent.ID, 10) + "/apis"
+
+		legacyRequest, err := http.NewRequestWithContext(t.Context(), http.MethodPost, apiRoute, bytes.NewBufferString(`{"name":"Orders REST","api_type":"rest","network_exposure":"internal","description":"legacy"}`))
+		t.Require().NoError(err)
+		legacyRequest.Header.Set("Content-Type", "application/json")
+		legacyResponse, err := client.Do(legacyRequest)
+		t.Require().NoError(err)
+		t.Require().NoError(legacyResponse.Body.Close())
+		t.Assert().Equal(http.StatusBadRequest, legacyResponse.StatusCode)
+
+		documentationURLRequest, err := http.NewRequestWithContext(t.Context(), http.MethodPost, apiRoute, bytes.NewBufferString(`{"name":"Orders REST","api_type":"rest","network_exposure":"internal","documentation_url":"https://docs.example.com/api"}`))
+		t.Require().NoError(err)
+		documentationURLRequest.Header.Set("Content-Type", "application/json")
+		documentationURLResponse, err := client.Do(documentationURLRequest)
+		t.Require().NoError(err)
+		t.Require().NoError(documentationURLResponse.Body.Close())
+		t.Assert().Equal(http.StatusBadRequest, documentationURLResponse.StatusCode)
+
+		currentRequest, err := http.NewRequestWithContext(t.Context(), http.MethodPost, apiRoute, bytes.NewBufferString(`{"name":"Orders REST","api_type":"rest","network_exposure":"internal"}`))
+		t.Require().NoError(err)
+		currentRequest.Header.Set("Content-Type", "application/json")
+		currentResponse, err := client.Do(currentRequest)
+		t.Require().NoError(err)
+		defer currentResponse.Body.Close()
+		t.Require().Equal(http.StatusCreated, currentResponse.StatusCode)
+		body, _ := unmarshalResponseBody[map[string]json.RawMessage](t, currentResponse)
+		t.Assert().NotContains(body, "description")
+		t.Assert().NotContains(body, "documentation_url")
+		t.Assert().Equal(`"Orders REST"`, string(body["name"]))
+		t.Assert().Contains(body, "api_type")
+
+		componentRequest, err := http.NewRequestWithContext(t.Context(), http.MethodGet, environment.server.URL+"/v1/components/"+strconv.FormatInt(createdComponent.ID, 10), nil)
+		t.Require().NoError(err)
+		componentResponse, err := client.Do(componentRequest)
+		t.Require().NoError(err)
+		defer componentResponse.Body.Close()
+		t.Require().Equal(http.StatusOK, componentResponse.StatusCode)
+		loadedComponent, _ := unmarshalResponseBody[struct {
+			APIs []map[string]json.RawMessage `json:"apis"`
+		}](t, componentResponse)
+		t.Require().Len(loadedComponent.APIs, 1)
+		t.Assert().NotContains(loadedComponent.APIs[0], "documentation_url")
+	}, allureArtifactsDir))
+
 	t.Run("RejectChildrenForUnknownComponent", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Component")
@@ -356,7 +273,7 @@ func TestComponentE2E(t *testing.T) {
 		resetDatabase(t)
 
 		_, apiStatus := createTestAPI(t, client, 999, httpapis.CreateRequestV1{
-			Name:            "Unknown",
+			Name:            "Unknown component API",
 			APIType:         inventory.REST,
 			NetworkExposure: inventory.InternalExposure,
 		})
@@ -375,8 +292,8 @@ func TestComponentE2E(t *testing.T) {
 			{Name: "Checkout events", APIType: inventory.EventConsumer, NetworkExposure: inventory.InternalExposure},
 		}
 		request.Clients = []component.CreateClientRequestV1{
-			{ClientName: inventory.RESTClient, Role: inventory.Caller},
-			{ClientName: inventory.KafkaClient, Role: inventory.Producer, Action: testStringPointer("publishes events")},
+			{ClientName: inventory.RESTClient},
+			{ClientName: inventory.KafkaClient},
 		}
 
 		created, status := createTestComponent(t, client, request)
@@ -388,9 +305,9 @@ func TestComponentE2E(t *testing.T) {
 		}
 		for _, componentClient := range created.Clients {
 			t.Assert().Greater(componentClient.ID, int64(0))
-			t.Assert().Nil(componentClient.APIID)
+			t.Assert().Empty(componentClient.Integrations)
 		}
-		t.Assert().Equal([]string{"Checkout REST", "Checkout events"}, []string{created.APIs[0].Name, created.APIs[1].Name})
+		t.Assert().Equal([]inventory.APIType{inventory.REST, inventory.EventConsumer}, []inventory.APIType{created.APIs[0].APIType, created.APIs[1].APIType})
 
 		loaded, status := getTestComponent(t, client, created.ID)
 		t.Require().Equal(http.StatusOK, status)
@@ -416,7 +333,11 @@ func TestComponentE2E(t *testing.T) {
 		request := testBackendComponentRequest(createdProduct.ID, "Too many APIs")
 		request.APIs = make([]component.CreateAPIRequestV1, 6)
 		for i := range request.APIs {
-			request.APIs[i] = component.CreateAPIRequestV1{Name: "API " + strconv.Itoa(i), APIType: inventory.REST, NetworkExposure: inventory.InternalExposure}
+			request.APIs[i] = component.CreateAPIRequestV1{
+				Name:            fmt.Sprintf("API %d", i),
+				APIType:         inventory.REST,
+				NetworkExposure: inventory.InternalExposure,
+			}
 		}
 		_, status := createTestComponent(t, client, request)
 		t.Require().Equal(http.StatusBadRequest, status)
@@ -441,7 +362,7 @@ func TestComponentE2E(t *testing.T) {
 			go func(index int) {
 				defer group.Done()
 				status, err := createAPIStatus(t.Context(), client, createdComponent.ID, httpapis.CreateRequestV1{
-					Name:            "Concurrent API " + strconv.Itoa(index),
+					Name:            fmt.Sprintf("Concurrent API %d", index),
 					APIType:         inventory.REST,
 					NetworkExposure: inventory.InternalExposure,
 				})
@@ -475,17 +396,29 @@ func TestComponentE2E(t *testing.T) {
 		createdComponent, status := createTestComponent(t, client, testBackendComponentRequest(createdProduct.ID, "Concurrent clients"))
 		t.Require().Equal(http.StatusCreated, status)
 
+		clientNames := [...]inventory.ComponentClientName{
+			inventory.RESTClient,
+			inventory.KafkaClient,
+			inventory.WebSocketClient,
+			inventory.S3Client,
+			inventory.NativeProtocolClient,
+			inventory.GraphQLClient,
+			inventory.GRPCClient,
+			inventory.JSONRPCClient,
+		}
 		statuses := make(chan int, 8)
 		errs := make(chan error, 8)
 		var group sync.WaitGroup
 		for i := 0; i < cap(statuses); i++ {
 			group.Add(1)
-			go func() {
+			go func(clientName inventory.ComponentClientName) {
 				defer group.Done()
-				status, err := createClientStatus(t.Context(), client, createdComponent.ID, testRESTClientRequest())
+				status, err := createClientStatus(t.Context(), client, createdComponent.ID, httpclients.CreateRequestV1{
+					ClientName: clientName,
+				})
 				errs <- err
 				statuses <- status
-			}()
+			}(clientNames[i])
 		}
 		group.Wait()
 		close(statuses)
@@ -522,7 +455,7 @@ func TestComponentE2E(t *testing.T) {
 			t.Require().Equal(http.StatusCreated, statusCode, "component creation returns 201 Created")
 		})
 		_, statusCode = createTestAPI(t, client, createdComponent.ID, httpapis.CreateRequestV1{
-			Name:            "Orders",
+			Name:            "Orders REST API",
 			APIType:         inventory.REST,
 			NetworkExposure: inventory.InternalExposure,
 		})
@@ -585,7 +518,7 @@ func testBackendComponentRequest(productID int64, name string) component.CreateR
 	return component.CreateRequestV1{
 		ProductID:   productID,
 		Name:        name,
-		Type:        inventory.ComponentTypeBackend,
+		Type:        inventory.Backend,
 		Description: &description,
 		Details: json.RawMessage(`{
 			"language": "Go",

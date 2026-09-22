@@ -24,7 +24,7 @@ func NewBackendServiceComponentDetails(
 }
 
 func (BackendServiceComponentDetails) componentType() ComponentType {
-	return ComponentTypeBackend
+	return Backend
 }
 
 func (d BackendServiceComponentDetails) validate() error {
@@ -65,7 +65,7 @@ func NewInfrastructureComponentDetails(
 }
 
 func (InfrastructureComponentDetails) componentType() ComponentType {
-	return ComponentTypeInfrastructure
+	return Infrastructure
 }
 
 func (d InfrastructureComponentDetails) validate() error {
@@ -116,7 +116,7 @@ func NewFrontendServiceComponentDetails(
 }
 
 func (FrontendServiceComponentDetails) componentType() ComponentType {
-	return ComponentTypeFrontend
+	return Frontend
 }
 
 func (d FrontendServiceComponentDetails) validate() error {
@@ -137,7 +137,7 @@ func isValidTechnologyType(technologyType TechnologyType) bool {
 		WorkflowEngine,
 		ServiceMesh,
 		APIGateway,
-		LoadBalancer,
+		ProxyLB,
 		IdentityProvider,
 		SecretStorage,
 		Monitoring,

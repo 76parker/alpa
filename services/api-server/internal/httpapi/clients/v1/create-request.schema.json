@@ -2,11 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["client_name", "role"],
+  "required": ["client_name"],
   "properties": {
     "client_name": { "type": "string", "maxLength": 50, "enum": ["s3-client", "rest-client", "graphql-client", "grpc-client", "grpc-streaming-client", "json-rpc-client", "soap-client", "websocket-client", "odata-client", "sse-client", "kafka-client", "rabbitmq-client", "amqp-client", "redpanda-client", "nats-client", "pulsar-client", "sqs-client", "gcp-pub-sub-client", "azure-service-bus-client", "redis-streams-client", "activemq-client", "ibm-mq-client", "native-protocol-client"] },
-    "role": { "type": "string", "maxLength": 50, "enum": ["listener", "caller", "producer", "consumer"] },
-    "action": { "type": ["string", "null"], "maxLength": 2097152 },
     "capabilities": { "type": ["string", "null"], "maxLength": 2097152 },
     "secure_connection": { "type": "boolean", "default": false }
   }

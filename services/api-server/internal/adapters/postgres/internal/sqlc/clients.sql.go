@@ -11,40 +11,32 @@ import (
 
 const batchCreateClients = `-- name: BatchCreateClients :many
 WITH input AS (
-    SELECT client_names.client_name, roles.role, communication_types.communication_type, actions.action, capabilities.capabilities, secure_connections.secure_connection, client_names.ordinality
+    SELECT client_names.client_name, communication_types.communication_type, capabilities.capabilities, secure_connections.secure_connection, client_names.ordinality
     FROM unnest($2::TEXT[]) WITH ORDINALITY AS client_names(client_name, ordinality)
-    JOIN unnest($3::TEXT[]) WITH ORDINALITY AS roles(role, ordinality)
+    JOIN unnest($3::TEXT[]) WITH ORDINALITY AS communication_types(communication_type, ordinality)
         USING (ordinality)
-    JOIN unnest($4::TEXT[]) WITH ORDINALITY AS communication_types(communication_type, ordinality)
+    JOIN unnest($4::TEXT[]) WITH ORDINALITY AS capabilities(capabilities, ordinality)
         USING (ordinality)
-    JOIN unnest($5::TEXT[]) WITH ORDINALITY AS actions(action, ordinality)
-        USING (ordinality)
-    JOIN unnest($6::TEXT[]) WITH ORDINALITY AS capabilities(capabilities, ordinality)
-        USING (ordinality)
-    JOIN unnest($7::BOOLEAN[]) WITH ORDINALITY AS secure_connections(secure_connection, ordinality)
+    JOIN unnest($5::BOOLEAN[]) WITH ORDINALITY AS secure_connections(secure_connection, ordinality)
         USING (ordinality)
 )
 INSERT INTO inventory.component_clients (
     component_id,
     client_name,
-    role,
     communication_type,
-    action,
     capabilities,
     secure_connection
 )
-SELECT $1, client_name, role, communication_type, NULLIF(action, ''), NULLIF(capabilities, ''), secure_connection
+SELECT $1, client_name, communication_type, NULLIF(capabilities, ''), secure_connection
 FROM input
 ORDER BY ordinality
-RETURNING id, component_id, client_name, role, communication_type, action, capabilities, secure_connection, api_id
+RETURNING id, component_id, client_name, communication_type, capabilities, secure_connection
 `
 
 type BatchCreateClientsParams struct {
 	ComponentID        int64
 	ClientNames        []string
-	Roles              []string
 	CommunicationTypes []string
-	Actions            []string
 	Capabilities       []string
 	SecureConnections  []bool
 }
@@ -53,9 +45,7 @@ func (q *Queries) BatchCreateClients(ctx context.Context, arg BatchCreateClients
 	rows, err := q.db.Query(ctx, batchCreateClients,
 		arg.ComponentID,
 		arg.ClientNames,
-		arg.Roles,
 		arg.CommunicationTypes,
-		arg.Actions,
 		arg.Capabilities,
 		arg.SecureConnections,
 	)
@@ -70,12 +60,9 @@ func (q *Queries) BatchCreateClients(ctx context.Context, arg BatchCreateClients
 			&i.ID,
 			&i.ComponentID,
 			&i.ClientName,
-			&i.Role,
 			&i.CommunicationType,
-			&i.Action,
 			&i.Capabilities,
 			&i.SecureConnection,
-			&i.ApiID,
 		); err != nil {
 			return nil, err
 		}
@@ -85,36 +72,6 @@ func (q *Queries) BatchCreateClients(ctx context.Context, arg BatchCreateClients
 		return nil, err
 	}
 	return items, nil
-}
-
-const bindClientAPI = `-- name: BindClientAPI :one
-UPDATE inventory.component_clients
-SET api_id = $1
-WHERE id = $2
-  AND api_id IS NULL
-RETURNING id, component_id, client_name, role, communication_type, action, capabilities, secure_connection, api_id
-`
-
-type BindClientAPIParams struct {
-	ApiID    *int64
-	ClientID int64
-}
-
-func (q *Queries) BindClientAPI(ctx context.Context, arg BindClientAPIParams) (InventoryComponentClient, error) {
-	row := q.db.QueryRow(ctx, bindClientAPI, arg.ApiID, arg.ClientID)
-	var i InventoryComponentClient
-	err := row.Scan(
-		&i.ID,
-		&i.ComponentID,
-		&i.ClientName,
-		&i.Role,
-		&i.CommunicationType,
-		&i.Action,
-		&i.Capabilities,
-		&i.SecureConnection,
-		&i.ApiID,
-	)
-	return i, err
 }
 
 const countClientsByComponentID = `-- name: CountClientsByComponentID :one
@@ -134,9 +91,7 @@ const createClient = `-- name: CreateClient :one
 INSERT INTO inventory.component_clients (
     component_id,
     client_name,
-    role,
     communication_type,
-    action,
     capabilities,
     secure_connection
 ) VALUES (
@@ -144,19 +99,15 @@ INSERT INTO inventory.component_clients (
     $2,
     $3,
     $4,
-    $5,
-    $6,
-    $7
+    $5
 )
-RETURNING id, component_id, client_name, role, communication_type, action, capabilities, secure_connection, api_id
+RETURNING id, component_id, client_name, communication_type, capabilities, secure_connection
 `
 
 type CreateClientParams struct {
 	ComponentID       int64
 	ClientName        string
-	Role              string
 	CommunicationType string
-	Action            *string
 	Capabilities      *string
 	SecureConnection  bool
 }
@@ -165,9 +116,7 @@ func (q *Queries) CreateClient(ctx context.Context, arg CreateClientParams) (Inv
 	row := q.db.QueryRow(ctx, createClient,
 		arg.ComponentID,
 		arg.ClientName,
-		arg.Role,
 		arg.CommunicationType,
-		arg.Action,
 		arg.Capabilities,
 		arg.SecureConnection,
 	)
@@ -176,12 +125,9 @@ func (q *Queries) CreateClient(ctx context.Context, arg CreateClientParams) (Inv
 		&i.ID,
 		&i.ComponentID,
 		&i.ClientName,
-		&i.Role,
 		&i.CommunicationType,
-		&i.Action,
 		&i.Capabilities,
 		&i.SecureConnection,
-		&i.ApiID,
 	)
 	return i, err
 }
@@ -205,81 +151,14 @@ func (q *Queries) DeleteClient(ctx context.Context, arg DeleteClientParams) (int
 	return id, err
 }
 
-const getClientForAPIUpdate = `-- name: GetClientForAPIUpdate :one
-SELECT
-    source_client.id AS client_id,
-    source_component.id AS component_id,
-    source_component.product_id,
-    source_client.api_id
-FROM inventory.component_clients AS source_client
-JOIN inventory.components AS source_component
-    ON source_component.id = source_client.component_id
-WHERE source_client.id = $1
-  AND source_component.id = $2
-FOR UPDATE OF source_client
-FOR SHARE OF source_component
-`
-
-type GetClientForAPIUpdateParams struct {
-	ClientID    int64
-	ComponentID int64
-}
-
-type GetClientForAPIUpdateRow struct {
-	ClientID    int64
-	ComponentID int64
-	ProductID   int64
-	ApiID       *int64
-}
-
-func (q *Queries) GetClientForAPIUpdate(ctx context.Context, arg GetClientForAPIUpdateParams) (GetClientForAPIUpdateRow, error) {
-	row := q.db.QueryRow(ctx, getClientForAPIUpdate, arg.ClientID, arg.ComponentID)
-	var i GetClientForAPIUpdateRow
-	err := row.Scan(
-		&i.ClientID,
-		&i.ComponentID,
-		&i.ProductID,
-		&i.ApiID,
-	)
-	return i, err
-}
-
-const getTargetAPIForShare = `-- name: GetTargetAPIForShare :one
-SELECT
-    target_api.id AS api_id,
-    target_component.id AS component_id,
-    target_component.product_id
-FROM inventory.apis AS target_api
-JOIN inventory.components AS target_component
-    ON target_component.id = target_api.component_id
-WHERE target_api.id = $1
-FOR SHARE OF target_api, target_component
-`
-
-type GetTargetAPIForShareRow struct {
-	ApiID       int64
-	ComponentID int64
-	ProductID   int64
-}
-
-func (q *Queries) GetTargetAPIForShare(ctx context.Context, apiID int64) (GetTargetAPIForShareRow, error) {
-	row := q.db.QueryRow(ctx, getTargetAPIForShare, apiID)
-	var i GetTargetAPIForShareRow
-	err := row.Scan(&i.ApiID, &i.ComponentID, &i.ProductID)
-	return i, err
-}
-
 const listClientsByComponentIDs = `-- name: ListClientsByComponentIDs :many
 SELECT
     component_clients.component_id,
     component_clients.id,
     component_clients.client_name,
-    component_clients.role,
     component_clients.communication_type,
-    component_clients.action,
     component_clients.capabilities,
-    component_clients.secure_connection,
-    component_clients.api_id
+    component_clients.secure_connection
 FROM inventory.component_clients
 WHERE component_clients.component_id = ANY($1::BIGINT[])
 ORDER BY component_clients.component_id, component_clients.id
@@ -289,12 +168,9 @@ type ListClientsByComponentIDsRow struct {
 	ComponentID       int64
 	ID                int64
 	ClientName        string
-	Role              string
 	CommunicationType string
-	Action            *string
 	Capabilities      *string
 	SecureConnection  bool
-	ApiID             *int64
 }
 
 func (q *Queries) ListClientsByComponentIDs(ctx context.Context, dollar_1 []int64) ([]ListClientsByComponentIDsRow, error) {
@@ -310,12 +186,9 @@ func (q *Queries) ListClientsByComponentIDs(ctx context.Context, dollar_1 []int6
 			&i.ComponentID,
 			&i.ID,
 			&i.ClientName,
-			&i.Role,
 			&i.CommunicationType,
-			&i.Action,
 			&i.Capabilities,
 			&i.SecureConnection,
-			&i.ApiID,
 		); err != nil {
 			return nil, err
 		}
@@ -330,21 +203,17 @@ func (q *Queries) ListClientsByComponentIDs(ctx context.Context, dollar_1 []int6
 const updateClient = `-- name: UpdateClient :one
 UPDATE inventory.component_clients
 SET client_name = $1,
-    role = $2,
-    communication_type = $3,
-    action = $4,
-    capabilities = $5,
-    secure_connection = $6
-WHERE id = $7
-  AND component_id = $8
-RETURNING id, component_id, client_name, role, communication_type, action, capabilities, secure_connection, api_id
+    communication_type = $2,
+    capabilities = $3,
+    secure_connection = $4
+WHERE id = $5
+  AND component_id = $6
+RETURNING id, component_id, client_name, communication_type, capabilities, secure_connection
 `
 
 type UpdateClientParams struct {
 	ClientName        string
-	Role              string
 	CommunicationType string
-	Action            *string
 	Capabilities      *string
 	SecureConnection  bool
 	ClientID          int64
@@ -354,9 +223,7 @@ type UpdateClientParams struct {
 func (q *Queries) UpdateClient(ctx context.Context, arg UpdateClientParams) (InventoryComponentClient, error) {
 	row := q.db.QueryRow(ctx, updateClient,
 		arg.ClientName,
-		arg.Role,
 		arg.CommunicationType,
-		arg.Action,
 		arg.Capabilities,
 		arg.SecureConnection,
 		arg.ClientID,
@@ -367,12 +234,9 @@ func (q *Queries) UpdateClient(ctx context.Context, arg UpdateClientParams) (Inv
 		&i.ID,
 		&i.ComponentID,
 		&i.ClientName,
-		&i.Role,
 		&i.CommunicationType,
-		&i.Action,
 		&i.Capabilities,
 		&i.SecureConnection,
-		&i.ApiID,
 	)
 	return i, err
 }

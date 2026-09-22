@@ -23,7 +23,7 @@ func TestApplicationCreate(t *testing.T) {
 			name: "valid/api is created for component",
 			command: CreateCommand{
 				ComponentID:     42,
-				Name:            "orders",
+				Name:            "Orders API",
 				APIType:         inventory.REST,
 				NetworkExposure: inventory.InternalExposure,
 			},
@@ -33,26 +33,17 @@ func TestApplicationCreate(t *testing.T) {
 			name: "invalid/non-positive component id",
 			command: CreateCommand{
 				ComponentID:     0,
-				Name:            "orders",
+				Name:            "Orders API",
 				APIType:         inventory.REST,
 				NetworkExposure: inventory.InternalExposure,
 			},
 			wantErr: inventory.ErrNegativeID,
 		},
 		{
-			name: "invalid/empty api name",
-			command: CreateCommand{
-				ComponentID:     42,
-				APIType:         inventory.REST,
-				NetworkExposure: inventory.InternalExposure,
-			},
-			wantErr: inventory.ErrInvalidAPIName,
-		},
-		{
 			name: "invalid/unknown api type",
 			command: CreateCommand{
 				ComponentID:     42,
-				Name:            "orders",
+				Name:            "Orders API",
 				APIType:         inventory.APIType("unknown"),
 				NetworkExposure: inventory.InternalExposure,
 			},
@@ -62,7 +53,7 @@ func TestApplicationCreate(t *testing.T) {
 			name: "invalid/unknown network exposure",
 			command: CreateCommand{
 				ComponentID:     42,
-				Name:            "orders",
+				Name:            "Orders API",
 				APIType:         inventory.REST,
 				NetworkExposure: inventory.NetworkExposure("unknown"),
 			},
@@ -72,7 +63,7 @@ func TestApplicationCreate(t *testing.T) {
 			name: "invalid/store failure",
 			command: CreateCommand{
 				ComponentID:     42,
-				Name:            "orders",
+				Name:            "Orders API",
 				APIType:         inventory.REST,
 				NetworkExposure: inventory.InternalExposure,
 			},
@@ -101,7 +92,7 @@ func TestApplicationCreate(t *testing.T) {
 				t.Fatalf("Store.Create() componentID = %d, want %d", store.componentID, tt.command.ComponentID)
 			}
 			if created.ID() != 7 || created.Name() != tt.command.Name || created.APIType() != tt.command.APIType || created.Exposure() != tt.command.NetworkExposure {
-				t.Fatalf("Create() = (%d, %q, %q, %q), want restored API", created.ID(), created.Name(), created.APIType(), created.Exposure())
+				t.Fatalf("Create() = (%d, %q, %q), want restored API", created.ID(), created.APIType(), created.Exposure())
 			}
 		})
 	}
@@ -113,7 +104,7 @@ func TestApplicationCreateEnforcesAPILimitInsideLockedTransaction(t *testing.T) 
 	app := NewApplication(store, limitAPITxManager{store: store})
 	_, err := app.Create(t.Context(), CreateCommand{
 		ComponentID:     42,
-		Name:            "orders",
+		Name:            "Orders API",
 		APIType:         inventory.REST,
 		NetworkExposure: inventory.InternalExposure,
 	})
@@ -144,7 +135,7 @@ func (s *apiStore) Create(_ context.Context, componentID int64, api inventory.Co
 	if s.err != nil {
 		return inventory.ComponentAPI{}, s.err
 	}
-	return inventory.RestoreAPI(7, api.Name(), api.Exposure(), api.APIType(), api.DocumentationURL()), nil
+	return inventory.RestoreAPI(7, api.Name(), api.Exposure(), api.APIType()), nil
 }
 
 func (s *apiStore) Update(context.Context, int64, int64, inventory.ComponentAPI) (inventory.ComponentAPI, error) {
@@ -178,7 +169,7 @@ func (s *limitAPIStore) CountByComponentID(context.Context, int64) (int, error) 
 func (*limitAPIStore) Delete(context.Context, int64, int64) error { return nil }
 func (s *limitAPIStore) Create(_ context.Context, _ int64, api inventory.ComponentAPI) (inventory.ComponentAPI, error) {
 	s.created = true
-	return inventory.RestoreAPI(7, api.Name(), api.Exposure(), api.APIType(), api.DocumentationURL()), nil
+	return inventory.RestoreAPI(7, api.Name(), api.Exposure(), api.APIType()), nil
 }
 
 func (s *limitAPIStore) Update(context.Context, int64, int64, inventory.ComponentAPI) (inventory.ComponentAPI, error) {

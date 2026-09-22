@@ -2,11 +2,46 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "additionalProperties": false,
-  "required": ["name", "api_type", "network_exposure"],
+  "required": [
+    "name",
+    "api_type",
+    "network_exposure"
+  ],
   "properties": {
-    "name": { "type": "string", "minLength": 1, "maxLength": 50, "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$" },
-    "api_type": { "type": "string", "maxLength": 50, "enum": ["rest", "graphql", "grpc", "json-rpc", "soap", "websocket", "odata", "sse", "event-consumer", "topic", "subject", "exchange", "queue", "native-protocol", "database"] },
-    "network_exposure": { "type": "string", "maxLength": 50, "enum": ["internal", "internet"] },
-    "documentation_url": { "type": ["string", "null"], "format": "uri", "maxLength": 2048 }
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Required API name with up to 20 non-whitespace characters; surrounding whitespace is trimmed.",
+      "pattern": "^(?=\\s*\\S)(?:\\s*\\S){1,20}\\s*$"
+    },
+    "api_type": {
+      "type": "string",
+      "maxLength": 50,
+      "enum": [
+        "rest",
+        "graphql",
+        "grpc",
+        "json-rpc",
+        "soap",
+        "websocket",
+        "odata",
+        "sse",
+        "event-consumer",
+        "topic",
+        "subject",
+        "exchange",
+        "queue",
+        "native-protocol",
+        "database"
+      ]
+    },
+    "network_exposure": {
+      "type": "string",
+      "maxLength": 50,
+      "enum": [
+        "internal",
+        "internet"
+      ]
+    }
   }
 }

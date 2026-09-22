@@ -38,7 +38,6 @@ func TestClientCreationE2E(t *testing.T) {
 				name: "sync REST client",
 				request: httpclients.CreateRequestV1{
 					ClientName: inventory.RESTClient,
-					Role:       inventory.Caller,
 				},
 				wantCommunicationType: inventory.RequestResponse,
 			},
@@ -46,7 +45,6 @@ func TestClientCreationE2E(t *testing.T) {
 				name: "async Kafka producer",
 				request: httpclients.CreateRequestV1{
 					ClientName: inventory.KafkaClient,
-					Role:       inventory.Producer,
 				},
 				wantCommunicationType: inventory.Events,
 			},
@@ -54,7 +52,6 @@ func TestClientCreationE2E(t *testing.T) {
 				name: "streaming WebSocket listener",
 				request: httpclients.CreateRequestV1{
 					ClientName: inventory.WebSocketClient,
-					Role:       inventory.Listener,
 				},
 				wantCommunicationType: inventory.Stream,
 			},
@@ -62,7 +59,6 @@ func TestClientCreationE2E(t *testing.T) {
 				name: "S3 client",
 				request: httpclients.CreateRequestV1{
 					ClientName: inventory.S3Client,
-					Role:       inventory.Caller,
 				},
 				wantCommunicationType: inventory.RequestResponse,
 			},
@@ -73,19 +69,16 @@ func TestClientCreationE2E(t *testing.T) {
 				created, status := createTestClient(t, client, component.ID, tc.request)
 				t.Require().Equal(http.StatusCreated, status)
 				t.Assert().Equal(tc.request.ClientName, created.ClientName)
-				t.Assert().Equal(tc.request.Role, created.Role)
 				t.Assert().Equal(tc.wantCommunicationType, created.CommunicationType)
-				t.Assert().Nil(created.APIID)
 
-				var storedName, storedRole, storedCommunicationType string
+				var storedName, storedCommunicationType string
 				err := environment.postgres.pool.QueryRow(
 					t.Context(),
-					"SELECT client_name, role, communication_type FROM inventory.component_clients WHERE id = $1",
+					"SELECT client_name, communication_type FROM inventory.component_clients WHERE id = $1",
 					created.ID,
-				).Scan(&storedName, &storedRole, &storedCommunicationType)
+				).Scan(&storedName, &storedCommunicationType)
 				t.Require().NoError(err)
 				t.Assert().Equal(string(tc.request.ClientName), storedName)
-				t.Assert().Equal(string(tc.request.Role), storedRole)
 				t.Assert().Equal(string(tc.wantCommunicationType), storedCommunicationType)
 			})
 		}
@@ -95,8 +88,8 @@ func TestClientCreationE2E(t *testing.T) {
 		t.Require().Len(returned.Clients, len(cases))
 		for i, tc := range cases {
 			t.Assert().Equal(tc.request.ClientName, returned.Clients[i].ClientName)
-			t.Assert().Equal(tc.request.Role, returned.Clients[i].Role)
 			t.Assert().Equal(tc.wantCommunicationType, returned.Clients[i].CommunicationType)
+			t.Assert().Empty(returned.Clients[i].Integrations)
 		}
 
 		listed, status := listTestComponents(t, client, product.ID)
@@ -105,71 +98,55 @@ func TestClientCreationE2E(t *testing.T) {
 		t.Require().Len(listed.Data[0].Clients, len(cases))
 		for i, tc := range cases {
 			t.Assert().Equal(tc.request.ClientName, listed.Data[0].Clients[i].ClientName)
-			t.Assert().Equal(tc.request.Role, listed.Data[0].Clients[i].Role)
 			t.Assert().Equal(tc.wantCommunicationType, listed.Data[0].Clients[i].CommunicationType)
+			t.Assert().Empty(listed.Data[0].Clients[i].Integrations)
 		}
 	}, allureArtifactsDir))
 
-	// The public error code must identify the exact broken rule from the domain matrix.
-	t.Run("RejectClientTypesThatDoNotMatchTheDomainSchema", testo.Test(func(t T) {
+	t.Run("RejectUnknownClientType", testo.Test(func(t T) {
 		t.Epic("Inventory")
 		t.Feature("Client")
 		t.Story("Create client")
 		t.Severity(allure.SeverityCritical)
 		t.Tags("e2e", "negative")
-		t.Title("Reject incompatible client name and role combinations")
+		t.Title("Reject an unknown client type")
 
 		resetDatabase(t)
 		product := createTestProductForComponent(t, client)
 		component, status := createTestComponent(t, client, testBackendComponentRequest(product.ID, "Client source"))
 		t.Require().Equal(http.StatusCreated, status)
 
-		cases := []struct {
-			name     string
-			request  httpclients.CreateRequestV1
-			wantCode errmap.Code
-		}{
-			{
-				name: "unknown client name",
-				request: httpclients.CreateRequestV1{
-					ClientName: "unknown-client",
-					Role:       inventory.Caller,
-				},
-				wantCode: errmap.CodeInvalidClientType,
-			},
-			{
-				name: "async caller",
-				request: httpclients.CreateRequestV1{
-					ClientName: inventory.KafkaClient,
-					Role:       inventory.Caller,
-				},
-				wantCode: errmap.CodeAsyncClientCannotBeCallerRole,
-			},
-			{
-				name: "streaming non listener",
-				request: httpclients.CreateRequestV1{
-					ClientName: inventory.WebSocketClient,
-					Role:       inventory.Caller,
-				},
-				wantCode: errmap.CodeStreamingClientCanBeOnlyListener,
-			},
-			{
-				name: "sync non caller",
-				request: httpclients.CreateRequestV1{
-					ClientName: inventory.RESTClient,
-					Role:       inventory.Listener,
-				},
-				wantCode: errmap.CodeSyncClientCanBeOnlyCallerRole,
-			},
-		}
+		result := createTestClientResult(t, client, component.ID, httpclients.CreateRequestV1{
+			ClientName: "unknown-client",
+		})
+		t.Require().Equal(http.StatusBadRequest, result.Status)
+		t.Assert().Equal(errmap.CodeInvalidClientType, result.Failure.Code)
+	}, allureArtifactsDir))
+}
 
-		for _, tc := range cases {
-			allure.Step(t, tc.name, func(t T) {
-				result := createTestClientResult(t, client, component.ID, tc.request)
-				t.Require().Equal(http.StatusBadRequest, result.Status)
-				t.Assert().Equal(tc.wantCode, result.Failure.Code)
-			})
-		}
+func TestDuplicateComponentClientE2E(t *testing.T) {
+	client := environment.server.Client()
+
+	t.Run("RejectDuplicateClientForComponent", testo.Test(func(t T) {
+		t.Epic("Inventory")
+		t.Feature("Client")
+		t.Story("Create client")
+		t.Severity(allure.SeverityCritical)
+		t.Tags("e2e", "negative")
+		t.Title("Reject creating the same client type twice for one component")
+
+		resetDatabase(t)
+		product := createTestProductForComponent(t, client)
+		component, status := createTestComponent(t, client, testBackendComponentRequest(product.ID, "Client source"))
+		t.Require().Equal(http.StatusCreated, status)
+
+		request := httpclients.CreateRequestV1{ClientName: inventory.RESTClient}
+		created := createTestClientResult(t, client, component.ID, request)
+		t.Require().Equal(http.StatusCreated, created.Status)
+
+		duplicate := createTestClientResult(t, client, component.ID, request)
+		t.Require().Equal(http.StatusConflict, duplicate.Status)
+		t.Assert().Equal(errmap.CodeClientAlreadyExists, duplicate.Failure.Code)
 	}, allureArtifactsDir))
 }
 
@@ -182,7 +159,6 @@ type clientCreationResult struct {
 func testRESTClientRequest() httpclients.CreateRequestV1 {
 	return httpclients.CreateRequestV1{
 		ClientName: inventory.RESTClient,
-		Role:       inventory.Caller,
 	}
 }
 

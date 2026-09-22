@@ -55,8 +55,7 @@ CREATE TABLE inventory.apis (
     component_id BIGINT NOT NULL REFERENCES inventory.components (id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     api_type TEXT NOT NULL,
-    network_exposure inventory.network_exposure NOT NULL,
-    documentation_url TEXT
+    network_exposure inventory.network_exposure NOT NULL
 );
 
 CREATE INDEX apis_component_id_idx ON inventory.apis (component_id);
@@ -66,13 +65,21 @@ CREATE TABLE inventory.component_clients (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     component_id BIGINT NOT NULL REFERENCES inventory.components (id) ON DELETE CASCADE,
     client_name TEXT NOT NULL,
-    role TEXT NOT NULL,
     communication_type TEXT NOT NULL,
-    action TEXT,
     capabilities TEXT,
     secure_connection BOOLEAN NOT NULL DEFAULT FALSE,
-    api_id BIGINT REFERENCES inventory.apis (id) ON DELETE SET NULL
+    CONSTRAINT unique_clients_for_component UNIQUE (component_id, client_name)
 );
 
 CREATE INDEX component_clients_component_id_idx ON inventory.component_clients (component_id);
-CREATE INDEX component_clients_api_id_idx ON inventory.component_clients (api_id);
+
+CREATE TABLE inventory.client_integrations (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    client_id BIGINT NOT NULL REFERENCES inventory.component_clients (id) ON DELETE CASCADE,
+    api_id BIGINT NOT NULL REFERENCES inventory.apis (id) ON DELETE CASCADE,
+    action TEXT NOT NULL,
+    description TEXT
+);
+
+CREATE UNIQUE INDEX component_client_unique_integration_idx ON inventory.client_integrations (client_id, api_id);
+CREATE INDEX client_integrations_api_id_idx ON inventory.client_integrations (api_id);

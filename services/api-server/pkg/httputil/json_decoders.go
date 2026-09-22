@@ -7,8 +7,10 @@ import (
 	"io"
 	"net/http"
 	"reflect"
-	"regexp"
+	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -17,8 +19,6 @@ import (
 var (
 	ErrInvalidJSONBody  = errors.New("invalid JSON body")
 	ErrJSONBodyTooLarge = errors.New("JSON body too large")
-
-	allowedTextPattern = regexp.MustCompile(`^[A-Za-z0-9 ._()@+:/#&',%\[\]-]*$`)
 )
 
 func NewValidator() (*validator.Validate, error) {
@@ -31,11 +31,43 @@ func NewValidator() (*validator.Validate, error) {
 		return name
 	})
 	if err := validate.RegisterValidation("allowed_text", func(field validator.FieldLevel) bool {
-		return allowedTextPattern.MatchString(field.Field().String())
+		return isAllowedText(field.Field().String())
 	}); err != nil {
 		return nil, fmt.Errorf("register allowed_text validation: %w", err)
 	}
+	if err := validate.RegisterValidation("max_non_whitespace", func(field validator.FieldLevel) bool {
+		limit, err := strconv.Atoi(field.Param())
+		if err != nil || limit < 0 {
+			return false
+		}
+		characterCount := 0
+		for _, character := range field.Field().String() {
+			if unicode.IsSpace(character) {
+				continue
+			}
+			characterCount++
+			if characterCount > limit {
+				return false
+			}
+		}
+		return true
+	}); err != nil {
+		return nil, fmt.Errorf("register max_non_whitespace validation: %w", err)
+	}
 	return validate, nil
+}
+
+func isAllowedText(value string) bool {
+	if !utf8.ValidString(value) {
+		return false
+	}
+
+	for _, character := range value {
+		if unicode.IsControl(character) && character != '\t' && character != '\n' && character != '\r' {
+			return false
+		}
+	}
+	return true
 }
 
 func DecodeAndValidateJSON[T any](c *gin.Context, validate *validator.Validate) (T, error) {

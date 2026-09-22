@@ -16,10 +16,15 @@ type ClientStore interface {
 	BatchCreate(ctx context.Context, componentID int64, clients []inventory.ComponentClient) ([]inventory.ComponentClient, error)
 }
 
+type IntegrationStore interface {
+	ListByClientIDs(ctx context.Context, clientIDs []int64) (map[int64][]inventory.Integration, error)
+}
+
 type TxStores struct {
-	Components Store
-	APIs       APIStore
-	Clients    ClientStore
+	Components   Store
+	APIs         APIStore
+	Clients      ClientStore
+	Integrations IntegrationStore
 }
 
 // TxManager manages transactions for the inventory component service

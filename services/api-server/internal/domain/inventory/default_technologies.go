@@ -33,11 +33,11 @@ var (
 	AirflowParameters  = DefaultTechnologyParameters{TechnologyType: WorkflowEngine, APIType: REST}
 	ArgoParameters     = DefaultTechnologyParameters{TechnologyType: WorkflowEngine, APIType: REST}
 
-	NginxParameters   = DefaultTechnologyParameters{TechnologyType: LoadBalancer, APIType: REST}
-	EnvoyParameters   = DefaultTechnologyParameters{TechnologyType: ServiceMesh, APIType: GRPC}
+	NginxParameters   = DefaultTechnologyParameters{TechnologyType: ProxyLB, APIType: REST}
+	EnvoyParameters   = DefaultTechnologyParameters{TechnologyType: ProxyLB, APIType: GRPC}
 	KongParameters    = DefaultTechnologyParameters{TechnologyType: APIGateway, APIType: REST}
-	TraefikParameters = DefaultTechnologyParameters{TechnologyType: APIGateway, APIType: REST}
-	HAProxyParameters = DefaultTechnologyParameters{TechnologyType: LoadBalancer, APIType: REST}
+	TraefikParameters = DefaultTechnologyParameters{TechnologyType: ProxyLB, APIType: REST}
+	HAProxyParameters = DefaultTechnologyParameters{TechnologyType: ProxyLB, APIType: REST}
 
 	PrometheusParameters = DefaultTechnologyParameters{TechnologyType: Monitoring, APIType: REST}
 	GrafanaParameters    = DefaultTechnologyParameters{TechnologyType: Monitoring, APIType: REST}

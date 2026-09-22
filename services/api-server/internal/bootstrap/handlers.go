@@ -7,6 +7,7 @@ import (
 	"github.com/76parker/alpa/internal/httpapi/apis"
 	"github.com/76parker/alpa/internal/httpapi/clients"
 	"github.com/76parker/alpa/internal/httpapi/component"
+	"github.com/76parker/alpa/internal/httpapi/integrations"
 	"github.com/76parker/alpa/internal/httpapi/product"
 	"github.com/76parker/alpa/internal/httpapi/workspace"
 	"github.com/76parker/alpa/pkg/httputil"
@@ -18,10 +19,11 @@ func newHandlers(applications *applications) (httpapi.Handlers, error) {
 		return httpapi.Handlers{}, fmt.Errorf("create request validator: %w", err)
 	}
 	return httpapi.Handlers{
-		Workspace: workspace.NewHandler(applications.workspaceApp, validate),
-		Component: component.NewHandler(applications.componentApp, validate),
-		APIs:      apis.NewHandler(applications.apiApp, validate),
-		Clients:   clients.NewHandler(applications.clientApp, validate),
-		Product:   product.NewHandler(applications.productApp, validate),
+		Workspace:    workspace.NewHandler(applications.workspaceApp, validate),
+		Component:    component.NewHandler(applications.componentApp, validate),
+		APIs:         apis.NewHandler(applications.apiApp, validate),
+		Clients:      clients.NewHandler(applications.clientApp, validate),
+		Integrations: integrations.NewHandler(applications.integrationApp, validate),
+		Product:      product.NewHandler(applications.productApp, validate),
 	}, nil
 }

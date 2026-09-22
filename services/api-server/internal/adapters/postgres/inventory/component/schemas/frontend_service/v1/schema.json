@@ -25,13 +25,11 @@
     "language_version": {
       "type": "string",
       "minLength": 1,
-      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$",
       "maxLength": 50
     },
     "main_framework": {
       "type": "string",
       "minLength": 1,
-      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$",
       "maxLength": 50
     }
   }

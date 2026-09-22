@@ -9,11 +9,13 @@ import (
 	postgres "github.com/76parker/alpa/internal/adapters/postgres"
 	"github.com/76parker/alpa/internal/adapters/postgres/internal/sqlc"
 	"github.com/76parker/alpa/internal/domain/inventory"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-const componentForeignKey = "component_clients_component_id_fkey"
+const (
+	componentForeignKey                 = "component_clients_component_id_fkey"
+	uniqueClientsForComponentConstraint = "unique_clients_for_component"
+)
 
 type Repository struct {
 	queries *sqlc.Queries
@@ -31,42 +33,45 @@ func (r *Repository) Create(
 	row, err := r.queries.CreateClient(ctx, sqlc.CreateClientParams{
 		ComponentID:       componentID,
 		ClientName:        string(client.Type().ClientName()),
-		Role:              string(client.Type().Role()),
 		CommunicationType: string(client.Type().CommunicationType()),
-		Action:            client.Action(),
 		Capabilities:      client.Capabilities(),
 		SecureConnection:  client.SecureConnection(),
 	})
 	if err != nil {
-		return inventory.ComponentClient{}, fmt.Errorf("create client: %w", mapCreateError(err))
+		return inventory.ComponentClient{}, fmt.Errorf("create client: %w", mapClientWriteError(err))
 	}
 
 	return inventory.RestoreComponentClient(
 		row.ID,
 		inventory.ComponentClientName(row.ClientName),
-		inventory.ComponentClientRole(row.Role),
-		row.Action,
 		row.Capabilities,
 		row.SecureConnection,
-		row.ApiID,
 	), nil
 }
 
-func (r *Repository) Update(ctx context.Context, componentID, clientID int64, client inventory.ComponentClient) (inventory.ComponentClient, error) {
+func (r *Repository) Update(
+	ctx context.Context,
+	componentID, clientID int64,
+	client inventory.ComponentClient,
+) (inventory.ComponentClient, error) {
+
 	row, err := r.queries.UpdateClient(ctx, sqlc.UpdateClientParams{
 		ClientName:        string(client.Type().ClientName()),
-		Role:              string(client.Type().Role()),
 		CommunicationType: string(client.Type().CommunicationType()),
-		Action:            client.Action(),
 		Capabilities:      client.Capabilities(),
 		SecureConnection:  client.SecureConnection(),
 		ClientID:          clientID,
 		ComponentID:       componentID,
 	})
 	if err != nil {
-		return inventory.ComponentClient{}, fmt.Errorf("update client: %w", postgres.MapDatabaseError(err))
+		return inventory.ComponentClient{}, fmt.Errorf("update client: %w", mapClientWriteError(err))
 	}
-	return inventory.RestoreComponentClient(row.ID, inventory.ComponentClientName(row.ClientName), inventory.ComponentClientRole(row.Role), row.Action, row.Capabilities, row.SecureConnection, row.ApiID), nil
+	return inventory.RestoreComponentClient(
+		row.ID,
+		inventory.ComponentClientName(row.ClientName),
+		row.Capabilities,
+		row.SecureConnection,
+	), nil
 }
 
 func (r *Repository) BatchCreate(
@@ -82,21 +87,13 @@ func (r *Repository) BatchCreate(
 	params := sqlc.BatchCreateClientsParams{
 		ComponentID:        componentID,
 		ClientNames:        make([]string, 0, len(clients)),
-		Roles:              make([]string, 0, len(clients)),
 		CommunicationTypes: make([]string, 0, len(clients)),
-		Actions:            make([]string, 0, len(clients)),
 		Capabilities:       make([]string, 0, len(clients)),
 		SecureConnections:  make([]bool, 0, len(clients)),
 	}
 	for _, client := range clients {
 		params.ClientNames = append(params.ClientNames, string(client.Type().ClientName()))
-		params.Roles = append(params.Roles, string(client.Type().Role()))
 		params.CommunicationTypes = append(params.CommunicationTypes, string(client.Type().CommunicationType()))
-		if action := client.Action(); action != nil {
-			params.Actions = append(params.Actions, *action)
-		} else {
-			params.Actions = append(params.Actions, "")
-		}
 		if capabilities := client.Capabilities(); capabilities != nil {
 			params.Capabilities = append(params.Capabilities, *capabilities)
 		} else {
@@ -107,17 +104,14 @@ func (r *Repository) BatchCreate(
 
 	rows, err := r.queries.BatchCreateClients(ctx, params)
 	if err != nil {
-		return nil, fmt.Errorf("batch create clients: %w", mapCreateError(err))
+		return nil, fmt.Errorf("batch create clients: %w", mapClientWriteError(err))
 	}
 	for _, row := range rows {
 		created = append(created, inventory.RestoreComponentClient(
 			row.ID,
 			inventory.ComponentClientName(row.ClientName),
-			inventory.ComponentClientRole(row.Role),
-			row.Action,
 			row.Capabilities,
 			row.SecureConnection,
-			row.ApiID,
 		))
 	}
 	sort.Slice(created, func(i, j int) bool { return created[i].ID() < created[j].ID() })
@@ -161,11 +155,8 @@ func (r *Repository) ListByComponentIDs(
 			inventory.RestoreComponentClient(
 				row.ID,
 				inventory.ComponentClientName(row.ClientName),
-				inventory.ComponentClientRole(row.Role),
-				row.Action,
 				row.Capabilities,
 				row.SecureConnection,
-				row.ApiID,
 			),
 		)
 	}
@@ -177,64 +168,16 @@ func (r *Repository) ListByComponentIDs(
 	return grouped, nil
 }
 
-func (r *Repository) BindAPI(
-	ctx context.Context,
-	componentID int64,
-	clientID int64,
-	apiID int64,
-) (inventory.ComponentClient, error) {
-	source, err := r.queries.GetClientForAPIUpdate(ctx, sqlc.GetClientForAPIUpdateParams{
-		ClientID:    clientID,
-		ComponentID: componentID,
-	})
-	if err != nil {
-		return inventory.ComponentClient{}, fmt.Errorf("bind client API: %w", postgres.MapDatabaseError(err))
-	}
-	if source.ApiID != nil {
-		return inventory.ComponentClient{}, fmt.Errorf("bind client API: %w", inventory.ErrClientAlreadyBound)
-	}
-
-	target, err := r.queries.GetTargetAPIForShare(ctx, apiID)
-	if err != nil {
-		return inventory.ComponentClient{}, fmt.Errorf("bind client API: %w", postgres.MapDatabaseError(err))
-	}
-	if source.ComponentID == target.ComponentID || source.ProductID != target.ProductID {
-		return inventory.ComponentClient{}, fmt.Errorf("bind client API: %w", inventory.ErrInvalidClientBinding)
-	}
-
-	row, err := r.queries.BindClientAPI(ctx, sqlc.BindClientAPIParams{
-		ApiID:    &apiID,
-		ClientID: clientID,
-	})
-	if err != nil {
-		return inventory.ComponentClient{}, fmt.Errorf("bind client API: %w", mapBindAPIError(err))
-	}
-	return inventory.RestoreComponentClient(
-		row.ID,
-		inventory.ComponentClientName(row.ClientName),
-		inventory.ComponentClientRole(row.Role),
-		row.Action,
-		row.Capabilities,
-		row.SecureConnection,
-		row.ApiID,
-	), nil
-}
-
-func mapCreateError(err error) error {
+func mapClientWriteError(err error) error {
 	mapped := postgres.MapDatabaseError(err)
 	pgErr, ok := errors.AsType[*pgconn.PgError](err)
-	if ok && errors.Is(mapped, postgres.ErrForeignKeyViolation) && pgErr.ConstraintName == componentForeignKey {
-		return fmt.Errorf("%w: %w", postgres.ErrNotFound, mapped)
+	if !ok {
+		return mapped
 	}
-	return mapped
-}
-
-func mapBindAPIError(err error) error {
-	if errors.Is(err, pgx.ErrNoRows) {
-		return inventory.ErrClientAlreadyBound
+	if errors.Is(mapped, postgres.ErrUniqueViolation) && pgErr.ConstraintName == uniqueClientsForComponentConstraint {
+		return inventory.ErrClientAlreadyExists
 	}
-	mapped := postgres.MapDatabaseError(err)
-	if errors.Is(mapped, postgres.ErrForeignKeyViolation) {
+	if errors.Is(mapped, postgres.ErrForeignKeyViolation) && pgErr.ConstraintName == componentForeignKey {
 		return fmt.Errorf("%w: %w", postgres.ErrNotFound, mapped)
 	}
 	return mapped

@@ -109,28 +109,74 @@
     "string": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 50,
-      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"
+      "maxLength": 50
     },
     "description": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 1000,
-      "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"
+      "maxLength": 1000
     },
     "backendService": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["language"],
+      "required": [
+        "language"
+      ],
       "properties": {
         "language": {
           "type": "string",
           "enum": [
-            "c", "c++", "c#", "go", "java", "javascript", "typescript", "python", "ruby", "php", "rust", "swift", "kotlin", "scala", "dart", "lua", "perl", "r", "objective-c", "shell", "bash", "powershell", "sql", "solidity", "haskell", "elixir", "erlang", "clojure", "groovy", "fortran", "cobol", "assembly", "visual-basic", "matlab", "pascal", "delphi", "f#", "julia", "zig", "nim", "ocaml", "prolog", "common-lisp", "scratch"
+            "c",
+            "c++",
+            "c#",
+            "go",
+            "java",
+            "javascript",
+            "typescript",
+            "python",
+            "ruby",
+            "php",
+            "rust",
+            "swift",
+            "kotlin",
+            "scala",
+            "dart",
+            "lua",
+            "perl",
+            "r",
+            "objective-c",
+            "shell",
+            "bash",
+            "powershell",
+            "sql",
+            "solidity",
+            "haskell",
+            "elixir",
+            "erlang",
+            "clojure",
+            "groovy",
+            "fortran",
+            "cobol",
+            "assembly",
+            "visual-basic",
+            "matlab",
+            "pascal",
+            "delphi",
+            "f#",
+            "julia",
+            "zig",
+            "nim",
+            "ocaml",
+            "prolog",
+            "common-lisp",
+            "scratch"
           ]
         },
         "repository_url": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "uri",
           "maxLength": 2048
         }
@@ -139,12 +185,57 @@
     "frontendService": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["language"],
+      "required": [
+        "language"
+      ],
       "properties": {
         "language": {
           "type": "string",
           "enum": [
-            "c", "c++", "c#", "go", "java", "javascript", "typescript", "python", "ruby", "php", "rust", "swift", "kotlin", "scala", "dart", "lua", "perl", "r", "objective-c", "shell", "bash", "powershell", "sql", "solidity", "haskell", "elixir", "erlang", "clojure", "groovy", "fortran", "cobol", "assembly", "visual-basic", "matlab", "pascal", "delphi", "f#", "julia", "zig", "nim", "ocaml", "prolog", "common-lisp", "scratch"
+            "c",
+            "c++",
+            "c#",
+            "go",
+            "java",
+            "javascript",
+            "typescript",
+            "python",
+            "ruby",
+            "php",
+            "rust",
+            "swift",
+            "kotlin",
+            "scala",
+            "dart",
+            "lua",
+            "perl",
+            "r",
+            "objective-c",
+            "shell",
+            "bash",
+            "powershell",
+            "sql",
+            "solidity",
+            "haskell",
+            "elixir",
+            "erlang",
+            "clojure",
+            "groovy",
+            "fortran",
+            "cobol",
+            "assembly",
+            "visual-basic",
+            "matlab",
+            "pascal",
+            "delphi",
+            "f#",
+            "julia",
+            "zig",
+            "nim",
+            "ocaml",
+            "prolog",
+            "common-lisp",
+            "scratch"
           ]
         },
         "language_version": {
@@ -245,8 +336,7 @@
           "items": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 50,
-            "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"
+            "maxLength": 50
           }
         }
       }
@@ -261,7 +351,10 @@
       ],
       "properties": {
         "name": {
-          "$ref": "#/$defs/string"
+          "type": "string",
+          "minLength": 1,
+          "description": "Required API name with up to 20 non-whitespace characters; surrounding whitespace is trimmed.",
+          "pattern": "^(?=\\s*\\S)(?:\\s*\\S){1,20}\\s*$"
         },
         "api_type": {
           "type": "string",
@@ -291,14 +384,6 @@
             "internal",
             "internet"
           ]
-        },
-        "documentation_url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "uri",
-          "maxLength": 2048
         }
       }
     },
@@ -306,8 +391,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "client_name",
-        "role"
+        "client_name"
       ],
       "properties": {
         "client_name": {
@@ -338,23 +422,6 @@
             "ibm-mq-client",
             "native-protocol-client"
           ]
-        },
-        "role": {
-          "type": "string",
-          "maxLength": 50,
-          "enum": [
-            "listener",
-            "caller",
-            "producer",
-            "consumer"
-          ]
-        },
-        "action": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "maxLength": 2097152
         },
         "capabilities": {
           "type": [

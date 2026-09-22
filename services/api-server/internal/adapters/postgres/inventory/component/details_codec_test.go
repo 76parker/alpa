@@ -40,7 +40,7 @@ func TestInfrastructureDetailsCodecRoundTrip(t *testing.T) {
 		t.Fatalf("encoded payload = %s, want %s", encoded, `{"schema_version":1,"technology_name":"postgresql","version":"17","technology_type":"sql-database","importancy":"critical","endpoints":["primary:5432","replica:5432","replica:5432"]}`)
 	}
 
-	decoded, err := Decode(inventory.ComponentTypeInfrastructure, encoded)
+	decoded, err := Decode(inventory.Infrastructure, encoded)
 	if err != nil {
 		t.Fatalf("decode details: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestServiceDetailsCodecCanonicalizesLanguage(t *testing.T) {
 		t.Fatalf("encoded payload = %s, want repository_url", encoded)
 	}
 
-	decoded, err := Decode(inventory.ComponentTypeBackend, encoded)
+	decoded, err := Decode(inventory.Backend, encoded)
 	if err != nil {
 		t.Fatalf("decode details: %v", err)
 	}

@@ -1,7 +1,5 @@
 package inventory
 
-var ()
-
 type ComponentClientName string
 
 const (
@@ -28,6 +26,8 @@ const (
 	IBMMQClient           ComponentClientName = "ibm-mq-client"
 	NativeProtocolClient  ComponentClientName = "native-protocol-client"
 	GRPCStreamClient      ComponentClientName = "grpc-streaming-client"
+	HTTPProxyClient       ComponentClientName = "http-proxy-client"
+	GRPCProxyClient       ComponentClientName = "grpc-proxy-client"
 )
 
 type CommunicationType string
@@ -56,6 +56,8 @@ var resolveCommunicationType = map[ComponentClientName]CommunicationType{
 	IBMMQClient:           Events,
 	NativeProtocolClient:  RequestResponse,
 	GRPCStreamClient:      Stream,
+	HTTPProxyClient:       RequestResponse,
+	GRPCProxyClient:       RequestResponse,
 }
 
 const (

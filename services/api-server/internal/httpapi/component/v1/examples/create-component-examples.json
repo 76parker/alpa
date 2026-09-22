@@ -1,5 +1,47 @@
 [
-  { "product_id": 1, "name": "backend-api", "description": "Backend API service", "type": "backend-service", "details": { "language": "go", "repository_url": "https://github.com/example/backend" }, "apis": [{ "name": "Public REST", "api_type": "rest", "network_exposure": "internet" }], "clients": [{ "client_name": "rest-client", "role": "caller", "action": "Calls billing" }] },
-  { "product_id": 1, "name": "frontend-web", "type": "frontend-service", "details": { "language": "typescript", "framework": "React" } },
-  { "product_id": 1, "name": "postgres-db", "type": "infrastructure", "details": { "technology_name": "postgresql", "version": "17", "technology_type": "sql-database", "importancy": "critical", "endpoints": ["db.internal"] } }
+  {
+    "product_id": 1,
+    "name": "backend-api",
+    "description": "Backend API service",
+    "type": "backend-service",
+    "details": {
+      "language": "go",
+      "repository_url": "https://github.com/example/backend"
+    },
+    "apis": [
+      {
+        "api_type": "rest",
+        "network_exposure": "internet",
+        "name": "backend-api API 1"
+      }
+    ],
+    "clients": [
+      {
+        "client_name": "rest-client"
+      }
+    ]
+  },
+  {
+    "product_id": 1,
+    "name": "frontend-web",
+    "type": "frontend-service",
+    "details": {
+      "language": "typescript",
+      "framework": "React"
+    }
+  },
+  {
+    "product_id": 1,
+    "name": "postgres-db",
+    "type": "infrastructure",
+    "details": {
+      "technology_name": "postgresql",
+      "version": "17",
+      "technology_type": "sql-database",
+      "importancy": "critical",
+      "endpoints": [
+        "db.internal"
+      ]
+    }
+  }
 ]

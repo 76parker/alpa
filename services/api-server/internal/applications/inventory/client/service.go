@@ -10,9 +10,12 @@ import (
 type Store interface {
 	Create(ctx context.Context, componentID int64, client inventory.ComponentClient) (inventory.ComponentClient, error)
 	Update(ctx context.Context, componentID, clientID int64, client inventory.ComponentClient) (inventory.ComponentClient, error)
-	BindAPI(ctx context.Context, componentID, clientID, apiID int64) (inventory.ComponentClient, error)
 	CountByComponentID(ctx context.Context, componentID int64) (int, error)
 	Delete(ctx context.Context, componentID int64, clientID int64) error
+}
+
+type IntegrationStore interface {
+	ListByClientIDs(ctx context.Context, clientIDs []int64) (map[int64][]inventory.Integration, error)
 }
 
 type ComponentStore interface {
@@ -26,25 +29,6 @@ type service struct {
 
 func newService(store Store, txManager TxManager) *service {
 	return &service{store: store, txManager: txManager}
-}
-
-func (s *service) bindAPI(ctx context.Context, command BindAPICommand) (inventory.ComponentClient, error) {
-	if command.ComponentID <= 0 || command.ClientID <= 0 || command.APIID <= 0 {
-		return inventory.ComponentClient{}, inventory.ErrNegativeID
-	}
-
-	var client inventory.ComponentClient
-	if err := s.txManager.BindClientAPITx(ctx, func(stores TxStores) error {
-		updated, err := stores.Clients.BindAPI(ctx, command.ComponentID, command.ClientID, command.APIID)
-		if err != nil {
-			return err
-		}
-		client = updated
-		return nil
-	}); err != nil {
-		return inventory.ComponentClient{}, fmt.Errorf("bind client API: %w", err)
-	}
-	return client, nil
 }
 
 func (s *service) create(ctx context.Context, command CreateCommand) (inventory.ComponentClient, error) {
@@ -66,8 +50,6 @@ func (s *service) create(ctx context.Context, command CreateCommand) (inventory.
 
 		newClient, err := inventory.NewComponentClient(
 			command.ClientName,
-			command.Role,
-			command.Action,
 			command.Capabilities,
 			command.SecureConnection,
 		)
@@ -95,8 +77,6 @@ func (s *service) update(ctx context.Context, command UpdateCommand) (inventory.
 	}
 	updated, err := inventory.NewComponentClient(
 		command.ClientName,
-		command.Role,
-		command.Action,
 		command.Capabilities,
 		command.SecureConnection,
 	)
@@ -106,7 +86,19 @@ func (s *service) update(ctx context.Context, command UpdateCommand) (inventory.
 	var stored inventory.ComponentClient
 	err = s.txManager.ExecuteWriteClientTx(ctx, func(stores TxStores) error {
 		stored, err = stores.Clients.Update(ctx, command.ComponentID, command.ClientID, updated)
-		return err
+		if err != nil {
+			return err
+		}
+		integrations, err := stores.Integrations.ListByClientIDs(ctx, []int64{command.ClientID})
+		if err != nil {
+			return err
+		}
+		for _, integration := range integrations[command.ClientID] {
+			if !updated.SupportsAction(integration.Action()) {
+				return inventory.ErrIncompatibleClientIntegrations
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		return inventory.ComponentClient{}, fmt.Errorf("update client: %w", err)

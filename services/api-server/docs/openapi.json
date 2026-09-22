@@ -3,7 +3,7 @@
   "info": {
     "title": "ALPA Inventory API",
     "version": "1.0.0",
-        "description": "API for maintaining workspaces, products, and components. Input strings are trimmed; programming language values are normalized to lowercase. Business validation returns domain error codes; JSON, length, and character validation returns invalid_request."
+    "description": "API for maintaining workspaces, products, and components. Input strings are trimmed; programming language values are normalized to lowercase. Business validation returns domain error codes; JSON, length, and character validation returns invalid_request."
   },
   "servers": [
     {
@@ -25,6 +25,9 @@
     },
     {
       "name": "Clients"
+    },
+    {
+      "name": "Integrations"
     }
   ],
   "paths": {
@@ -325,6 +328,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "409": {
+            "$ref": "#/components/responses/ClientAlreadyExists"
+          },
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
@@ -484,6 +490,9 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "409": {
+            "$ref": "#/components/responses/ClientAlreadyExists"
+          },
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
@@ -553,44 +562,68 @@
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
+          "409": {
+            "$ref": "#/components/responses/ClientAlreadyExists"
+          },
           "500": {
             "$ref": "#/components/responses/InternalError"
           }
         }
       }
     },
-    "/v1/components/{component_id}/clients/{id}/bindings": {
-      "parameters": [
-        {
-          "$ref": "#/components/parameters/ParentComponentID"
-        },
-        {
-          "$ref": "#/components/parameters/ClientID"
-        }
-      ],
+    "/v1/integrations": {
       "post": {
         "tags": [
-          "Clients"
+          "Integrations"
         ],
-        "summary": "Bind a component client to an API",
-        "operationId": "createClientBinding",
+        "summary": "Create an integration between a client and an API",
+        "description": "Creates a directed integration from a component client to an API in another component of the same product.\nA client may have integrations with multiple APIs, but the same `client_id` and `api_id` pair may occur only once.\nThe action must match the client communication type: request/response clients use `call`, event clients use\n`produce` or `consume`, and streaming clients use `listen-events`.\n",
+        "operationId": "createIntegration",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateClientBindingRequest"
+                "$ref": "#/components/schemas/CreateIntegrationRequest"
+              },
+              "examples": {
+                "callAPI": {
+                  "summary": "Call a synchronous API",
+                  "value": {
+                    "client_id": 5001,
+                    "api_id": 4001,
+                    "action": "call",
+                    "description": "Calls checkout with retries."
+                  }
+                },
+                "consumeEvents": {
+                  "summary": "Consume events from an API",
+                  "value": {
+                    "client_id": 5002,
+                    "api_id": 4002,
+                    "action": "consume",
+                    "description": "Consumes order-created events."
+                  }
+                },
+                "listenToStream": {
+                  "summary": "Listen to a streaming API without a description",
+                  "value": {
+                    "client_id": 5003,
+                    "api_id": 4003,
+                    "action": "listen-events"
+                  }
+                }
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Client binding created",
+            "description": "Integration created",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ClientBinding"
+                  "$ref": "#/components/schemas/Integration"
                 }
               }
             }
@@ -603,6 +636,88 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/v1/integrations/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/IntegrationID"
+        }
+      ],
+      "patch": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Update an integration description",
+        "description": "Updates only the description. Send `null` to clear the current description.",
+        "operationId": "updateIntegrationDescription",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIntegrationDescriptionRequest"
+              },
+              "examples": {
+                "replaceDescription": {
+                  "summary": "Replace the description",
+                  "value": {
+                    "description": "Calls checkout with retries."
+                  }
+                },
+                "clearDescription": {
+                  "summary": "Clear the description",
+                  "value": {
+                    "description": null
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Integration updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Integration"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Integrations"
+        ],
+        "summary": "Delete an integration",
+        "description": "Deletes only the integration; the client and API remain unchanged.",
+        "operationId": "deleteIntegration",
+        "responses": {
+          "204": {
+            "description": "Integration deleted"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalError"
@@ -790,6 +905,19 @@
           "example": 5001
         }
       },
+      "IntegrationID": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/ID"
+            }
+          ],
+          "example": 6001
+        }
+      },
       "Limit": {
         "name": "limit",
         "in": "query",
@@ -843,6 +971,16 @@
           }
         }
       },
+      "ClientAlreadyExists": {
+        "description": "A client with this type already exists for the component",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
       "InternalError": {
         "description": "Unexpected server error",
         "content": {
@@ -872,14 +1010,12 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 50,
-        "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$",
         "example": "Payments Platform"
       },
       "Description": {
         "type": "string",
         "minLength": 1,
         "maxLength": 1000,
-        "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$",
         "example": "Processes card payments and refunds."
       },
       "Pagination": {
@@ -916,7 +1052,7 @@
           },
           "code": {
             "type": "string",
-            "description": "Business errors include unknown_language, unknown_technology_name, unknown_technology_type, too_many_endpoints, invalid_criticality, invalid_importancy, invalid_product_code, api_limit_exceeded, client_limit_exceeded, client_action_too_large, client_capabilities_too_large, invalid_client_binding, and client_already_bound. Transport errors use invalid_request.",
+            "description": "Business errors include unknown_language, unknown_technology_name, unknown_technology_type, too_many_endpoints, invalid_criticality, invalid_importancy, invalid_api_name, invalid_product_code, api_limit_exceeded, client_limit_exceeded, client_capabilities_too_large, client_already_exists, invalid_client_action, invalid_integration, integration_already_exists, and incompatible_client_integrations. Transport errors use invalid_request.",
             "example": "invalid_request"
           },
           "status": {
@@ -1470,7 +1606,7 @@
             "type": "array",
             "maxItems": 5,
             "items": {
-              "$ref": "#/components/schemas/ComponentClient"
+              "$ref": "#/components/schemas/ComponentClientProjection"
             }
           }
         }
@@ -1548,6 +1684,13 @@
           }
         }
       },
+      "APIName": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Required API name with up to 20 non-whitespace characters; surrounding whitespace is trimmed.",
+        "pattern": "^(?=\\s*\\S)(?:\\s*\\S){1,20}\\s*$",
+        "example": "Orders REST"
+      },
       "APIType": {
         "type": "string",
         "maxLength": 50,
@@ -1582,13 +1725,15 @@
       "ComponentAPI": {
         "type": "object",
         "required": [
-          "id",
           "name",
+          "id",
           "api_type",
-          "network_exposure",
-          "documentation_url"
+          "network_exposure"
         ],
         "properties": {
+          "name": {
+            "$ref": "#/components/schemas/APIName"
+          },
           "id": {
             "allOf": [
               {
@@ -1597,25 +1742,11 @@
             ],
             "example": 4001
           },
-          "name": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Name"
-              }
-            ],
-            "example": "Checkout Public API"
-          },
           "api_type": {
             "$ref": "#/components/schemas/APIType"
           },
           "network_exposure": {
             "$ref": "#/components/schemas/NetworkExposure"
-          },
-          "documentation_url": {
-            "type": "string",
-            "nullable": true,
-            "format": "uri",
-            "example": "https://docs.example.com/checkout"
           }
         }
       },
@@ -1629,24 +1760,13 @@
         "additionalProperties": false,
         "properties": {
           "name": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Name"
-              }
-            ],
-            "example": "Checkout Public API"
+            "$ref": "#/components/schemas/APIName"
           },
           "api_type": {
             "$ref": "#/components/schemas/APIType"
           },
           "network_exposure": {
             "$ref": "#/components/schemas/NetworkExposure"
-          },
-          "documentation_url": {
-            "type": "string",
-            "nullable": true,
-            "format": "uri",
-            "example": "https://docs.example.com/checkout"
           }
         }
       },
@@ -1687,16 +1807,16 @@
         ],
         "example": "rest-client"
       },
-      "ClientRole": {
+      "ClientAction": {
         "type": "string",
         "maxLength": 50,
         "enum": [
-          "listener",
-          "caller",
-          "producer",
-          "consumer"
+          "consume",
+          "produce",
+          "call",
+          "listen-events"
         ],
-        "example": "caller"
+        "example": "call"
       },
       "CommunicationType": {
         "type": "string",
@@ -1715,12 +1835,9 @@
         "required": [
           "id",
           "client_name",
-          "role",
           "communication_type",
-          "action",
           "capabilities",
-          "secure_connection",
-          "api_id"
+          "secure_connection"
         ],
         "properties": {
           "id": {
@@ -1734,17 +1851,8 @@
           "client_name": {
             "$ref": "#/components/schemas/ClientName"
           },
-          "role": {
-            "$ref": "#/components/schemas/ClientRole"
-          },
           "communication_type": {
             "$ref": "#/components/schemas/CommunicationType"
-          },
-          "action": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 2097152,
-            "example": "# Call checkout"
           },
           "capabilities": {
             "type": "string",
@@ -1755,37 +1863,39 @@
           "secure_connection": {
             "type": "boolean",
             "example": false
-          },
-          "api_id": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ID"
-              }
-            ],
-            "nullable": true,
-            "example": 4001
           }
         }
+      },
+      "ComponentClientProjection": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ComponentClient"
+          },
+          {
+            "type": "object",
+            "required": [
+              "integrations"
+            ],
+            "properties": {
+              "integrations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Integration"
+                }
+              }
+            }
+          }
+        ]
       },
       "CreateClientRequest": {
         "type": "object",
         "required": [
-          "client_name",
-          "role"
+          "client_name"
         ],
         "additionalProperties": false,
         "properties": {
           "client_name": {
             "$ref": "#/components/schemas/ClientName"
-          },
-          "role": {
-            "$ref": "#/components/schemas/ClientRole"
-          },
-          "action": {
-            "type": "string",
-            "nullable": true,
-            "maxLength": 2097152,
-            "example": "# Call checkout"
           },
           "capabilities": {
             "type": "string",
@@ -1806,12 +1916,62 @@
           }
         ]
       },
-      "ClientBinding": {
+      "Integration": {
+        "type": "object",
+        "required": [
+          "id",
+          "client_id",
+          "api_id",
+          "action",
+          "description"
+        ],
+        "properties": {
+          "id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ID"
+              }
+            ],
+            "example": 6001
+          },
+          "client_id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ID"
+              }
+            ],
+            "example": 5001
+          },
+          "api_id": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ID"
+              }
+            ],
+            "example": 4001
+          },
+          "action": {
+            "$ref": "#/components/schemas/ClientAction"
+          },
+          "description": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Description"
+              }
+            ],
+            "nullable": true,
+            "example": "Calls the checkout API."
+          }
+        }
+      },
+      "CreateIntegrationRequest": {
         "type": "object",
         "required": [
           "client_id",
-          "api_id"
+          "api_id",
+          "action"
         ],
+        "additionalProperties": false,
         "properties": {
           "client_id": {
             "allOf": [
@@ -1828,23 +1988,36 @@
               }
             ],
             "example": 4001
+          },
+          "action": {
+            "$ref": "#/components/schemas/ClientAction"
+          },
+          "description": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Description"
+              }
+            ],
+            "nullable": true,
+            "example": "Calls the checkout API."
           }
         }
       },
-      "CreateClientBindingRequest": {
+      "UpdateIntegrationDescriptionRequest": {
         "type": "object",
         "required": [
-          "api_id"
+          "description"
         ],
         "additionalProperties": false,
         "properties": {
-          "api_id": {
+          "description": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/ID"
+                "$ref": "#/components/schemas/Description"
               }
             ],
-            "example": 4001
+            "nullable": true,
+            "example": "Calls checkout with retries."
           }
         }
       }

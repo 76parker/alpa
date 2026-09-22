@@ -23,16 +23,13 @@ type CreateRequestV1 struct {
 }
 
 type CreateAPIRequestV1 struct {
-	Name             string                    `json:"name" validate:"required,max=50,allowed_text"`
-	APIType          inventory.APIType         `json:"api_type" validate:"required,max=50,allowed_text"`
-	NetworkExposure  inventory.NetworkExposure `json:"network_exposure" validate:"required,max=50,allowed_text"`
-	DocumentationURL *string                   `json:"documentation_url,omitempty" validate:"omitempty,url,max=2048"`
+	Name            string                    `json:"name" validate:"required,max_non_whitespace=20,allowed_text"`
+	APIType         inventory.APIType         `json:"api_type" validate:"required,max=50,allowed_text"`
+	NetworkExposure inventory.NetworkExposure `json:"network_exposure" validate:"required,max=50,allowed_text"`
 }
 
 type CreateClientRequestV1 struct {
 	ClientName       inventory.ComponentClientName `json:"client_name" validate:"required,max=50,allowed_text"`
-	Role             inventory.ComponentClientRole `json:"role" validate:"required,max=50,allowed_text"`
-	Action           *string                       `json:"action,omitempty"`
 	Capabilities     *string                       `json:"capabilities,omitempty"`
 	SecureConnection bool                          `json:"secure_connection"`
 }
@@ -65,7 +62,7 @@ func decodeDetails(
 		return nil, nil
 	}
 	switch componentType {
-	case inventory.ComponentTypeBackend:
+	case inventory.Backend:
 		details, err := httputil.DecodeAndValidateJSONBytes[BackendServiceDetailsV1](raw, validate)
 		if err != nil {
 			return nil, err
@@ -75,7 +72,7 @@ func decodeDetails(
 			return nil, err
 		}
 		return appcomponent.BackendServiceDetails{CoreLanguage: language, RepositoryURL: details.RepositoryURL}, nil
-	case inventory.ComponentTypeFrontend:
+	case inventory.Frontend:
 		details, err := httputil.DecodeAndValidateJSONBytes[FrontendServiceDetailsV1](raw, validate)
 		if err != nil {
 			return nil, err
@@ -85,7 +82,7 @@ func decodeDetails(
 			return nil, err
 		}
 		return appcomponent.FrontendServiceDetails{CoreLanguage: language, LanguageVersion: stringValue(details.LanguageVersion), MainFramework: stringValue(details.Framework)}, nil
-	case inventory.ComponentTypeInfrastructure:
+	case inventory.Infrastructure:
 		details, err := httputil.DecodeAndValidateJSONBytes[InfrastructureDetailsV1](raw, validate)
 		if err != nil {
 			return nil, err
@@ -125,12 +122,10 @@ func (r *CreateAPIRequestV1) Normalize() {
 	r.Name = strings.TrimSpace(r.Name)
 	r.APIType = inventory.APIType(strings.TrimSpace(string(r.APIType)))
 	r.NetworkExposure = inventory.NetworkExposure(strings.TrimSpace(string(r.NetworkExposure)))
-	normalizeOptionalURL(&r.DocumentationURL)
 }
 
 func (r *CreateClientRequestV1) Normalize() {
 	r.ClientName = inventory.ComponentClientName(strings.TrimSpace(string(r.ClientName)))
-	r.Role = inventory.ComponentClientRole(strings.TrimSpace(string(r.Role)))
 }
 
 func normalizeOptionalURL(value **string) {

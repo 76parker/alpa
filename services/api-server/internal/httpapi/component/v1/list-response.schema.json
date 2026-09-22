@@ -89,25 +89,33 @@
               "type"
             ]
           },
-            "then": {
-              "properties": {
-                "details": {
-                  "$ref": "#/$defs/backendService"
-                }
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/backendService"
               }
             }
-          },
-          {
-            "if": {
-              "properties": {"type": {"const": "frontend-service"}},
-              "required": ["type"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "frontend-service"
+              }
             },
-            "then": {
-              "properties": {
-                "details": {"$ref": "#/$defs/frontendService"}
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "details": {
+                "$ref": "#/$defs/frontendService"
               }
             }
-          },
+          }
+        },
         {
           "if": {
             "properties": {
@@ -133,19 +141,21 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "id",
         "name",
+        "id",
         "api_type",
-        "network_exposure",
-        "documentation_url"
+        "network_exposure"
       ],
       "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required API name with up to 20 non-whitespace characters; surrounding whitespace is trimmed.",
+          "pattern": "^(?=\\s*\\S)(?:\\s*\\S){1,20}\\s*$"
+        },
         "id": {
           "type": "integer",
           "minimum": 1
-        },
-        "name": {
-          "type": "string"
         },
         "api_type": {
           "type": "string",
@@ -175,14 +185,6 @@
             "internal",
             "internet"
           ]
-        },
-        "documentation_url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "uri",
-          "maxLength": 2048
         }
       }
     },
@@ -192,12 +194,10 @@
       "required": [
         "id",
         "client_name",
-        "role",
         "communication_type",
-        "api_id",
-        "action",
         "capabilities",
-        "secure_connection"
+        "secure_connection",
+        "integrations"
       ],
       "properties": {
         "id": {
@@ -233,16 +233,6 @@
             "native-protocol-client"
           ]
         },
-        "role": {
-          "type": "string",
-          "maxLength": 50,
-          "enum": [
-            "listener",
-            "caller",
-            "producer",
-            "consumer"
-          ]
-        },
         "communication_type": {
           "type": "string",
           "maxLength": 50,
@@ -254,24 +244,6 @@
             "stream"
           ]
         },
-        "api_id": {
-          "oneOf": [
-            {
-              "type": "null"
-            },
-            {
-              "type": "integer",
-              "minimum": 1
-            }
-          ]
-        },
-        "action": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "maxLength": 2097152
-        },
         "capabilities": {
           "type": [
             "string",
@@ -281,22 +253,116 @@
         },
         "secure_connection": {
           "type": "boolean"
+        },
+        "integrations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "client_id",
+              "api_id",
+              "action",
+              "description"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "client_id": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "api_id": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "action": {
+                "type": "string",
+                "enum": [
+                  "consume",
+                  "produce",
+                  "call",
+                  "listen-events"
+                ]
+              },
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1,
+                "maxLength": 1000
+              }
+            }
+          }
         }
       }
     },
     "backendService": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["language", "repository_url"],
+      "required": [
+        "language",
+        "repository_url"
+      ],
       "properties": {
         "language": {
           "type": "string",
           "enum": [
-            "c", "c++", "c#", "go", "java", "javascript", "typescript", "python", "ruby", "php", "rust", "swift", "kotlin", "scala", "dart", "lua", "perl", "r", "objective-c", "shell", "bash", "powershell", "sql", "solidity", "haskell", "elixir", "erlang", "clojure", "groovy", "fortran", "cobol", "assembly", "visual-basic", "matlab", "pascal", "delphi", "f#", "julia", "zig", "nim", "ocaml", "prolog", "common-lisp", "scratch"
+            "c",
+            "c++",
+            "c#",
+            "go",
+            "java",
+            "javascript",
+            "typescript",
+            "python",
+            "ruby",
+            "php",
+            "rust",
+            "swift",
+            "kotlin",
+            "scala",
+            "dart",
+            "lua",
+            "perl",
+            "r",
+            "objective-c",
+            "shell",
+            "bash",
+            "powershell",
+            "sql",
+            "solidity",
+            "haskell",
+            "elixir",
+            "erlang",
+            "clojure",
+            "groovy",
+            "fortran",
+            "cobol",
+            "assembly",
+            "visual-basic",
+            "matlab",
+            "pascal",
+            "delphi",
+            "f#",
+            "julia",
+            "zig",
+            "nim",
+            "ocaml",
+            "prolog",
+            "common-lisp",
+            "scratch"
           ]
         },
         "repository_url": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "uri",
           "maxLength": 2048
         }
@@ -305,16 +371,67 @@
     "frontendService": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["language", "language_version", "framework"],
+      "required": [
+        "language",
+        "language_version",
+        "framework"
+      ],
       "properties": {
         "language": {
           "type": "string",
           "enum": [
-            "c", "c++", "c#", "go", "java", "javascript", "typescript", "python", "ruby", "php", "rust", "swift", "kotlin", "scala", "dart", "lua", "perl", "r", "objective-c", "shell", "bash", "powershell", "sql", "solidity", "haskell", "elixir", "erlang", "clojure", "groovy", "fortran", "cobol", "assembly", "visual-basic", "matlab", "pascal", "delphi", "f#", "julia", "zig", "nim", "ocaml", "prolog", "common-lisp", "scratch"
+            "c",
+            "c++",
+            "c#",
+            "go",
+            "java",
+            "javascript",
+            "typescript",
+            "python",
+            "ruby",
+            "php",
+            "rust",
+            "swift",
+            "kotlin",
+            "scala",
+            "dart",
+            "lua",
+            "perl",
+            "r",
+            "objective-c",
+            "shell",
+            "bash",
+            "powershell",
+            "sql",
+            "solidity",
+            "haskell",
+            "elixir",
+            "erlang",
+            "clojure",
+            "groovy",
+            "fortran",
+            "cobol",
+            "assembly",
+            "visual-basic",
+            "matlab",
+            "pascal",
+            "delphi",
+            "f#",
+            "julia",
+            "zig",
+            "nim",
+            "ocaml",
+            "prolog",
+            "common-lisp",
+            "scratch"
           ]
         },
-        "language_version": {"type": "string"},
-        "framework": {"type": "string"}
+        "language_version": {
+          "type": "string"
+        },
+        "framework": {
+          "type": "string"
+        }
       }
     },
     "infrastructure": {
@@ -406,8 +523,7 @@
           "items": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 50,
-            "pattern": "^[A-Za-z0-9 ._()@+:/#&',%\\[\\]-]+$"
+            "maxLength": 50
           }
         }
       }

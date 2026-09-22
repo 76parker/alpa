@@ -11,28 +11,25 @@ import (
 
 const batchCreateAPIs = `-- name: BatchCreateAPIs :many
 WITH input AS (
-    SELECT names.name, api_types.api_type, network_exposures.network_exposure, documentation_urls.documentation_url, names.ordinality
+    SELECT names.name, api_types.api_type, network_exposures.network_exposure, names.ordinality
     FROM unnest($2::TEXT[]) WITH ORDINALITY AS names(name, ordinality)
     JOIN unnest($3::TEXT[]) WITH ORDINALITY AS api_types(api_type, ordinality)
         USING (ordinality)
     JOIN unnest($4::TEXT[]) WITH ORDINALITY AS network_exposures(network_exposure, ordinality)
         USING (ordinality)
-    JOIN unnest($5::TEXT[]) WITH ORDINALITY AS documentation_urls(documentation_url, ordinality)
-        USING (ordinality)
 )
-INSERT INTO inventory.apis (component_id, name, api_type, network_exposure, documentation_url)
-SELECT $1, name, api_type, network_exposure::inventory.network_exposure, NULLIF(documentation_url, '')
+INSERT INTO inventory.apis (component_id, name, api_type, network_exposure)
+SELECT $1, name, api_type, network_exposure::inventory.network_exposure
 FROM input
 ORDER BY ordinality
-RETURNING id, component_id, name, api_type, network_exposure, documentation_url
+RETURNING id, component_id, name, api_type, network_exposure
 `
 
 type BatchCreateAPIsParams struct {
-	ComponentID       int64
-	Names             []string
-	ApiTypes          []string
-	NetworkExposures  []string
-	DocumentationUrls []string
+	ComponentID      int64
+	Names            []string
+	ApiTypes         []string
+	NetworkExposures []string
 }
 
 func (q *Queries) BatchCreateAPIs(ctx context.Context, arg BatchCreateAPIsParams) ([]InventoryApi, error) {
@@ -41,7 +38,6 @@ func (q *Queries) BatchCreateAPIs(ctx context.Context, arg BatchCreateAPIsParams
 		arg.Names,
 		arg.ApiTypes,
 		arg.NetworkExposures,
-		arg.DocumentationUrls,
 	)
 	if err != nil {
 		return nil, err
@@ -56,7 +52,6 @@ func (q *Queries) BatchCreateAPIs(ctx context.Context, arg BatchCreateAPIsParams
 			&i.Name,
 			&i.ApiType,
 			&i.NetworkExposure,
-			&i.DocumentationUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -86,24 +81,21 @@ INSERT INTO inventory.apis (
     component_id,
     name,
     api_type,
-    network_exposure,
-    documentation_url
+    network_exposure
 ) VALUES (
     $1,
     $2,
     $3,
-    $4,
-    $5
+    $4
 )
-RETURNING id, component_id, name, api_type, network_exposure, documentation_url
+RETURNING id, component_id, name, api_type, network_exposure
 `
 
 type CreateAPIParams struct {
-	ComponentID      int64
-	Name             string
-	ApiType          string
-	NetworkExposure  InventoryNetworkExposure
-	DocumentationUrl *string
+	ComponentID     int64
+	Name            string
+	ApiType         string
+	NetworkExposure InventoryNetworkExposure
 }
 
 func (q *Queries) CreateAPI(ctx context.Context, arg CreateAPIParams) (InventoryApi, error) {
@@ -112,7 +104,6 @@ func (q *Queries) CreateAPI(ctx context.Context, arg CreateAPIParams) (Inventory
 		arg.Name,
 		arg.ApiType,
 		arg.NetworkExposure,
-		arg.DocumentationUrl,
 	)
 	var i InventoryApi
 	err := row.Scan(
@@ -121,7 +112,6 @@ func (q *Queries) CreateAPI(ctx context.Context, arg CreateAPIParams) (Inventory
 		&i.Name,
 		&i.ApiType,
 		&i.NetworkExposure,
-		&i.DocumentationUrl,
 	)
 	return i, err
 }
@@ -146,19 +136,18 @@ func (q *Queries) DeleteAPI(ctx context.Context, arg DeleteAPIParams) (int64, er
 }
 
 const listAPIsByComponentIDs = `-- name: ListAPIsByComponentIDs :many
-SELECT component_id, id, name, api_type, network_exposure, documentation_url
+SELECT component_id, id, name, api_type, network_exposure
 FROM inventory.apis
 WHERE component_id = ANY($1::BIGINT[])
 ORDER BY component_id, id
 `
 
 type ListAPIsByComponentIDsRow struct {
-	ComponentID      int64
-	ID               int64
-	Name             string
-	ApiType          string
-	NetworkExposure  InventoryNetworkExposure
-	DocumentationUrl *string
+	ComponentID     int64
+	ID              int64
+	Name            string
+	ApiType         string
+	NetworkExposure InventoryNetworkExposure
 }
 
 func (q *Queries) ListAPIsByComponentIDs(ctx context.Context, dollar_1 []int64) ([]ListAPIsByComponentIDsRow, error) {
@@ -176,7 +165,6 @@ func (q *Queries) ListAPIsByComponentIDs(ctx context.Context, dollar_1 []int64) 
 			&i.Name,
 			&i.ApiType,
 			&i.NetworkExposure,
-			&i.DocumentationUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -192,20 +180,18 @@ const updateAPI = `-- name: UpdateAPI :one
 UPDATE inventory.apis
 SET name = $1,
     api_type = $2,
-    network_exposure = $3,
-    documentation_url = $4
-WHERE id = $5
-  AND component_id = $6
-RETURNING id, component_id, name, api_type, network_exposure, documentation_url
+    network_exposure = $3
+WHERE id = $4
+  AND component_id = $5
+RETURNING id, component_id, name, api_type, network_exposure
 `
 
 type UpdateAPIParams struct {
-	Name             string
-	ApiType          string
-	NetworkExposure  InventoryNetworkExposure
-	DocumentationUrl *string
-	ApiID            int64
-	ComponentID      int64
+	Name            string
+	ApiType         string
+	NetworkExposure InventoryNetworkExposure
+	ApiID           int64
+	ComponentID     int64
 }
 
 func (q *Queries) UpdateAPI(ctx context.Context, arg UpdateAPIParams) (InventoryApi, error) {
@@ -213,7 +199,6 @@ func (q *Queries) UpdateAPI(ctx context.Context, arg UpdateAPIParams) (Inventory
 		arg.Name,
 		arg.ApiType,
 		arg.NetworkExposure,
-		arg.DocumentationUrl,
 		arg.ApiID,
 		arg.ComponentID,
 	)
@@ -224,7 +209,6 @@ func (q *Queries) UpdateAPI(ctx context.Context, arg UpdateAPIParams) (Inventory
 		&i.Name,
 		&i.ApiType,
 		&i.NetworkExposure,
-		&i.DocumentationUrl,
 	)
 	return i, err
 }
