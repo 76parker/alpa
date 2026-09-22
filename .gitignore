@@ -29,3 +29,16 @@ coverage/
 
 # macOS metadata (at any depth)
 .DS_Store
+.neon
+
+# neon variables
+.neon
+package.json
+package-lock.json
+skills-lock.json
+.agents
+neon.ts
+
+# API E2E test artifacts
+services/api-server/tests/e2e/coverage.out
+services/api-server/tests/e2e/results/
